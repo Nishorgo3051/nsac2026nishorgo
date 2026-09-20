@@ -1,0 +1,15 @@
+[
+  "C:\\Program Files\\nodejs\\node.EXE",
+  "C:\\Users\\USER\\AppData\\Roaming\\npm\\node_modules\\@openai\\codex\\bin\\codex.js",
+  "exec",
+  "resume",
+  "01a0a3f2-2997-7f41-9d3c-efe655c36c81",
+  "-c",
+  "sandbox_mode=\"workspace-write\"",
+  "-c",
+  "approval_policy=\"never\"",
+  "--json",
+  "-o",
+  "C:\\Users\\USER\\AppData\\Local\\Temp\\cx-shakti\\claudex-v6zlm3nt\\reply.txt",
+  "-"
+]

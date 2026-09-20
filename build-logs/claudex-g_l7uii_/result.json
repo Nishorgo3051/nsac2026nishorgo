@@ -1,0 +1,85 @@
+{
+  "status": "completed",
+  "mode": "build",
+  "provider": "codex",
+  "roles": {
+    "host": "claude",
+    "planner": "claude",
+    "reviewer": "codex",
+    "builder": "codex",
+    "inspector": "claude"
+  },
+  "repo": "C:\\Users\\USER\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Roaming\\Claude\\scratch-workspaces\\feffbc0b-84f9-4f54-b7f8-cb7297d93365\\b9bca650-4693-4071-aeb3-18fc7440e1ab\\scratch-2026-09-07-d4a4a0\\shakti-map",
+  "plan": "C:\\Users\\USER\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Roaming\\Claude\\scratch-workspaces\\feffbc0b-84f9-4f54-b7f8-cb7297d93365\\b9bca650-4693-4071-aeb3-18fc7440e1ab\\scratch-2026-09-07-d4a4a0\\shakti-map\\docs\\WORK_ORDER.md",
+  "plan_sha256": "435fae8482dff4b83e813ce804b5c10ca226edd873f039ec93f27a5f99d04c01",
+  "requested_model": null,
+  "requested_effort": null,
+  "base": "535229cea10992a6d85963ad13abbaad40198889",
+  "snapshot": {
+    "base": "535229cea10992a6d85963ad13abbaad40198889",
+    "files": [
+      {
+        "path": "scripts/build_data.mjs",
+        "kind": "file",
+        "sha256": "6655d1532ebcabd51a6f34302a1d5b67a5591a0dc14a7f3ab8374bb72ca3b42e"
+      },
+      {
+        "path": "tests/build.test.mjs",
+        "kind": "file",
+        "sha256": "f6f69a2c8927a5f2669e95ea9fa0d4915f0fc89b85bc93097417172fa8cf41e4"
+      },
+      {
+        "path": "tests/calc.test.mjs",
+        "kind": "file",
+        "sha256": "75d20ffbf4a6fd48334f05b1f56cbd318e072fe6b272a9a933f340ada76b53dc"
+      },
+      {
+        "path": "tests/index.js",
+        "kind": "file",
+        "sha256": "c2690ea5ab3ee0ba8289caa2237fe5dc9bcbfa8e4b4d83054cf2ed402e210f5e"
+      },
+      {
+        "path": "web/app.js",
+        "kind": "file",
+        "sha256": "02e6d2a1b74e15186e2155c374d0f363be0aa99924998583020135f72df07176"
+      },
+      {
+        "path": "web/calc.js",
+        "kind": "file",
+        "sha256": "497d22c3c241f12bebab1c47f471b4845556b8601692aa3af788a5f8d4b2d084"
+      },
+      {
+        "path": "web/data.js",
+        "kind": "file",
+        "sha256": "bea7fad2b736476ab81185356ffb000a4b708f33543f737e9bf5edeed3fdfd37"
+      },
+      {
+        "path": "web/index.html",
+        "kind": "file",
+        "sha256": "b2f8aeac367cde3e7d26df84a12858bb2cb5e1b7a59e1223d67163d071463d15"
+      }
+    ],
+    "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sha256": "ad979dcecebccb37b69680d3b36bd0f0d508f1cc021a41a46de108ff5e4c4786"
+  },
+  "previous": "C:/Users/USER/AppData/Local/Temp/cx-shakti/claudex-s36rhf_d/result.json",
+  "started_at": 1789457932.171943,
+  "artifacts": "C:\\Users\\USER\\AppData\\Local\\Temp\\cx-shakti\\claudex-g_l7uii_",
+  "cli_version": "codex-cli 0.147.0",
+  "executable": [
+    "C:\\Program Files\\nodejs\\node.EXE",
+    "C:\\Users\\USER\\AppData\\Roaming\\npm\\node_modules\\@openai\\codex\\bin\\codex.js"
+  ],
+  "exit_code": 0,
+  "session_id": "01a0a3f2-2997-7f41-9d3c-efe655c36c81",
+  "response": "Implemented the coordinator’s round-one fixes and regenerated the bundled data.\n\nFixed:\n\n- Appliance input focus/caret is restored after live recalculation.\n- SVG map now renders district `<path>` outlines when available, with projected clickable centre-dot fallback for empty paths; keyboard selection added.\n- Localized wind verdict wording and styled verdict chips.\n- Cyclone dates are human-formatted; “what would fix it” only appears after a failure; added battery 0/50/100 labels, keyboard/hover detail text, and an 8-day table.\n- Added horizontal table wrappers and removed body-level horizontal clipping.\n- `web/data.js` is ASCII-only; `data.js` script declares UTF-8; test verifies Remal Bangla name.\n- Localized month labels and displayed digits in key Bangla-mode areas.\n- Build tests now validate all three climatology grids.\n\nFiles changed:\n\n- `scripts/build_data.mjs`\n- `web/index.html`\n- `web/app.js`\n- `web/data.js`\n- `tests/build.test.mjs`\n\nProof command passed:\n\n```text\nBuilt web/data.js: 64 districts, 9 cyclones.\ntests 6\npass 6\nfail 0\n```\n\nAlso passed `node --check web/app.js`.\n\nDenied/blocked actions: none. No commit, push, publish, dependencies, or external runtime data calls.\n\nDeviation: district boundary paths remain empty in the current supplied data, so the implemented centre-dot fallback remains active until the coordinator applies the promised regenerated outlines.",
+  "usage": {
+    "input_tokens": 2657076,
+    "cached_input_tokens": 2556416,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 27642,
+    "reasoning_output_tokens": 2175
+  },
+  "observed_models": [],
+  "elapsed_seconds": 447.75
+}

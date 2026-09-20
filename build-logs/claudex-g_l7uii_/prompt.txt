@@ -1,0 +1,169 @@
+Implement the attached frozen work order within this checkout. Do not commit, push or publish. Resolve source paths relative to this checkout; never edit an original checkout named in the plan. Do not silently redesign an impossible requirement: report it and the proposed deviation. Run the agreed proof command: node scripts/build_data.mjs && node --test tests/
+Report files changed, proof output, denied/blocked actions, and deviations. Your report is advisory; another provider will independently review the final changes.
+
+PLAN PATH: C:\Users\USER\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\scratch-workspaces\feffbc0b-84f9-4f54-b7f8-cb7297d93365\b9bca650-4693-4071-aeb3-18fc7440e1ab\scratch-2026-09-07-d4a4a0\shakti-map\docs\WORK_ORDER.md
+PLAN SHA256: 435fae8482dff4b83e813ce804b5c10ca226edd873f039ec93f27a5f99d04c01
+<plan>
+# Work order: Shakti Map (শক্তি ম্যাপ) — v1 prototype
+
+Status: standalone work order written by the coordinating agent from decisions the user made in conversation (15 Sep 2026). Not independently plan-reviewed.
+
+## 1. What it is
+
+A Bangla-first web app for Bangladesh. The user picks a **place** and a **building** (cyclone shelter, village home or rural clinic) and gets:
+
+1. How much natural energy is available there — **sunlight** and **wind** month by month (NASA POWER data), plus **biogas** from cattle dung the user says is nearby.
+2. A plain recommendation: solar panel size, number of panels, battery size, and whether biogas or wind is worth adding.
+3. **The cyclone-week test**: using real NASA daily sunlight from a past cyclone at that place, simulate day by day whether the building's essential loads stay powered.
+
+It is a practice prototype for a NASA Space Apps team (event 14–15 Nov 2026). It must be honest: every number shows its source or assumption, and it says clearly what it does not model.
+
+Audience: non-technical users in Bangladesh (Bangla), plus judges (English). Primary device: phone.
+
+## 2. Decisions already made (do not change)
+
+- Resources in v1: **sunlight, wind, temperature (context), biogas (user-entered cattle count)**.
+- **Excluded in v1**, shown in a "Not included yet, and why" panel: river current power (Bangladesh is mostly too flat; micro-hydro only in the Chittagong Hill Tracts), tidal power (only a few estuary sites; no reliable open data wired in yet), wave power (weak in the Bay of Bengal), algae (not practical at this scale yet). No calculations for these.
+- Building types: cyclone shelter, village home, rural clinic, chosen by the user, each with an editable appliance list.
+- No backend, no accounts, no AI chat, no live network calls from the page, no cost estimates in v1.
+- Static files only, published later by the coordinator as a Claude Artifact. **The page must not fetch any external URL at runtime** (the host's Content-Security-Policy blocks it). All data ships as a local script (`web/data.js`). Fonts may load from Google Fonts only. No external JS libraries are needed; do not add any.
+
+## 3. Inputs already in the repository (created by the coordinator)
+
+- `data/districts.json` — 64 districts from the official BBS/UN OCHA boundaries (HDX COD-AB): `{box, lat0, scale, width, height, districts:[{code,en,division,lat,lon,path}]}`. `path` is an SVG path in a viewBox of `width × height` (equirectangular: x = (lon − box.lonMin)·cos(lat0°)·scale, y = (box.latMax − lat)·scale).
+- `data/power/manifest.json` — fetch date, source, `climatologyPeriod` (NASA's own text: 20-year climatology, January 2001 – December 2020), per-file URLs, units and point counts, and the cyclone list with each window's darkest day.
+- `data/power/sun_climatology.json` — `ALLSKY_SFC_SW_DWN` monthly climatology, kWh/m²/day, CERES SYN1deg 1° grid (35 points): `{parameter, units, points:[{lon,lat,values:{JAN..DEC,ANN}}]}`.
+- `data/power/wind50_climatology.json` — `WS50M` monthly climatology, m/s at 50 m, MERRA-2 0.5°×0.625° grid (112 points), same shape.
+- `data/power/temp_climatology.json` — `T2M` monthly climatology, °C, MERRA-2 grid (112 points), same shape.
+- `data/power/cyclone_<id>.json` for fani, bulbul, amphan, yaas, sitrang, mocha, hamoon, midhili, remal — daily `ALLSKY_SFC_SW_DWN` for 8 days (3 days before to 4 days after landfall), 35 points: `{id, name, bn, landfall, points:[{lon,lat,days:{YYYYMMDD: value}}]}`. Missing values are already `null`.
+
+## 4. Files to create
+
+- `scripts/build_data.mjs` — reads everything in section 3, validates it, and writes `web/data.js` as `window.SHAKTI_DATA = {...};`. It must exit non-zero if: any climatology file has fewer than 30 points or a missing month; any cyclone file lacks 8 days; `districts.json` does not have exactly 64 districts; fewer than 9 cyclone files are found.
+- `web/calc.js` — **pure ES module**, no DOM access, all formulas in section 5, all constants exported with names. Must be importable by Node tests and by the browser.
+- `web/app.js` — ES module UI; imports `./calc.js`; reads `window.SHAKTI_DATA`.
+- `web/index.html` — the page. Starts with `<title>Shakti Map</title>` and a `<style>` block. The host adds the doctype/html/head/body skeleton at publish, so **do not write `<!DOCTYPE>`, `<html>`, `<head>` or `<body>` tags**. Loads `data.js` with a classic script, then `app.js` with `type="module"`. All paths relative (no leading slash).
+- `tests/*.test.mjs` — `node:test` tests (section 7).
+- `package.json` already exists with `"type": "module"` and zero dependencies; keep it that way.
+
+## 5. Calculations (put in `web/calc.js`, all exported)
+
+Constants (exported, shown on the page):
+- `PERFORMANCE_RATIO = 0.75` (heat, dust, wiring and inverter losses)
+- `PANEL_WATTS = 400`
+- `BATTERY_DEPTH = 0.8` (usable share of battery capacity)
+- `BATTERY_EFFICIENCY = 0.9` (round trip)
+- `AUTONOMY_DAYS = 2` (default days of storage for essential loads; user-editable 1–5)
+- `DUNG_KG_PER_COW_DAY = 10` (source: 10–11.5 kg/day, ScienceDirect review of cow dung management, https://www.sciencedirect.com/science/article/pii/S2772912524000745)
+- `BIOGAS_M3_PER_KG_DUNG = 0.04` (typical fresh cattle dung yield; IDCOL household plants run on about 30 kg of dung a day, https://www.thedailystar.net/news-detail-214675)
+- `KWH_ELECTRIC_PER_M3_BIOGAS = 1.5` (small biogas generator; conservative assumption, label it as such)
+- `WIND_SHEAR_ALPHA = 0.143`, `WIND_HUB_HEIGHT_M = 20`
+- Wind verdict thresholds at hub height: `< 4.0 m/s` "not worth it", `4.0 to < 5.0` "marginal — measure first", `≥ 5.0` "promising — measure first"
+
+Functions (names are a contract; tests call them):
+- `nearestPoint(points, lat, lon)` → the point with the smallest great-circle distance; returns `{point, km}`.
+- `dailyLoadKwh(appliances, {essentialOnly} = {})` → Σ count × watts × hours / 1000, optionally only rows with `essential: true`.
+- `designSunHours(values)` → `{value, month}` for the lowest of the 12 monthly values (JAN..DEC; ignore ANN).
+- `sizeSolar(loadKwh, sunHours)` → `{kWp, panels, installedKwp}` with `kWp = loadKwh / (sunHours × PERFORMANCE_RATIO)`, `panels = ceil(kWp × 1000 / PANEL_WATTS)` (at least 1 when load > 0), `installedKwp = panels × PANEL_WATTS / 1000`.
+- `sizeBattery(essentialKwh, autonomyDays)` → `nominalKwh = essentialKwh × autonomyDays / (BATTERY_DEPTH × BATTERY_EFFICIENCY)`.
+- `windAtHub(v50)` → `v50 × (WIND_HUB_HEIGHT_M / 50) ^ WIND_SHEAR_ALPHA`; `windVerdict(hubSpeed)` → `"not-worth-it" | "marginal" | "promising"`.
+- `biogas(cows)` → `{dungKg, m3, kwh}` per day.
+- `simulateCycloneWeek({days, installedKwp, batteryNominalKwh, essentialKwh, biogasKwh = 0})`:
+  - `days`: array of `{date, sun}` (kWh/m²/day; `null` = missing → treat as 0 and set `missing: true`).
+  - Battery starts full: `usable = batteryNominalKwh × BATTERY_DEPTH`.
+  - Each day: `solarKwh = installedKwp × sun × PERFORMANCE_RATIO`; `supplyKwh = solarKwh + biogasKwh`; `net = supplyKwh − essentialKwh`. If `net ≥ 0`, charge by `net × BATTERY_EFFICIENCY`, capped at `usable`. Otherwise discharge `−net`; if the battery can't cover it, record `shortfallKwh` for that day and set the battery to 0.
+  - Returns `{days: [{date, sun, solarKwh, supplyKwh, batteryKwh, batteryPct, shortfallKwh, missing}], summary: {survived, firstShortfallDate, totalShortfallKwh, lowestPct}}` where `survived` means every day's `shortfallKwh === 0` and `batteryPct = batteryKwh / usable × 100`.
+
+## 6. Building presets (editable in the UI; each row: `name_bn`, `name_en`, `count`, `watts`, `hours`, `essential`)
+
+- **Cyclone shelter** (about 1,000 people): LED lights 20 × 10 W × 12 h (essential); ceiling fans 20 × 60 W × 8 h (not essential); phone charging 50 × 10 W × 1 h (essential); water pump 1 × 750 W × 2 h (essential); radio / public address 1 × 50 W × 6 h (essential).
+- **Village home**: LED lights 4 × 7 W × 5 h (essential); fans 2 × 50 W × 8 h (not essential); phone charging 2 × 10 W × 1 h (essential); TV 1 × 60 W × 4 h (not essential).
+- **Rural clinic**: vaccine/medicine fridge 1 × 60 W × 24 h (essential); LED lights 10 × 10 W × 12 h (essential); fans 6 × 60 W × 8 h (not essential); medical equipment 1 × 300 W × 3 h (essential); water pump 1 × 750 W × 1 h (essential).
+
+Label these as example assumptions the user can change. Export the presets from `calc.js` (or a small `presets.js`) so tests can use them.
+
+## 7. Tests (proof command: `node scripts/build_data.mjs && node --test tests/`)
+
+Tests must check formulas against hand-computed values, not just "returns something":
+- `dailyLoadKwh` for the village-home preset = (4·7·5 + 2·50·8 + 2·10·1 + 1·60·4)/1000 = 1.200 kWh; essential only = (140 + 20)/1000 = 0.160 kWh.
+- `sizeSolar(1.2, 4.0)` → kWp = 0.4, panels = 1, installedKwp = 0.4.
+- `sizeBattery(0.16, 2)` → 0.16 × 2 / 0.72 = 0.4444… kWh.
+- `windAtHub(5)` ≈ 4.39 m/s (±0.01); `windVerdict` returns `not-worth-it` at 3.99, `marginal` at 4.0 and 4.99, `promising` at 5.0.
+- `biogas(3)` → 30 kg, 1.2 m³, 1.8 kWh.
+- `designSunHours` returns the lowest month and ignores `ANN`.
+- `simulateCycloneWeek`: a hand-built 3-day case where day 2 has a shortfall — assert exact battery kWh per day, `firstShortfallDate`, `survived === false`; a case with ample supply where `survived === true`; a `null` sun day is treated as 0 and flagged `missing`.
+- `nearestPoint` picks the correct grid point for Kutubdia (21.82 N, 91.86 E) from a small fixture.
+- Running `build_data.mjs` produces `web/data.js` defining `SHAKTI_DATA` with 64 districts, ≥30 points per climatology, 9 cyclones and the climatology period string.
+
+## 8. Page behaviour (acceptance criteria)
+
+1. **Opens in a realistic working state**: preselected sample place (Kutubdia), cyclone shelter and Cyclone Remal (2024), with results already showing. No empty shell.
+2. **Place picker**: a clickable SVG map of the 64 districts (from `districts.json`), a district dropdown, and sample places: Kutubdia (21.82, 91.86), Hatiya (22.30, 91.10), Sandwip (22.48, 91.45), Kuakata (21.82, 90.12), Chilmari char, Kurigram (25.56, 89.67), Rangamati (22.65, 92.17), Dhaka (23.81, 90.41). Clicking a district uses its centre point. Show the chosen point on the map and "nearest NASA grid point: X km away".
+3. **Building picker** (3 buttons) + editable appliance table (count, watts, hours, essential tick). Totals update live.
+4. **Sunlight card**: 12-month bar chart of kWh/m²/day, the lowest month highlighted and named ("design month"), and the annual average.
+5. **Wind card**: 12-month wind at 20 m (converted from 50 m), verdict chip, one-line explanation. It must say that modelled wind is not a substitute for measuring at the site.
+6. **Biogas card**: cattle count input (0–200), shows dung kg, biogas m³ and kWh per day, with the assumption constants visible.
+7. **Recommendation card**: daily load (all / essential), solar kWp and number of 400 W panels, battery kWh, whether to add biogas (worth it if it covers ≥ 25 % of the essential load) and the wind verdict. Numbers use tabular figures in columns; Bangla numerals in Bangla mode.
+8. **Cyclone-week test**: picker for the 9 past cyclones; two aligned small charts sharing the day axis — (a) daily sunlight or solar kWh bars, (b) battery % line with shortfall days marked — **never a dual-axis chart**. A clear verdict line: "✓ Essentials stayed on all 8 days" or "✗ Power ran out on <date>", plus "what would fix it": the smallest autonomy (1–5 days) for which `survived` is true, or a statement that 5 days isn't enough.
+9. **Language toggle** Bangla ⇄ English for all UI text (Bangla default). Place and cyclone names have both.
+10. **Honesty panel**: assumptions (all constants), data sources with links (NASA POWER, HDX COD-AB, the two biogas sources), the climatology period from `manifest.json`, grid resolutions (sunlight 1°, wind/temperature 0.5°×0.625°), and the "Not included yet, and why" list from section 2.
+11. **Practice-build notice** in the footer: "Practice build · student prototype · not engineering advice".
+12. Works at 360 px wide and on desktop; the body never scrolls sideways; charts have tooltips on hover and keyboard focus and a "show as table" view; keyboard focus is visible; respects `prefers-reduced-motion`.
+13. Light and dark themes via CSS tokens: bare `:root` holds the full light palette; `@media (prefers-color-scheme: dark)` with `:root:not([data-theme="light"])`, and `:root[data-theme="dark"]`, redefine the tokens; `body` sets an explicit background from a token.
+14. Series colours come from the palette in section 9, text never takes a series colour, and any chart with two or more series has a legend.
+
+## 9. Design direction
+
+- **Subject world**: rural electrification in Bangladesh — solar home systems on tin roofs, cyclone shelters, monsoon skies, IDCOL biogas domes. Calm, practical, trustworthy; not a flashy "energy tech" landing page.
+- **Type**: display `"Anek Bangla"` (the Bangla wordmark শক্তি ম্যাপ and section heads); body `"Hind Siliguri"`; numbers and labels `"IBM Plex Mono"`. All from Google Fonts with fallback stacks.
+- **Palette** (validated by the coordinator for colour-blind separation in this slot order: sun, wind, battery, biogas; use exactly):
+  - Light: surface `#f6f8f7`, ink `#15201d`, secondary ink `#4a5a55`, rule `#cfd9d5`; series — sun `#c9730a`, wind `#008c9e`, battery `#4b55c9`, biogas `#4f8a1c`; shortfall/critical `#c4302b`.
+  - Dark: surface `#121816`, ink `#e4ebe8`, secondary ink `#a2b2ac`, rule `#26332f`; series — sun `#cc7b12`, wind `#1f9fa4`, battery `#7c86ee`, biogas `#5a9a27`; shortfall `#e5534b`.
+- Avoid: warm cream + serif + terracotta, purple gradients, emoji section markers, cards with accent rails everywhere, everything centred.
+- Hero: the Bangla wordmark with one line of thesis ("প্রকৃতির বিদ্যুৎ কোথায়, কতটা, কী চালাতে পারে" / "Where nature's power is, how much, and what it can run") beside the live result for the preselected place. Not a full-viewport hero.
+
+## 10. Out of scope for this build
+
+Publishing the artifact, fetching new data, any backend, cost estimates, tidal/river/wave/algae calculations, translations beyond Bangla/English, service workers.
+
+</plan>
+Check prior findings against this revision; do not relitigate resolved items without new evidence.
+
+HOST DISPOSITIONS / FIX REQUEST:
+# Fix round 1 — findings from the coordinator's inspection
+
+Base commit: 535229c. Keep the work order (docs/WORK_ORDER.md) as the spec. The proof command is unchanged: `node scripts/build_data.mjs && node --test tests/`.
+
+## About the empty district outlines (coordinator's data bug)
+- You were right: `data/districts.json` has empty `path` strings. `scripts/01_districts.mjs` ran Douglas–Peucker on closed rings (first vertex = last vertex), which collapses every outline.
+- The coordinator has a fix ready and will apply it after this round. It regenerates `data/districts.json` with 64 real outlines, the same `{box, lat0, scale, width, height}` fields, and paths in a `0 0 {width} {height}` viewBox. The viewBox is currently `0 0 688.6 976`.
+- **Don't edit `scripts/01_districts.mjs` or `data/districts.json`.** Implement finding 2 against the documented format. While a district's `path` is empty, draw its centre dot instead, so the page works both before and after the data fix.
+
+## Findings to fix (all in your files)
+
+### High
+1. **Appliance table loses focus on every keystroke** (`web/app.js`, confirmed in a browser: `document.activeElement` becomes BODY after one `input` event). Each `input` event calls `render()`, which replaces `app.innerHTML`, destroying the field being edited. Fix: don't rebuild the whole page from text inputs. Either render the static shell once and update only the result sections, or re-render on `change` and update totals on `input` without replacing the table. Editing a number must keep focus and the caret. The essential checkbox, cattle count, autonomy and cyclone controls must keep working.
+2. **Use the real district outlines** (`web/app.js`). Draw each district as `<path d="...">` from `SHAKTI_DATA.districts.districts[].path`, in `viewBox="0 0 {width} {height}"` from `SHAKTI_DATA.districts`. Use the centre-dot fallback above only when a path is empty. Place the pin and any dots with the same projection: `x = (lon − box.lonMin)·cos(lat0°)·scale`, `y = (box.latMax − lat)·scale`. Highlight the selected district. Make each district keyboard-reachable (`tabindex="0"`, Enter or Space selects) with an accessible name. The map must be readable on a phone: about 60 vh at most, keeping the aspect ratio.
+
+### Medium
+3. **Wind verdict shows raw keys** (`not-worth-it`, `marginal`, `promising`) in the wind and recommendation cards, in both languages. Show the work order's wording: "not worth it" / "marginal — measure first" / "promising — measure first". In Bangla: "লাভজনক নয়" / "সীমান্তরেখায় — আগে মেপে দেখুন" / "সম্ভাবনাময় — আগে মেপে দেখুন". Style the chip by verdict without putting series colours on text.
+4. **Cyclone-week test**:
+   - Format dates for people: "27 May 2024" / "২৭ মে ২০২৪". The verdict line currently prints `20240527`.
+   - Show "what would fix it" only when `survived` is false.
+   - Add a "show as table" view for the 8 days: date, sunlight, solar kWh, battery %, shortfall kWh, missing flag.
+   - Label the battery chart's y-axis at 0 / 50 / 100 %.
+   - Make each day's values readable on keyboard focus as well as hover, for example with a detail line that updates on focus or hover. A `title` attribute alone isn't enough.
+5. **Narrow screens** (`web/index.html`). Confirmed at 360 px with a viewport meta: the appliance card's content is 363 px wide in a 334 px card. `body{overflow-x:hidden}` hides the clipping. Wrap every table in its own `overflow-x:auto` container and remove the body-level `overflow-x:hidden`.
+6. **Honesty panel is missing constants**: list every exported constant with its value and meaning, including `PANEL_WATTS`, `AUTONOMY_DAYS` (default), `WIND_SHEAR_ALPHA`, `WIND_HUB_HEIGHT_M`, the wind thresholds, and the three biogas constants with their sources.
+7. **Garbled Bangla cyclone names** (confirmed in a browser): the cyclone dropdown shows mojibake such as `à¦†à¦®à§à¦ªà¦¾à¦¨ (2020)` instead of আম্পান. `web/data.js` loads as a classic script, so it's decoded with the document's encoding, which isn't guaranteed to be UTF-8. `app.js` is a module, so it's always UTF-8. Fix in both places:
+   - `scripts/build_data.mjs` writes `data.js` with every non-ASCII character escaped as `\uXXXX`, so the file is pure ASCII.
+   - Add `charset="utf-8"` to the `data.js` script tag in `index.html`.
+   - Add a test that `web/data.js` has no bytes above 0x7F and that the parsed Remal record's `bn` equals "রিমাল".
+8. **Mixed digits in Bangla mode**: some numbers still print Latin digits — `12 × 400W`, `সমাধান: 1 দিন...`, the cyclone year `(2020)`, the day labels `23 … 30`, the constants line. Route every displayed number through the same locale formatter. Month keys like `JUL` also appear in Bangla mode for the design month; show localised month names.
+
+### Low
+9. `tests/build.test.mjs` checks only the sunlight climatology. Assert ≥ 30 points for sun, wind and temp.
+10. The hero should show a compact live result for the selected place beside the wordmark, per the work order section 9: panels, battery kWh and the cyclone-week verdict. Right now it shows only the place name and coordinates.
+11. Sunlight and wind charts: label each bar with a short month name, localised in Bangla mode, instead of the ambiguous single letters J F M A M J J A S O N D. Keep "show as table".
+
+Report which findings you fixed, anything you couldn't, and the proof command output.

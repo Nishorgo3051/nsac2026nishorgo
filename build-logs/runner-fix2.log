@@ -1,0 +1,31 @@
+{"provider": "codex", "model": "CLI default (unresolved)", "mode": "build", "artifacts": "C:\\Users\\USER\\AppData\\Local\\Temp\\cx-shakti\\claudex-v6zlm3nt"}
+{
+  "status": "failed",
+  "mode": "build",
+  "provider": "codex",
+  "roles": {
+    "host": "claude",
+    "planner": "claude",
+    "reviewer": "codex",
+    "builder": "codex",
+    "inspector": "claude"
+  },
+  "repo": "C:\\Users\\USER\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Roaming\\Claude\\scratch-workspaces\\feffbc0b-84f9-4f54-b7f8-cb7297d93365\\b9bca650-4693-4071-aeb3-18fc7440e1ab\\scratch-2026-09-07-d4a4a0\\shakti-map",
+  "plan": "C:\\Users\\USER\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Roaming\\Claude\\scratch-workspaces\\feffbc0b-84f9-4f54-b7f8-cb7297d93365\\b9bca650-4693-4071-aeb3-18fc7440e1ab\\scratch-2026-09-07-d4a4a0\\shakti-map\\docs\\WORK_ORDER.md",
+  "plan_sha256": "435fae8482dff4b83e813ce804b5c10ca226edd873f039ec93f27a5f99d04c01",
+  "requested_model": null,
+  "requested_effort": null,
+  "base": "535229cea10992a6d85963ad13abbaad40198889",
+  "snapshot": null,
+  "previous": "C:/Users/USER/AppData/Local/Temp/cx-shakti/claudex-g_l7uii_/result.json",
+  "started_at": 1789458593.8698342,
+  "artifacts": "C:\\Users\\USER\\AppData\\Local\\Temp\\cx-shakti\\claudex-v6zlm3nt",
+  "cli_version": "codex-cli 0.147.0",
+  "executable": [
+    "C:\\Program Files\\nodejs\\node.EXE",
+    "C:\\Users\\USER\\AppData\\Roaming\\npm\\node_modules\\@openai\\codex\\bin\\codex.js"
+  ],
+  "exit_code": 1,
+  "error": "codex exited 1; inspect stdout.txt and stderr.txt.",
+  "elapsed_seconds": 199.18
+}

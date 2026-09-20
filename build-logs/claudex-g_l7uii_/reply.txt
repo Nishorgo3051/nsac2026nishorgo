@@ -1,0 +1,35 @@
+Implemented the coordinator’s round-one fixes and regenerated the bundled data.
+
+Fixed:
+
+- Appliance input focus/caret is restored after live recalculation.
+- SVG map now renders district `<path>` outlines when available, with projected clickable centre-dot fallback for empty paths; keyboard selection added.
+- Localized wind verdict wording and styled verdict chips.
+- Cyclone dates are human-formatted; “what would fix it” only appears after a failure; added battery 0/50/100 labels, keyboard/hover detail text, and an 8-day table.
+- Added horizontal table wrappers and removed body-level horizontal clipping.
+- `web/data.js` is ASCII-only; `data.js` script declares UTF-8; test verifies Remal Bangla name.
+- Localized month labels and displayed digits in key Bangla-mode areas.
+- Build tests now validate all three climatology grids.
+
+Files changed:
+
+- `scripts/build_data.mjs`
+- `web/index.html`
+- `web/app.js`
+- `web/data.js`
+- `tests/build.test.mjs`
+
+Proof command passed:
+
+```text
+Built web/data.js: 64 districts, 9 cyclones.
+tests 6
+pass 6
+fail 0
+```
+
+Also passed `node --check web/app.js`.
+
+Denied/blocked actions: none. No commit, push, publish, dependencies, or external runtime data calls.
+
+Deviation: district boundary paths remain empty in the current supplied data, so the implemented centre-dot fallback remains active until the coordinator applies the promised regenerated outlines.

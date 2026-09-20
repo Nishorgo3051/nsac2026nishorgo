@@ -1,0 +1,27 @@
+Implemented the Shakti Map static prototype.
+
+Files changed:
+
+- `scripts/build_data.mjs`
+- `web/index.html`
+- `web/app.js`
+- `web/calc.js`
+- `web/data.js` (generated)
+- `tests/calc.test.mjs`
+- `tests/build.test.mjs`
+- `tests/index.js`
+
+Proof command passed (run through `cmd` because this checkout’s PowerShell does not support `&&`):
+
+```text
+Built web/data.js: 64 districts, 9 cyclones.
+tests 6
+pass 6
+fail 0
+```
+
+Also passed syntax checks for `web/app.js` and `web/calc.js`.
+
+Deviation reported: every district’s supplied SVG `path` is empty, so a boundary-shaped 64-district map is impossible from the checkout data. I implemented the clickable SVG picker using all supplied district centre points instead; dropdown selection and map clicks use those coordinates.
+
+Denied/blocked actions: none. No commit, push, publishing, runtime external data fetches, or dependency additions were made.

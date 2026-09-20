@@ -1,0 +1,44 @@
+2026-09-15T07:49:54.321025Z ERROR codex_models_manager::manager: failed to load models cache: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:50:14.601376Z ERROR codex_core::tools::router: error=apply_patch verification failed: Failed to find expected lines in C:\Users\USER\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\scratch-workspaces\feffbc0b-84f9-4f54-b7f8-cb7297d93365\b9bca650-4693-4071-aeb3-18fc7440e1ab\scratch-2026-09-07-d4a4a0\shakti-map\web\app.js:
+if(field){field.focus();field.setSelectionRange?.(focus.start,focus.end)}}
+2026-09-15T07:50:14.671122Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:50:25.150054Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:50:35.723571Z ERROR codex_core::tools::router: error=apply_patch verification failed: Failed to find expected lines in C:\Users\USER\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\scratch-workspaces\feffbc0b-84f9-4f54-b7f8-cb7297d93365\b9bca650-4693-4071-aeb3-18fc7440e1ab\scratch-2026-09-07-d4a4a0\shakti-map\web\app.js:
+field.setSelectionRange?.(focus.start,focus.end)
+2026-09-15T07:50:35.782053Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:50:50.164458Z ERROR codex_core::exec: exec error: windows sandbox: CreateProcessWithLogonW failed: 267
+2026-09-15T07:50:50.165598Z ERROR codex_core::tools::router: error=execution error: Io(Custom { kind: Other, error: "windows sandbox: CreateProcessWithLogonW failed: 267" })
+2026-09-15T07:50:50.220182Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:51:01.434859Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 2 seconds
+Output:
+Exception calling "Substring" with "2" argument(s): "Index and length must refer to a location within the string.
+Parameter name: length"
+At line:2 char:69
++ ... b\app.js; $i=$s.IndexOf('setSelectionRange'); $s.Substring($i-60,180)
++                                                   ~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
+    + FullyQualifiedErrorId : ArgumentOutOfRangeException
+ 
+
+2026-09-15T07:51:01.489445Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:51:12.213892Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:51:22.073510Z ERROR codex_core::tools::router: error=apply_patch verification failed: Failed to find expected lines in C:\Users\USER\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\scratch-workspaces\feffbc0b-84f9-4f54-b7f8-cb7297d93365\b9bca650-4693-4071-aeb3-18fc7440e1ab\scratch-2026-09-07-d4a4a0\shakti-map\web\app.js:
+if(field){field.focus();field.setSelectionRange?.(focus.start,focus.end)}}
+2026-09-15T07:51:22.126478Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:51:39.348430Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:51:49.767589Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:52:00.336066Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 1.6 seconds
+Output:
+
+2026-09-15T07:52:00.390266Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:52:09.296299Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:52:23.662662Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:52:32.783811Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:52:45.061366Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_parallel_tool_calls` at line 88 column 5
+2026-09-15T07:53:07.333678Z ERROR codex_core::tools::router: error=Exit code: 124
+Wall time: 11.4 seconds
+Output:
+command timed out after 11398 milliseconds
+
