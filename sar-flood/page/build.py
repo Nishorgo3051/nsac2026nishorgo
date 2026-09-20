@@ -42,14 +42,19 @@ def upazila_rows():
 def main():
     page = (HERE / "mapper.src.html").read_text(encoding="utf-8")
     fills = {"{{UPAZILA_ROWS}}": upazila_rows()}
-    for key, filename in (("FLOOD", "flood_extent.py"), ("NISAR", "nisar_flood.py"),
-                          ("TEST", "test_flood_extent.py"), ("REQ", "requirements.txt")):
+    # (placeholder for the code, placeholder for its line count or None, file)
+    for code_key, lines_key, filename in (("{{FLOOD_PY}}", "{{FLOOD_LINES}}", "flood_extent.py"),
+                                          ("{{NISAR_PY}}", "{{NISAR_LINES}}", "nisar_flood.py"),
+                                          ("{{TEST_PY}}", "{{TEST_LINES}}", "test_flood_extent.py"),
+                                          ("{{REQ}}", None, "requirements.txt")):
         source = (PROJECT / filename).read_text(encoding="utf-8")
-        fills[f"{{{{{key}_PY}}}}"] = html.escape(source.strip() if key == "REQ" else source)
-        fills[f"{{{{{key}_LINES}}}}"] = str(source.count("\n"))
+        fills[code_key] = html.escape(source if lines_key else source.strip())
+        if lines_key:
+            fills[lines_key] = str(source.count("\n"))
     for key, value in fills.items():
-        if key in page:                       # REQ_LINES is unused; that is fine
-            page = page.replace(key, value)
+        if key not in page:
+            raise SystemExit(f"The template no longer uses {key}. Update build.py or the template.")
+        page = page.replace(key, value)
     left = [line for line in page.splitlines() if "{{" in line]
     if left:
         raise SystemExit(f"Unfilled placeholder in the template: {left[0].strip()[:80]}")

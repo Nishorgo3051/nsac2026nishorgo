@@ -1,0 +1,1262 @@
+<title>Bangladesh SAR Flood Mapper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --ground: #f2f5f7;
+  --surface: #ffffff;
+  --sunk: #e7edf1;
+  --ink: #12202b;
+  --muted: #56656f;
+  --rule: #d3dce2;
+  --accent: #1463bf;
+  --water: #2f7fd6;
+  --water-fill: rgba(47, 127, 214, 0.22);
+  --ok: #1d7446;
+  --ok-soft: #e0f2e7;
+  --warn: #8f5500;
+  --warn-soft: #fcefd6;
+  --code: #edf1f4;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0e1418;
+    --surface: #151d23;
+    --sunk: #1c262d;
+    --ink: #e2e9ee;
+    --muted: #97a5b0;
+    --rule: #27333c;
+    --accent: #6ea9f0;
+    --water: #4f97e6;
+    --water-fill: rgba(79, 151, 230, 0.26);
+    --ok: #66c792;
+    --ok-soft: #12281c;
+    --warn: #e6ab4f;
+    --warn-soft: #2b2111;
+    --code: #10171c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0e1418;
+  --surface: #151d23;
+  --sunk: #1c262d;
+  --ink: #e2e9ee;
+  --muted: #97a5b0;
+  --rule: #27333c;
+  --accent: #6ea9f0;
+  --water: #4f97e6;
+  --water-fill: rgba(79, 151, 230, 0.26);
+  --ok: #66c792;
+  --ok-soft: #12281c;
+  --warn: #e6ab4f;
+  --warn-soft: #2b2111;
+  --code: #10171c;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font: 16px/1.6 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-inline: 20px;
+  padding-block: 40px 72px;
+}
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; }
+code { font-size: 0.88em; background: var(--code); padding: 0.1em 0.35em; border-radius: 4px; }
+
+.page { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+.prose { max-width: 68ch; }
+h1, h2, h3 { font-family: Archivo, "Arial Narrow", system-ui, sans-serif; text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(2rem, 5.5vw, 2.9rem); font-weight: 700; letter-spacing: -0.015em; }
+h2 { font-size: 1.4rem; font-weight: 700; }
+h3 { font-size: 1rem; font-weight: 600; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 18px; }
+.eyebrow { font: 500 0.75rem/1.4 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.12rem; color: var(--muted); max-width: 62ch; }
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+
+header { display: flex; flex-direction: column; gap: 14px; }
+.status { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px; border-radius: 999px; font-size: 0.85rem; font-weight: 500; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.ok { color: var(--ok); background: var(--ok-soft); }
+.chip.pending { color: var(--warn); background: var(--warn-soft); }
+
+/* the one lifted block: the limitation */
+.limit { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+.limit .tag { color: var(--warn); }
+.panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.panel { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.panel svg { width: 100%; height: auto; background: var(--sunk); border-radius: 8px; display: block; }
+.panel h3 { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.verdict { font: 500 0.78rem "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0.04em; text-transform: uppercase; }
+.verdict.caught { color: var(--ok); }
+.verdict.missed { color: var(--warn); }
+.ray { stroke: var(--ink); stroke-width: 2; fill: none; }
+.ray.lost { stroke: var(--muted); stroke-dasharray: 5 4; }
+.ray.back { stroke: var(--warn); stroke-width: 2.6; }
+.m-ink { fill: var(--ink); }
+.m-muted { fill: var(--muted); }
+.m-warn { fill: var(--warn); }
+.water { fill: var(--water-fill); }
+.surface { stroke: var(--water); stroke-width: 2; fill: none; }
+.sat { fill: var(--muted); }
+.bldg { fill: var(--surface); stroke: var(--muted); stroke-width: 1.5; }
+.crop { stroke: var(--ok); stroke-width: 2; fill: none; }
+
+/* write-up */
+.writeup { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; }
+.writeup blockquote { margin: 0; max-width: 70ch; }
+.placeholder { border: 1px dashed var(--warn); color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 8px 12px; font-size: 0.9rem; }
+.bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+button.copy { font: 500 0.85rem "IBM Plex Sans", system-ui, sans-serif; color: var(--ink); background: var(--sunk); border: 1px solid var(--rule); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+button.copy:hover { border-color: var(--muted); }
+
+/* dB scale */
+.db { display: flex; flex-direction: column; gap: 6px; }
+.db-bar { height: 18px; border-radius: 4px; background: linear-gradient(to right, #000 0%, #fff 100%); border: 1px solid var(--rule); }
+.db-ticks { position: relative; height: 1.4em; font: 0.75rem "IBM Plex Mono", ui-monospace, monospace; color: var(--muted); }
+.db-ticks span { position: absolute; transform: translateX(-50%); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.db-ticks span:first-child { transform: none; }
+.db-ticks span:last-child { transform: translateX(-100%); }
+.db-bands { position: relative; min-height: 3.2em; font: 0.75rem "IBM Plex Mono", ui-monospace, monospace; }
+.db-bands span { position: absolute; top: 0; border-top: 3px solid; padding-top: 4px; line-height: 1.3; color: var(--ink); }
+.db-bands .w { border-color: var(--water); }
+.db-bands .l { border-color: var(--muted); }
+
+/* steps */
+ol.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--rule); }
+ol.steps li { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) auto; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+ol.steps .n { font: 500 0.9rem "IBM Plex Mono", ui-monospace, monospace; color: var(--accent); }
+ol.steps .what { font-weight: 600; }
+ol.steps .why { grid-column: 2 / 4; color: var(--muted); font-size: 0.95rem; }
+ol.steps .set { font: 0.8rem "IBM Plex Mono", ui-monospace, monospace; color: var(--ink); background: var(--code); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+ol.steps li.flag .why { color: var(--warn); }
+
+/* tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 0.78rem "IBM Plex Sans", system-ui, sans-serif; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); background: var(--sunk); }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.pend { color: var(--warn); }
+tr.total td { font-weight: 600; background: var(--sunk); }
+td code { white-space: nowrap; }
+
+dl.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 20px; margin: 0; }
+dl.facts dt { color: var(--muted); font-size: 0.9rem; }
+dl.facts dd { margin: 0; }
+ul.checks { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+
+pre { margin: 0; background: var(--code); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; overflow: auto; font-size: 0.82rem; line-height: 1.55; }
+pre.src { max-height: 70vh; }
+details { border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+details > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; }
+details > summary .muted { font-weight: 400; font-size: 0.875rem; margin-left: 8px; }
+details[open] > summary { border-bottom: 1px solid var(--rule); }
+details .inner { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.codes { display: flex; flex-direction: column; gap: 10px; }
+
+footer { border-top: 1px solid var(--rule); padding-top: 18px; color: var(--muted); font-size: 0.875rem; display: flex; flex-direction: column; gap: 6px; }
+
+@media (max-width: 640px) {
+  body { padding-block: 28px 56px; }
+  .panels { grid-template-columns: minmax(0, 1fr); }
+  .limit, .writeup { padding: 18px; }
+  ol.steps li { grid-template-columns: 2rem minmax(0, 1fr); }
+  ol.steps .set { grid-column: 2; justify-self: start; }
+  ol.steps .why { grid-column: 2; }
+  dl.facts { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  dl.facts dd { margin-bottom: 10px; }
+}
+</style>
+
+<main class="page">
+
+<header>
+  <div class="eyebrow">NASA Space Apps 2026 · Dancing with the SARs · Stage 1 of the flood coordination tool</div>
+  <h1>Bangladesh SAR Flood Mapper</h1>
+  <p class="lede">Finds new open floodwater from radar, either Sentinel-1 (C-band) or NISAR (L-band), and hands it on as GeoJSON polygons. It only maps the water. Deciding where boats, food and medicine go is a separate module that reads this output.</p>
+  <div class="status" aria-label="Build status">
+    <span class="chip ok">6 of 6 local checks passed</span>
+    <span class="chip ok">NISAR catalogue search works live</span>
+    <span class="chip pending">Earth Engine and NISAR streaming not run yet</span>
+    <span class="chip pending">Both validations pending</span>
+  </div>
+  <p class="small muted">Waiting on two sign-ins: Google Earth Engine (both sensors) and NASA Earthdata (NISAR). Until then, what has run is the maths, polygons, areas and output file, reading a synthetic NISAR-layout file, and the live search for real NISAR files. The code sits in a git repository with its working rules written down, so a bad change can be undone.</p>
+</header>
+
+<section class="limit" aria-labelledby="limit-h">
+  <div class="eyebrow tag">Scientific-integrity caveat</div>
+  <h2 id="limit-h">It sees open water, and misses water with something standing in it</h2>
+  <div class="panels">
+    <figure class="panel">
+      <svg viewBox="0 0 300 190" role="img" aria-labelledby="svgA-t">
+        <title id="svgA-t">Open water: the radar pulse glances off away from the satellite</title>
+        <defs>
+          <marker id="aInk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="m-ink"/></marker>
+          <marker id="aMuted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="m-muted"/></marker>
+        </defs>
+        <rect x="0" y="150" width="300" height="40" class="water"/>
+        <line x1="0" y1="150" x2="300" y2="150" class="surface"/>
+        <g class="sat"><rect x="60" y="22" width="22" height="14" rx="2"/><rect x="38" y="26" width="20" height="6"/><rect x="84" y="26" width="20" height="6"/></g>
+        <line x1="72" y1="40" x2="158" y2="146" class="ray" marker-end="url(#aInk)"/>
+        <line x1="162" y1="148" x2="258" y2="48" class="ray lost" marker-end="url(#aMuted)"/>
+      </svg>
+      <h3>Open water <span class="verdict caught">dark · caught</span></h3>
+      <figcaption class="small muted">Calm water acts like a mirror. The pulse glances off away from the satellite, so almost nothing comes back and the pixel turns dark.</figcaption>
+    </figure>
+    <figure class="panel">
+      <svg viewBox="0 0 300 190" role="img" aria-labelledby="svgB-t">
+        <title id="svgB-t">Flooded building: the pulse bounces off the water, then the wall, straight back to the satellite</title>
+        <defs>
+          <marker id="bInk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="m-ink"/></marker>
+          <marker id="bWarn" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="m-warn"/></marker>
+        </defs>
+        <rect x="200" y="74" width="56" height="96" class="bldg"/>
+        <path d="M266 150 v-26 M274 150 v-32 M282 150 v-24 M290 150 v-30" class="crop"/>
+        <rect x="0" y="150" width="300" height="40" class="water"/>
+        <line x1="0" y1="150" x2="300" y2="150" class="surface"/>
+        <g class="sat"><rect x="60" y="22" width="22" height="14" rx="2"/><rect x="38" y="26" width="20" height="6"/><rect x="84" y="26" width="20" height="6"/></g>
+        <line x1="72" y1="40" x2="158" y2="146" class="ray" marker-end="url(#bInk)"/>
+        <line x1="161" y1="148" x2="197" y2="114" class="ray" marker-end="url(#bInk)"/>
+        <line x1="198" y1="112" x2="90" y2="42" class="ray back" marker-end="url(#bWarn)"/>
+      </svg>
+      <h3>Flooded village or crops <span class="verdict missed">bright · missed</span></h3>
+      <figcaption class="small muted">The pulse hits the water, then a wall or a stem, and comes straight back ("double bounce"). The pixel turns <em>brighter</em>, so a method looking for darkening skips it.</figcaption>
+    </figure>
+  </div>
+  <p class="prose">These areas are <strong>missed, not falsely flagged</strong>. That is the opposite of the failure people usually expect. Every area this tool reports is a <strong>lower bound</strong>, and flooded settlements, where people actually are, are the most likely to be under-counted. Each output polygon carries <code>detects: "open_water_only"</code>, so the resource module can't lose this caveat.</p>
+</section>
+
+<section aria-labelledby="writeup-h">
+  <h2 id="writeup-h">Submission write-up</h2>
+  <div class="writeup">
+    <div class="bar">
+      <span class="eyebrow">Paste-ready methodology</span>
+      <button class="copy" id="copy-writeup" type="button" data-copy="writeup-text" data-label="Copy text">Copy text</button>
+    </div>
+    <blockquote id="writeup-text">We map new open floodwater with Sentinel-1 radar, which sees through monsoon cloud, following the UN-SPIDER Recommended Practice for SAR flood mapping in Google Earth Engine. For a chosen area we compare a pre-flood and a during-flood VH radar image taken from the same orbit track, smooth radar speckle with a 50 m median filter, and flag pixels whose backscatter dropped sharply, using a threshold chosen automatically by Otsu's method (with UN-SPIDER's default of 1.25 as a fallback). We then remove permanent rivers and ponds using the JRC Global Surface Water dataset, remove steep slopes where radar shadow can mimic water, clean away isolated pixels, and export each flooded patch as a polygon with its area and image date. The method detects only open water: flooded crops, trees and built-up streets often turn brighter to radar rather than darker (the "double bounce" effect), so they are missed, which makes our flooded area a lower bound that most likely under-counts flooding in villages and towns. The same pipeline also runs on NISAR L-band radar (GCOV product, HH channel) streamed from NASA's Alaska Satellite Facility, reading only the area of interest from each multi-gigabyte file; this NISAR path is experimental until it has been checked against Sentinel-1 on the same flood.</blockquote>
+    <p class="placeholder">A validation sentence gets added here after the Feni run, written from the real result. It will not be written before that result exists.</p>
+  </div>
+</section>
+
+<section aria-labelledby="how-h">
+  <h2 id="how-h">How it works</h2>
+  <p class="prose">Radar measures how much of its own microwave pulse bounces back, in decibels. In the VH channel, calm water is the darkest thing in the scene. A flood shows up as ground that <em>got darker</em> between two passes.</p>
+  <div class="db" role="img" aria-label="Typical Sentinel-1 VH backscatter: calm water from minus 28 to minus 22 decibels, fields and villages from minus 20 to minus 12 decibels, on a scale from minus 30 (black) to minus 5 (white)">
+    <div class="db-bar"></div>
+    <div class="db-ticks"><span style="left:0%">−30 dB</span><span style="left:20%">−25</span><span style="left:40%">−20</span><span style="left:60%">−15</span><span style="left:80%">−10</span><span style="left:100%">−5 dB</span></div>
+    <div class="db-bands">
+      <span class="w" style="left:8%;width:24%">calm water<br>−28 to −22</span>
+      <span class="l" style="left:40%;width:32%">fields and villages<br>−20 to −12</span>
+    </div>
+  </div>
+  <ol class="steps">
+    <li><span class="n">1</span><span class="what">Fetch Sentinel-1 radar</span><span class="set">VH · ascending · orbit 114</span><span class="why">One pass direction and one orbit track for both dates. Looking from a different side moves the shadows and makes fake "changes".</span></li>
+    <li><span class="n">2</span><span class="what">One image per period</span><span class="set">9 Aug vs 21 Aug 2024</span><span class="why">Frames from the same pass are stitched into one picture for the baseline window and one for the flood window.</span></li>
+    <li><span class="n">3</span><span class="what">Smooth the speckle</span><span class="set">median · 50 m</span><span class="why">Raw radar is grainy because tiny echoes add up or cancel at random. A median smooths the grain but keeps riverbanks sharp.</span></li>
+    <li><span class="n">4</span><span class="what">Measure the change</span><span class="set">during ÷ before</span><span class="why">Both values are negative dB, so the ratio goes above 1 when the ground got darker: −22 ÷ −15 = 1.47 for a field that flooded.</span></li>
+    <li><span class="n">5</span><span class="what">Remove permanent water and slopes</span><span class="set">JRC &gt; 50 % · slope &lt; 5°</span><span class="why">Rivers and ponds are already dark and flicker with the wind. Hill shadows look like water, and Feni borders the Tripura hills.</span></li>
+    <li class="flag"><span class="n">6</span><span class="what">Threshold</span><span class="set">Otsu, else 1.25</span><span class="why">Pixels above the cut become flood. Only open water shows here; see the caveat above. If Otsu lands outside 1.1–2.0, UN-SPIDER's 1.25 is used and the output says so.</span></li>
+    <li><span class="n">7</span><span class="what">Clean up</span><span class="set">opening · ≥ 8 px</span><span class="why">Shrink every patch by a pixel and grow it back, so lone pixels vanish. Then drop patches smaller than 8 pixels.</span></li>
+    <li><span class="n">8</span><span class="what">Turn into polygons</span><span class="set">GeoJSON · km² in UTM</span><span class="why">One polygon per separate patch, measured in metres, not degrees, because a square degree isn't a fixed size on the ground.</span></li>
+    <li><span class="n">9</span><span class="what">Draw the picture</span><span class="set">PNG</span><span class="why">Before, during and the flood mask side by side, so it can be demoed without GIS software.</span></li>
+  </ol>
+</section>
+
+<section aria-labelledby="val-h">
+  <h2 id="val-h">Validation: Feni, August 2024 floods</h2>
+  <p class="prose">Not run yet. Everything below is set up so that one run fills in the <strong>Detected</strong> column and answers whether the result is plausible.</p>
+  <dl class="facts">
+    <dt>Radar images</dt><dd>Sentinel-1A, ascending, relative orbit 114: baseline <strong>9 Aug 2024</strong>, flood <strong>21 Aug 2024</strong>. Checked in the ASF catalogue. The same track also passed on 28 Jul and 2 Sep; in 2024 only 1A was flying, so each track repeated every 12 days.</dd>
+    <dt>The event</dt><dd>Rain from 19 Aug, the flood from 21 Aug, and the Gumti peaked on 23 Aug at 8.58 m, 53 cm above danger level. Feni had the highest death toll: 28.</dd>
+    <dt>Regional check</dt><dd>UNOSAT found about 8,100 km² flooded within about 140,000 km² analysed, using Sentinel-1 from 18–26 Aug and 28 Aug–4 Sep.</dd>
+  </dl>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Upazila, north to south</th><th class="num">Reported km²</th><th class="num">Detected km²</th><th>What to expect</th></tr></thead>
+      <tbody>
+        <tr><td>Parshuram</td><td class="num">31</td><td class="num pend">pending</td><td>Hit first by the flash flood: clear new water</td></tr>
+        <tr><td>Fulgazi</td><td class="num">35</td><td class="num pend">pending</td><td>Hit first by the flash flood: clear new water</td></tr>
+        <tr><td>Chhagalnaiya</td><td class="num">37</td><td class="num pend">pending</td><td>Hit early: clear new water</td></tr>
+        <tr><td>Feni Sadar</td><td class="num">33</td><td class="num pend">pending</td><td>Built-up: expect an under-count (double bounce)</td></tr>
+        <tr><td>Daganbhuiyan</td><td class="num">16</td><td class="num pend">pending</td><td></td></tr>
+        <tr><td>Sonagazi</td><td class="num">49</td><td class="num pend">pending</td><td></td></tr>
+        <tr class="total"><td>Feni district</td><td class="num">201</td><td class="num pend">pending</td><td>Same range as 201 km², not an exact match</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted">Reported figures: Wikipedia, "August 2024 Bangladesh floods". That source doesn't give the image date or method behind the figures, so treat them as a range check, not ground truth.</p>
+  <ul class="checks">
+    <li>No large patches on the Tripura hill slopes: that tests the slope mask.</li>
+    <li>No patches along the permanent river channels: that tests the JRC mask.</li>
+    <li>Feni Sadar comes in under its reference: that confirms the double-bounce caveat. It isn't a failure.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="contract-h">
+  <h2 id="contract-h">Output contract</h2>
+  <p class="prose">The promise the resource-coordination module can rely on. The file <code>out/&lt;area&gt;_flood_&lt;date&gt;.geojson</code> is a FeatureCollection in longitude/latitude (EPSG:4326), with one Feature per patch of new open water, largest first. An empty collection means no new open water was found. It isn't an error.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Property</th><th>Type</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>aoi_name</code></td><td>text</td><td>Area analysed, e.g. "Feni"</td></tr>
+        <tr><td><code>sensor</code></td><td>text</td><td><code>"Sentinel-1 C-band VH"</code> or <code>"NISAR L-band HH"</code>. Thresholds differ by sensor.</td></tr>
+        <tr><td><code>acquisition_date</code></td><td>text</td><td>Date of the during-flood image, <span class="mono">YYYY-MM-DD</span> in UTC; comma-separated if several</td></tr>
+        <tr><td><code>baseline_date</code></td><td>text</td><td>Date of the pre-flood image, same format</td></tr>
+        <tr><td><code>area_km2</code></td><td>number</td><td>Area of this patch, measured in metres (UTM)</td></tr>
+        <tr><td><code>threshold</code></td><td>number</td><td>The change threshold actually used</td></tr>
+        <tr><td><code>detects</code></td><td>text</td><td>Always <code>"open_water_only"</code>: the caveat travels with the data</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted">Alongside it: <code>out/&lt;area&gt;_flood_&lt;date&gt;.png</code>, the before / during / flood picture.</p>
+</section>
+
+<section aria-labelledby="run-h">
+  <h2 id="run-h">Run it</h2>
+  <pre>earthengine authenticate              # once; signs in with Google in your browser
+set EE_PROJECT=your-cloud-project-id  # a project registered for non-commercial Earth Engine
+
+run.cmd test_flood_extent.py          # local checks, no sign-in needed
+run.cmd flood_extent.py               # Sentinel-1: reproduces the Feni 2024 run
+run.cmd nisar_flood.py                # NISAR: also needs Earthdata; the Chattogram 2026 test
+run.cmd page\build.py                 # rebuilds this page after a code change</pre>
+  <p class="small muted">The helper runs each script in the project's own Python environment, so the libraries are already installed. When something goes wrong the scripts say so in plain words: Earth Engine refusing an area that is too large, the two date windows being the wrong way round, or a mask grid that does not line up.</p>
+  <p class="small muted">Register an Earth Engine project for free at <a href="https://code.earthengine.google.com/register">code.earthengine.google.com/register</a>, and a NASA Earthdata account at <a href="https://urs.earthdata.nasa.gov">urs.earthdata.nasa.gov</a>. For NISAR, set <code>EARTHDATA_USERNAME</code> and <code>EARTHDATA_PASSWORD</code>, use a <code>.netrc</code> file, or type them when the script asks. To map another area, change the settings block at the top of either script.</p>
+</section>
+
+<section aria-labelledby="nisar-h">
+  <div class="eyebrow">Experimental · nisar_flood.py</div>
+  <h2 id="nisar-h">NISAR L-band version</h2>
+  <p class="prose">Same method, same output file, different radar. It was built at the team's request before the Sentinel-1 version was validated, so treat its numbers as experimental until both sensors have been run on the same flood.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>What changes</th><th>Sentinel-1</th><th>NISAR</th></tr></thead>
+      <tbody>
+        <tr><td>Wavelength</td><td>C-band, 5.5 cm</td><td>L-band, 24 cm: sees further into crops, so double bounce is <em>stronger</em></td></tr>
+        <tr><td>Channel</td><td>VH</td><td>HH, the usual choice for L-band water mapping</td></tr>
+        <tr><td>Values arrive as</td><td>dB</td><td>gamma-0 linear power, converted: 10 × log₁₀</td></tr>
+        <tr><td>Steps 3–7 run</td><td>on Earth Engine</td><td>on this computer (numpy); the same Earth Engine masks</td></tr>
+        <tr><td>Data volume</td><td>small downloads</td><td>2–9 GB files, streamed: only the area's chunks are read</td></tr>
+        <tr><td>Threshold</td><td>Otsu, else 1.25 (UN-SPIDER)</td><td>Otsu, else 1.25 <strong>borrowed, not calibrated</strong></td></tr>
+        <tr><td>Extra guard</td><td>none</td><td>skip pixels brighter than −3 dB before the flood, where a ratio of dB values breaks down</td></tr>
+        <tr><td>History</td><td>2014 onwards</td><td>from 17 Jun 2026; permanent gap 27 Jul – 10 Aug 2026</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Test case: south Chattogram, July 2026 floods</h3>
+  <dl class="facts">
+    <dt>Area</dt><dd>Satkania, Lohagara, Chandanaish and Banshkhali upazilas, 1,099 km², named among the worst hit.</dd>
+    <dt>The event</dt><dd>Rain began 5 Jul 2026, and 412 mm fell on 7 Jul, Chattogram's heaviest in 43 years. By 12 Jul water covered 59 upazilas in 7 districts, with about 1.28 million people affected.</dd>
+    <dt>Radar passes</dt><dd>NISAR track 69, ascending, same 40 MHz dual-pol mode: baseline <strong>30 Jun 2026</strong>, flood <strong>12 Jul 2026</strong> (05:21 local, the next morning). Frames 12 and 13 together cover the area. The live search finds exactly these four files, about 20 GB in total, of which only the area is read.</dd>
+  </dl>
+  <p class="prose">No published flooded-area figure for this event has turned up yet, so plausibility rests on four checks:</p>
+  <ul class="checks">
+    <li>Clear new water in all four upazilas on 12 Jul.</li>
+    <li>A cross-sensor check: run the Sentinel-1 script on the same area and dates (Sentinel-1A and 1C both fly in 2026) and compare.</li>
+    <li>No patches on the hill slopes east of Satkania.</li>
+    <li>At least 95% data coverage on both dates. The script warns if it's lower.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="code-h">
+  <h2 id="code-h">Source code</h2>
+  <div class="codes">
+    <details>
+      <summary>flood_extent.py<span class="muted">the pipeline · 378 lines</span></summary>
+      <div class="inner">
+        <div class="bar"><span class="small muted">Plain-language comments at every remote-sensing step.</span><button class="copy" id="copy-flood" type="button" data-copy="src-flood" data-label="Copy code">Copy code</button></div>
+        <pre class="src" id="src-flood">&quot;&quot;&quot;
+flood_extent.py - Stage 1 of the flood coordination tool: where is the NEW floodwater?
+
+Maps new open floodwater in an area from Sentinel-1 radar, following the UN-SPIDER
+Recommended Practice &quot;Flood Mapping and Damage Assessment Using Sentinel-1 SAR Data
+in Google Earth Engine&quot;. This script ONLY maps the water. Deciding where resources go
+is a separate, later module that reads this script&#x27;s output file.
+
+HOW TO RUN
+  1. pip install -r requirements.txt
+  2. earthengine authenticate      (once; opens a browser so you can sign in to Google)
+  3. set EE_PROJECT=your-cloud-project-id   (a Google Cloud project registered for Earth Engine)
+  4. python flood_extent.py        (the defaults below reproduce the Feni, August 2024 validation run)
+
+OUTPUT CONTRACT (the promise the downstream module can rely on)
+  out/&lt;AOI_NAME&gt;_flood_&lt;flood date&gt;.geojson
+    A GeoJSON FeatureCollection in plain longitude/latitude (WGS84, EPSG:4326).
+    One Feature per separate patch of new open water, largest first.
+    Every Feature has these properties:
+      aoi_name          str    name of the area analysed, e.g. &quot;Feni&quot;
+      sensor            str    &quot;Sentinel-1 C-band VH&quot; or &quot;NISAR L-band HH&quot; (nisar_flood.py). Thresholds differ by sensor.
+      acquisition_date  str    date(s) of the during-flood radar image, &quot;YYYY-MM-DD&quot; (UTC), comma-separated if several
+      baseline_date     str    date(s) of the pre-flood radar image, same format
+      area_km2          float  area of this patch, measured in metres (UTM), not in degrees
+      threshold         float  the change threshold actually used (see step 6)
+      detects           str    always &quot;open_water_only&quot;. Read LIMITATION before trusting any total.
+    An empty FeatureCollection means &quot;no new open water found&quot;. It is not an error.
+  out/&lt;AOI_NAME&gt;_flood_&lt;flood date&gt;.png
+    A before / during / flood-mask picture, so the result can be demoed without GIS software.
+&quot;&quot;&quot;
+
+import os
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+import ee
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import numpy as np
+import rasterio
+from rasterio import features
+from rasterio.plot import plotting_extent
+from shapely.geometry import mapping, shape
+
+# ---------------------------------------------------------------------------
+# SETTINGS. The defaults reproduce the validation run: Feni district, August 2024.
+# ---------------------------------------------------------------------------
+HERE = Path(__file__).parent
+AOI_PATH = HERE / &quot;aoi&quot; / &quot;feni.geojson&quot;   # any polygon GeoJSON works
+AOI_NAME = &quot;Feni&quot;
+SENSOR = &quot;Sentinel-1 C-band VH&quot;
+
+# Date windows are [start, end): the end date itself is NOT included.
+# Sentinel-1A passed over Feni on relative orbit 114 (ascending) on 28 Jul, 9 Aug,
+# 21 Aug and 2 Sep 2024 (checked in the ASF catalogue). Rain started 19 Aug, the
+# flood started 21 Aug, and the Gumti river peaked on 23 Aug.
+BEFORE = (&quot;2024-08-05&quot;, &quot;2024-08-12&quot;)   # catches 9 Aug 2024: same monsoon, before the flood
+DURING = (&quot;2024-08-20&quot;, &quot;2024-08-24&quot;)   # catches 21 Aug 2024: first pass after the flood began
+
+PASS = &quot;ASCENDING&quot;       # &quot;ASCENDING&quot; or &quot;DESCENDING&quot;. Must be the same for both dates. See step 1.
+RELATIVE_ORBIT = 114     # pin the exact orbit track; None = any track on that pass (a warning prints if they differ)
+
+SPECKLE_RADIUS_M = 50       # step 3: smoothing radius in metres
+PERMANENT_WATER_PCT = 50    # step 5: water seen more than this % of the time since 1984 counts as permanent
+MAX_SLOPE_DEG = 5           # UN-SPIDER: floods don&#x27;t sit on slopes steeper than this
+THRESHOLD = &quot;otsu&quot;          # step 6: &quot;otsu&quot; to compute it from the image, or a number such as 1.25
+DEFAULT_THRESHOLD = 1.25    # UN-SPIDER&#x27;s default, used if Otsu returns something implausible
+MIN_PATCH_PIXELS = 8        # step 7: UN-SPIDER drops water patches smaller than this
+SCALE_M = 20                # pixel size for the analysis and download, in metres
+
+# Published flooded area for this exact event, to sanity-check the result. None for a new area.
+REPORTED_KM2 = 201
+REPORTED_SOURCE = &quot;Wikipedia &#x27;August 2024 Bangladesh floods&#x27;, sum of Feni upazila figures&quot;
+
+OUT_DIR = HERE / &quot;out&quot;
+NODATA = -9999
+
+LIMITATION = &quot;&quot;&quot;\
+LIMITATION - read before using these numbers:
+  This method finds only OPEN water: calm surfaces that turn DARK to radar.
+  Flooded crops still standing above the water, flooded trees, and flooded streets
+  between buildings often turn BRIGHTER instead, because the radar pulse bounces off
+  the water, then off the stem or wall, and straight back to the satellite
+  (&quot;double bounce&quot;). Those areas are MISSED, not falsely flagged.
+  So the area reported here is a LOWER BOUND, and flooded towns and villages
+  (exactly where people are) are the places most likely to be under-counted.&quot;&quot;&quot;
+
+
+def init_earth_engine():
+    &quot;&quot;&quot;Connect to Google Earth Engine, or explain how to sign in.&quot;&quot;&quot;
+    try:
+        ee.Initialize(project=os.environ.get(&quot;EE_PROJECT&quot;))
+    except Exception as error:
+        raise SystemExit(
+            f&quot;Could not connect to Earth Engine ({error}).\n&quot;
+            &quot;  1. Run once:  earthengine authenticate\n&quot;
+            &quot;  2. Then set your project:  set EE_PROJECT=your-cloud-project-id\n&quot;
+            &quot;     (free for non-commercial use: https://code.earthengine.google.com/register)&quot;
+        )
+
+
+def load_aoi(path):
+    &quot;&quot;&quot;Read the area of interest as one shape, both locally (shapely) and for Earth Engine.&quot;&quot;&quot;
+    area = gpd.read_file(path).to_crs(4326).union_all()
+    return area, ee.Geometry(mapping(area))
+
+
+def sentinel1_image(aoi, start, end):
+    &quot;&quot;&quot;
+    STEP 1 + 2: fetch Sentinel-1 radar images for a date window and merge them into one picture.
+
+    What Sentinel-1 is: a satellite that sends its own microwave pulses to the ground and
+    measures how much energy bounces back (&quot;backscatter&quot;). Clouds and night don&#x27;t matter,
+    which is why it works in the monsoon when normal cameras see only cloud.
+
+    Earth Engine&#x27;s COPERNICUS/S1_GRD collection is already cleaned up for us: thermal noise
+    removed, brightness calibrated, and each pixel moved to its true map position using an
+    elevation model. Values are in decibels (dB), a log scale. Typical VH values:
+    fields and villages around -12 to -20 dB, calm water around -22 to -28 dB (darker).
+
+    Why VH: the satellite transmits a Vertical pulse and listens for the Horizontal echo.
+    Only rough or leafy surfaces scramble the pulse enough to send much energy back in the
+    other orientation. Calm water scrambles almost nothing, so it is very dark in VH.
+    UN-SPIDER&#x27;s practice uses VH by default.
+
+    Why one fixed pass direction (and ideally one orbit track): ascending and descending
+    passes look at the ground from opposite sides. Hills cast shadows the other way and
+    slopes change brightness, so comparing across them creates fake &quot;changes&quot;. The same
+    relative orbit means the exact same viewing angle both times.
+
+    In 2024 only Sentinel-1A was flying (1B failed in Dec 2021), so a given track repeats
+    only every 12 days. That is why the date windows above are chosen carefully.
+
+    STRETCH GOAL - swapping in NISAR (do NOT attempt until this Sentinel-1 version is validated):
+      NISAR L-band data is public via ASF DAAC (python package `asf_search`, or the ASF Vertex
+      website), but it is NOT in Earth Engine and is far less turnkey than this collection.
+      - Files are large HDF5 products. The GCOV/RTC products are geocoded, but values come as
+        linear power, not dB, so you must convert them (10 * log10) yourself.
+      - Check what terrain/radiometric correction each product level already has; don&#x27;t assume.
+        Mosaicking, clipping and resampling have to be done locally (rasterio), not by Earth Engine.
+      - L-band&#x27;s longer wavelength sees further through crops and trees, so double bounce from
+        flooded vegetation is stronger. Thresholds tuned for Sentinel-1 (C-band) will not transfer.
+      - The public archive starts 17 Jun 2026, with a permanent data gap from 27 Jul to 10 Aug 2026.
+    &quot;&quot;&quot;
+    collection = (
+        ee.ImageCollection(&quot;COPERNICUS/S1_GRD&quot;)
+        .filterBounds(aoi)
+        .filterDate(start, end)
+        .filter(ee.Filter.eq(&quot;instrumentMode&quot;, &quot;IW&quot;))  # the normal land-imaging mode
+        .filter(ee.Filter.listContains(&quot;transmitterReceiverPolarisation&quot;, &quot;VH&quot;))
+        .filter(ee.Filter.eq(&quot;orbitProperties_pass&quot;, PASS))
+        .filter(ee.Filter.eq(&quot;resolution_meters&quot;, 10))
+    )
+    if RELATIVE_ORBIT is not None:
+        collection = collection.filter(ee.Filter.eq(&quot;relativeOrbitNumber_start&quot;, RELATIVE_ORBIT))
+    collection = collection.select(&quot;VH&quot;)
+
+    dates = sorted(set(
+        collection.aggregate_array(&quot;system:time_start&quot;)
+        .map(lambda t: ee.Date(t).format(&quot;YYYY-MM-dd&quot;)).getInfo()
+    ))
+    orbits = sorted(set(collection.aggregate_array(&quot;relativeOrbitNumber_start&quot;).getInfo()))
+    if not dates:
+        raise SystemExit(
+            f&quot;No Sentinel-1 {PASS} VH images of this area between {start} and {end} &quot;
+            f&quot;(orbit {RELATIVE_ORBIT}). Widen the window, change PASS, or set RELATIVE_ORBIT = None.&quot;
+        )
+    # A satellite pass is cut into neighbouring frames; mosaic() stitches them into one picture.
+    return collection.mosaic().clip(aoi), dates, orbits
+
+
+def otsu(bin_centers, counts):
+    &quot;&quot;&quot;
+    Otsu&#x27;s method: given a histogram with two humps (here &quot;unchanged&quot; and &quot;got much darker&quot;),
+    find the cut point that makes each side as internally similar as possible.
+    Returns the value at the cut; everything ABOVE it goes in the upper class.
+    &quot;&quot;&quot;
+    x = np.asarray(bin_centers, float)
+    n = np.asarray(counts, float)
+    below = np.cumsum(n)                      # how many pixels fall at or below each cut
+    above = below[-1] - below
+    sum_below = np.cumsum(n * x)
+    mean_below = sum_below / np.maximum(below, 1e-12)
+    mean_above = (sum_below[-1] - sum_below) / np.maximum(above, 1e-12)
+    separation = below * above * (mean_below - mean_above) ** 2
+    return float(x[np.argmax(separation)])
+
+
+def pick_threshold(ratio, aoi):
+    &quot;&quot;&quot;STEP 6a: choose the threshold with Otsu, falling back to UN-SPIDER&#x27;s 1.25 if Otsu looks wrong.&quot;&quot;&quot;
+    if THRESHOLD != &quot;otsu&quot;:
+        return float(THRESHOLD), &quot;fixed in settings&quot;
+    # Earth Engine counts pixels into 200 bins between 0.5 and 2.5; we do the Otsu maths here.
+    histogram = ratio.reduceRegion(
+        reducer=ee.Reducer.fixedHistogram(0.5, 2.5, 200),
+        geometry=aoi, scale=SCALE_M * 2, maxPixels=1e9, bestEffort=True,
+    ).get(&quot;ratio&quot;).getInfo()
+    if not histogram:
+        return DEFAULT_THRESHOLD, &quot;Otsu had no pixels to work with, so UN-SPIDER default used&quot;
+    bins = np.array(histogram)                # rows of [bin start, pixel count]
+    value = otsu(bins[:, 0] + 0.005, bins[:, 1])  # +0.005 = half a bin width, i.e. bin centre
+    # Otsu assumes two humps. If only a little land flooded there is really one hump,
+    # and Otsu slices through its middle, which would flag huge areas. Catch that.
+    if not 1.1 &lt;= value &lt;= 2.0:
+        return DEFAULT_THRESHOLD, f&quot;Otsu gave {value:.2f}, outside the plausible 1.1-2.0, so UN-SPIDER default used&quot;
+    return value, &quot;Otsu&#x27;s method&quot;
+
+
+def flood_mask(before, during, aoi):
+    &quot;&quot;&quot;STEPS 3-7: turn the two radar pictures into a clean 0/1 map of NEW open water.&quot;&quot;&quot;
+
+    # STEP 3 - speckle. Every radar pixel is the sum of many tiny echoes that randomly add up
+    # or cancel out, so raw radar looks grainy (&quot;salt and pepper&quot;). A median over a 50 m
+    # circle smooths the grain while keeping edges, like riverbanks, sharper than an average would.
+    before_smooth = before.focal_median(SPECKLE_RADIUS_M, &quot;circle&quot;, &quot;meters&quot;)
+    during_smooth = during.focal_median(SPECKLE_RADIUS_M, &quot;circle&quot;, &quot;meters&quot;)
+
+    # STEP 4 - change. UN-SPIDER divides the &quot;during&quot; image by the &quot;before&quot; image, both in dB.
+    # Both numbers are NEGATIVE, so the ratio goes ABOVE 1 when the ground got DARKER:
+    #   field before -15 dB, flooded during -22 dB  -&gt;  -22 / -15 = 1.47   (big drop: water?)
+    #   field before -15 dB, unchanged at -15 dB    -&gt;  -15 / -15 = 1.00   (no change)
+    ratio = during_smooth.divide(before_smooth).rename(&quot;ratio&quot;)
+
+    # STEP 5 - remove PERMANENT water. Rivers, ponds and the sea are dark in both pictures, but
+    # wind and waves make their darkness flicker, which can look like &quot;change&quot;. We only want NEW
+    # water, so we blank out anywhere the JRC Global Surface Water dataset (37 years of Landsat)
+    # saw water more than PERMANENT_WATER_PCT % of the time. Skipping this gives garbage.
+    occurrence = ee.Image(&quot;JRC/GSW1_4/GlobalSurfaceWater&quot;).select(&quot;occurrence&quot;).unmask(0)
+    ratio = ratio.updateMask(occurrence.lte(PERMANENT_WATER_PCT))
+
+    # UN-SPIDER also removes steep ground: the radar &quot;shadow&quot; behind a hill is as dark as water,
+    # and floodwater doesn&#x27;t sit on slopes anyway. Relevant here: Feni borders the Tripura hills.
+    slope = ee.Terrain.slope(ee.Image(&quot;WWF/HydroSHEDS/03VFDEM&quot;))
+    ratio = ratio.updateMask(slope.lt(MAX_SLOPE_DEG))
+
+    # STEP 6 - threshold: mark pixels whose darkening ratio is above the cut point as flooded.
+    #
+    # !! LIMITATION - THIS STEP ONLY SEES OPEN WATER !!
+    # We are looking for pixels that got DARKER. Flooded vegetation and flooded buildings usually
+    # get BRIGHTER instead (the pulse bounces water -&gt; stem/wall -&gt; satellite: &quot;double bounce&quot;).
+    # Those floods are MISSED by this threshold. They are not falsely flagged; the opposite
+    # failure from what people usually assume. Treat every area below as a LOWER BOUND.
+    threshold, how = pick_threshold(ratio, aoi)
+    flooded = ratio.gt(threshold).unmask(0).clip(aoi)
+    # Fix the pixel grid so &quot;1 pixel&quot; in the next steps always means SCALE_M metres.
+    flooded = flooded.reproject(crs=&quot;EPSG:4326&quot;, scale=SCALE_M)
+
+    # STEP 7 - clean up. &quot;Opening&quot; = shrink every patch by one pixel, then grow it back by one.
+    # Lone pixels vanish on the shrink and have nothing to grow back from; real patches keep
+    # their shape. Then UN-SPIDER&#x27;s rule: drop any patch smaller than MIN_PATCH_PIXELS pixels.
+    opened = flooded.focal_min(1, &quot;square&quot;, &quot;pixels&quot;).focal_max(1, &quot;square&quot;, &quot;pixels&quot;)
+    patch_size = opened.selfMask().connectedPixelCount(MIN_PATCH_PIXELS, True)
+    clean = opened.updateMask(patch_size.gte(MIN_PATCH_PIXELS)).unmask(0).clip(aoi)
+    return clean.toByte(), before_smooth, during_smooth, threshold, how
+
+
+def download(image, aoi, scale, path):
+    &quot;&quot;&quot;Save an Earth Engine image as a GeoTIFF on disk.
+    ponytail: direct download caps out around 48 MB per request, fine for a district at 20 m.
+    For a whole division, raise SCALE_M or switch to Export.image.toDrive.&quot;&quot;&quot;
+    url = image.getDownloadURL({&quot;region&quot;: aoi.bounds(), &quot;scale&quot;: scale, &quot;crs&quot;: &quot;EPSG:4326&quot;, &quot;format&quot;: &quot;GEO_TIFF&quot;})
+    try:
+        urllib.request.urlretrieve(url, path)
+    except urllib.error.HTTPError as error:
+        raise SystemExit(
+            f&quot;Earth Engine refused the download ({error.code}): {error.read(400).decode(errors=&#x27;replace&#x27;)}\n&quot;
+            &quot;Usually the area is too big for one request: raise SCALE_M, or switch to Export.image.toDrive.&quot;
+        )
+
+
+def mask_to_polygons(tif_path, properties):
+    &quot;&quot;&quot;
+    STEP 8: turn the 0/1 flood picture into polygons, one per separate patch of water,
+    and measure each one. Areas are measured after switching to the local UTM projection,
+    because a &quot;square degree&quot; is not a fixed size on the ground.
+    &quot;&quot;&quot;
+    with rasterio.open(tif_path) as src:
+        mask, crs = src.read(1), src.crs
+        patches = [shape(geom) for geom, _ in features.shapes(mask, mask=mask == 1, transform=src.transform)]
+    columns = [&quot;aoi_name&quot;, &quot;sensor&quot;, &quot;acquisition_date&quot;, &quot;baseline_date&quot;, &quot;area_km2&quot;, &quot;threshold&quot;, &quot;detects&quot;]
+    if not patches:
+        return gpd.GeoDataFrame(columns=columns, geometry=[], crs=4326)
+    polygons = gpd.GeoDataFrame(geometry=patches, crs=crs).to_crs(4326)   # the contract is always lon/lat
+    polygons[&quot;area_km2&quot;] = (polygons.to_crs(polygons.estimate_utm_crs()).area / 1e6).round(4)
+    for key, value in properties.items():
+        polygons[key] = value
+    polygons[&quot;detects&quot;] = &quot;open_water_only&quot;
+    return polygons[columns + [&quot;geometry&quot;]].sort_values(&quot;area_km2&quot;, ascending=False, ignore_index=True)
+
+
+def save_figure(before_tif, during_tif, mask_tif, area, title, path):
+    &quot;&quot;&quot;STEP 9: before / during / result, side by side, for demos.&quot;&quot;&quot;
+    fig, axes = plt.subplots(1, 3, figsize=(15, 7), sharex=True, sharey=True)
+    panels = [(before_tif, &quot;Before (dB)&quot;), (during_tif, &quot;During (dB)&quot;), (during_tif, &quot;New open water (blue)&quot;)]
+    for ax, (tif, label) in zip(axes, panels):
+        with rasterio.open(tif) as src:
+            db = src.read(1).astype(float)
+            db[db == NODATA] = np.nan
+            # -25 dB (water) shows black, -5 dB (bright buildings) shows white
+            ax.imshow(db, cmap=&quot;gray&quot;, vmin=-25, vmax=-5, extent=plotting_extent(src))
+        ax.set_title(label)
+    with rasterio.open(mask_tif) as src:
+        water = np.where(src.read(1) == 1, 1.0, np.nan)
+        axes[2].imshow(water, cmap=&quot;winter&quot;, vmin=0, vmax=1, extent=plotting_extent(src), interpolation=&quot;nearest&quot;)
+        crs = src.crs
+    for ax in axes:
+        gpd.GeoSeries([area], crs=4326).to_crs(crs).boundary.plot(ax=ax, color=&quot;gold&quot;, linewidth=0.8)
+        ax.set_xlabel(&quot;longitude&quot; if crs.is_geographic else &quot;easting (m)&quot;)
+    axes[0].set_ylabel(&quot;latitude&quot; if crs.is_geographic else &quot;northing (m)&quot;)
+    fig.suptitle(title)
+    fig.tight_layout()
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+
+
+def km2(shapely_geom):
+    series = gpd.GeoSeries([shapely_geom], crs=4326)
+    return float(series.to_crs(series.estimate_utm_crs()).area.iloc[0] / 1e6)
+
+
+def main():
+    init_earth_engine()
+    OUT_DIR.mkdir(exist_ok=True)
+    area, aoi = load_aoi(AOI_PATH)
+
+    before, before_dates, before_orbits = sentinel1_image(aoi, *BEFORE)
+    during, during_dates, during_orbits = sentinel1_image(aoi, *DURING)
+    if before_orbits != during_orbits:
+        print(f&quot;WARNING: before uses orbit(s) {before_orbits} but during uses {during_orbits}. Different &quot;
+              &quot;viewing angles can create fake changes. Set RELATIVE_ORBIT to one shared track.&quot;)
+
+    mask, before_smooth, during_smooth, threshold, how = flood_mask(before, during, aoi)
+
+    stem = f&quot;{AOI_NAME}_flood_{during_dates[0]}&quot;
+    mask_tif, before_tif, during_tif = (OUT_DIR / f&quot;{stem}_{n}.tif&quot; for n in (&quot;mask&quot;, &quot;before&quot;, &quot;during&quot;))
+    print(&quot;Downloading results from Earth Engine...&quot;)
+    download(mask, aoi, SCALE_M, mask_tif)
+    download(before_smooth.unmask(NODATA), aoi, SCALE_M * 3, before_tif)   # coarser: only for the picture
+    download(during_smooth.unmask(NODATA), aoi, SCALE_M * 3, during_tif)
+
+    properties = {&quot;aoi_name&quot;: AOI_NAME, &quot;sensor&quot;: SENSOR, &quot;acquisition_date&quot;: &quot;,&quot;.join(during_dates),
+                  &quot;baseline_date&quot;: &quot;,&quot;.join(before_dates), &quot;threshold&quot;: round(threshold, 4)}
+    report(stem, mask_tif, before_tif, during_tif, area, properties, how,
+           f&quot;{AOI_NAME}: Sentinel-1 {PASS.lower()} orbit {during_orbits}&quot;, REPORTED_KM2, REPORTED_SOURCE)
+
+
+def report(stem, mask_tif, before_tif, during_tif, area, properties, how, title, reported_km2=None, reported_source=&quot;&quot;):
+    &quot;&quot;&quot;Steps 8-9 plus the printed summary. Shared by flood_extent.py and nisar_flood.py so both
+    sensors produce exactly the same output contract.&quot;&quot;&quot;
+    polygons = mask_to_polygons(mask_tif, properties)
+    geojson_path = OUT_DIR / f&quot;{stem}.geojson&quot;
+    geojson_path.write_text(polygons.to_json(drop_id=True), encoding=&quot;utf-8&quot;)
+    before, during = properties[&quot;baseline_date&quot;], properties[&quot;acquisition_date&quot;]
+    # Swapping the two date windows by mistake is easy, and the result then looks empty rather than
+    # wrong, which is confusing. Dates are ISO text, so plain comparison orders them correctly.
+    if min(during.split(&quot;,&quot;)) &lt;= max(before.split(&quot;,&quot;)):
+        print(f&quot;WARNING: the flood image ({during}) is not later than the baseline ({before}). &quot;
+              &quot;Check the BEFORE and DURING windows in the settings.&quot;)
+    save_figure(before_tif, during_tif, mask_tif, area, f&quot;{title}, {before} vs {during}&quot;, OUT_DIR / f&quot;{stem}.png&quot;)
+
+    total, aoi_km2 = float(polygons[&quot;area_km2&quot;].sum()), km2(area)
+    print(f&quot;\n=== New open water: {properties[&#x27;aoi_name&#x27;]} ({properties[&#x27;sensor&#x27;]}) ===&quot;)
+    print(f&quot;Baseline image: {before}   Flood image: {during}   (dates in UTC)&quot;)
+    print(f&quot;Threshold: {properties[&#x27;threshold&#x27;]:.3f} ({how})&quot;)
+    print(f&quot;Detected: {total:.1f} km2 in {len(polygons)} patches = {100 * total / aoi_km2:.1f}% of the {aoi_km2:.0f} km2 area&quot;)
+    if len(polygons):
+        print(f&quot;Largest patch: {polygons[&#x27;area_km2&#x27;].iloc[0]:.1f} km2&quot;)
+    if reported_km2:
+        print(f&quot;Reported for this event: {reported_km2} km2 ({reported_source}). &quot;
+              f&quot;Detected / reported = {total / reported_km2:.2f}&quot;)
+    print(f&quot;Saved: {geojson_path.name}, {stem}.png&quot;)
+    print(&quot;\n&quot; + LIMITATION)
+    return polygons
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</pre>
+      </div>
+    </details>
+    <details>
+      <summary>nisar_flood.py<span class="muted">the NISAR version · 326 lines</span></summary>
+      <div class="inner">
+        <div class="bar"><span class="small muted">Catalogue search, streamed window reads, local steps 3–7.</span><button class="copy" id="copy-nisar" type="button" data-copy="src-nisar" data-label="Copy code">Copy code</button></div>
+        <pre class="src" id="src-nisar">&quot;&quot;&quot;
+nisar_flood.py - the same flood-extent method as flood_extent.py, fed by NISAR L-band radar.
+
+STATUS: stretch goal. Built on 19 Sep 2026 at the team&#x27;s request BEFORE the Sentinel-1 version had
+been validated, which skips the original &quot;prove Sentinel-1 first&quot; rule. Treat its numbers as
+experimental until both sensors have been run on the same flood and compared.
+
+WHY A SEPARATE FILE
+  NISAR is not in Google Earth Engine. So the images are streamed from NASA&#x27;s Alaska Satellite
+  Facility (ASF) and steps 3-7 run on this computer with numpy, instead of on Google&#x27;s servers.
+  The two exclusion masks (permanent water, steep slopes) still come from Earth Engine, so both
+  sensors exclude exactly the same places. Steps 8-9 and the output file are shared with
+  flood_extent.py, so the downstream module reads both the same way (sensor = &quot;NISAR L-band HH&quot;).
+
+HOW TO RUN
+  1. pip install -r requirements.txt
+  2. Earth Engine sign-in, exactly as for flood_extent.py (needed for the two masks)
+  3. A free NASA Earthdata account: https://urs.earthdata.nasa.gov
+     Then set EARTHDATA_USERNAME and EARTHDATA_PASSWORD, or put them in a .netrc file.
+     If neither is set, earthaccess asks for them in the terminal.
+  4. python nisar_flood.py        (the defaults reproduce the July 2026 Chattogram test)
+
+WHAT IS DIFFERENT FROM SENTINEL-1 - read before comparing numbers
+  - Wavelength: L-band (24 cm) instead of C-band (5.5 cm). L-band reaches further through leaves
+    and crops, so double bounce from flooded vegetation is STRONGER. The open-water-only
+    limitation (flood_extent.LIMITATION) matters even more here.
+  - Channel: HH (horizontal out, horizontal back). At L-band, HH gives the strongest water/land
+    contrast and is the usual choice for flood mapping. It is not a twin of Sentinel-1&#x27;s VH.
+  - Units: NISAR&#x27;s GCOV product arrives already terrain-corrected, as gamma-0 in LINEAR power,
+    not dB. We convert: dB = 10 * log10(power).
+  - Thresholds are NOT calibrated for L-band. The 1.25 fallback was tuned on Sentinel-1.
+  - Size: each file is 2-9 GB. We never download one whole: h5py reads only the chunks that
+    cover the area, typically a few hundred MB for a district.
+  - History: public data starts 17 Jun 2026, with a permanent gap from 27 Jul to 10 Aug 2026.
+&quot;&quot;&quot;
+
+import json
+import urllib.parse
+import urllib.request
+import warnings
+
+import earthaccess
+import ee
+import geopandas as gpd
+import h5py
+import numpy as np
+import rasterio
+from numpy.lib.stride_tricks import sliding_window_view
+from rasterio import features
+from rasterio.crs import CRS
+from rasterio.transform import Affine
+from rasterio.warp import Resampling, reproject, transform_bounds
+
+import flood_extent as fe
+
+# ---------------------------------------------------------------------------
+# SETTINGS. The defaults reproduce the NISAR test: south Chattogram, July 2026.
+# Shared method settings (speckle radius, masks, patch size, pixel size) live in flood_extent.py.
+# ---------------------------------------------------------------------------
+AOI_PATH = fe.HERE / &quot;aoi&quot; / &quot;chattogram_south.geojson&quot;   # Satkania, Lohagara, Chandanaish, Banshkhali
+AOI_NAME = &quot;South_Chattogram&quot;
+SENSOR = &quot;NISAR L-band HH&quot;
+
+# July 2026 Chattogram floods: rain began 5 Jul, 412 mm fell on 7 Jul (the heaviest in 43 years),
+# and by 12 Jul water covered 59 upazilas in 7 districts. This AOI&#x27;s four upazilas were among the
+# worst hit. NISAR track 69 passed at 23:21 UTC (05:21 next morning in Bangladesh) on 30 Jun and
+# 12 Jul in the same 40 MHz dual-pol mode. Frame 13 covers 93-99% of the area and frame 12 fills
+# the rest (checked in the ASF catalogue on 19 Sep 2026).
+BEFORE = (&quot;2026-06-29&quot;, &quot;2026-07-02&quot;)   # catches 30 Jun 2026: before the rain began
+DURING = (&quot;2026-07-11&quot;, &quot;2026-07-14&quot;)   # catches 12 Jul 2026: widespread flooding
+DIRECTION = &quot;ASCENDING&quot;
+TRACK = 69                  # NISAR&#x27;s word for the relative orbit: same track = same viewing angle
+POLARIZATION = &quot;HHHH&quot;       # the GCOV dataset name for HH power
+BRIGHT_DB = -3.0            # see detect(): pixels brighter than this before the flood are skipped
+OTSU_RANGE = (0.5, 3.5)     # L-band contrast is larger than C-band, so the histogram is wider
+PLAUSIBLE = (1.1, 3.0)
+
+GRID = &quot;/science/LSAR/GCOV/grids/frequencyA&quot;     # where GCOV keeps the main-band images
+SEARCH_URL = &quot;https://api.daac.asf.alaska.edu/services/search/param&quot;
+
+
+def h5_size(entry):
+    &quot;&quot;&quot;Size of the .h5 file in a catalogue record. Records normally list every file in the product
+    separately; a few give one plain number instead, so handle both rather than crashing.&quot;&quot;&quot;
+    if isinstance(entry, dict):
+        return next((value.get(&quot;bytes&quot;, 0) for name, value in entry.items()
+                     if name.endswith(&quot;.h5&quot;) and isinstance(value, dict)), 0)
+    return entry or 0
+
+
+def find_granules(area, start, end):
+    &quot;&quot;&quot;
+    STEP 1: ask ASF&#x27;s public catalogue which NISAR GCOV files cover the area in a date window.
+    Searching needs no login. Keeps files on one track and direction that contain HH, one per
+    frame and date. A frame is one tile along the track; two neighbouring frames may be needed.
+    &quot;&quot;&quot;
+    query = urllib.parse.urlencode({
+        &quot;dataset&quot;: &quot;NISAR&quot;, &quot;processingLevel&quot;: &quot;GCOV&quot;, &quot;intersectsWith&quot;: area.envelope.wkt,
+        &quot;start&quot;: f&quot;{start}T00:00:00Z&quot;, &quot;end&quot;: f&quot;{end}T00:00:00Z&quot;, &quot;output&quot;: &quot;geojson&quot;,
+    })
+    with urllib.request.urlopen(f&quot;{SEARCH_URL}?{query}&quot;, timeout=120) as response:
+        results = json.load(response)[&quot;features&quot;]
+    best = {}
+    for item in results:
+        p = item[&quot;properties&quot;]
+        # The file name encodes the mode, e.g. ..._069_A_013_4005_DHDH_... : DHDH = dual-pol H,
+        # QPDH = quad-pol. DV.. modes are V-only and have no HH, so they can&#x27;t be compared.
+        mode = p[&quot;fileID&quot;].split(&quot;_&quot;)[9]
+        if p[&quot;flightDirection&quot;] != DIRECTION or int(p[&quot;pathNumber&quot;]) != TRACK or mode[:2] not in (&quot;DH&quot;, &quot;QP&quot;):
+            continue
+        size = h5_size(p[&quot;bytes&quot;])
+        key = (p[&quot;startTime&quot;][:10], p[&quot;frameNumber&quot;])
+        if key not in best or size &gt; best[key][&quot;size&quot;]:     # duplicate products: keep the fuller one
+            best[key] = {&quot;url&quot;: p[&quot;url&quot;], &quot;date&quot;: p[&quot;startTime&quot;][:10], &quot;frame&quot;: p[&quot;frameNumber&quot;], &quot;size&quot;: size}
+    if not best:
+        raise SystemExit(
+            f&quot;No NISAR GCOV files with HH on track {TRACK} ({DIRECTION}) between {start} and {end}. &quot;
+            &quot;Check the dates in ASF Vertex, and remember the 27 Jul - 10 Aug 2026 data gap.&quot;
+        )
+    return sorted(best.values(), key=lambda g: (g[&quot;date&quot;], g[&quot;frame&quot;]))
+
+
+def target_grid(area):
+    &quot;&quot;&quot;A fixed SCALE_M-metre grid over the area in its local UTM zone. Every NISAR frame and both
+    Earth Engine masks are resampled onto this one grid, so their pixels line up exactly.&quot;&quot;&quot;
+    series = gpd.GeoSeries([area], crs=4326)
+    crs = series.estimate_utm_crs()
+    left, bottom, right, top = series.to_crs(crs).total_bounds
+    width = int(np.ceil((right - left) / fe.SCALE_M))
+    height = int(np.ceil((top - bottom) / fe.SCALE_M))
+    return crs, Affine(fe.SCALE_M, 0, left, 0, -fe.SCALE_M, top), width, height
+
+
+def read_window(file_obj, bounds_lonlat):
+    &quot;&quot;&quot;
+    Read only the part of one NISAR GCOV file that covers the area.
+    Returns (HH power array, its transform, its CRS), or None if the file doesn&#x27;t overlap.
+
+    Inside the HDF5 file (NISAR&#x27;s product layout):
+      /science/LSAR/GCOV/grids/frequencyA/HHHH       HH power, gamma-0, linear units
+      .../xCoordinates, .../yCoordinates             pixel-centre positions in metres (UTM)
+      .../projection   attribute &quot;epsg_code&quot;         which UTM zone
+    Slicing HHHH[r0:r1, c0:c1] makes h5py fetch only the chunks inside that window.
+    &quot;&quot;&quot;
+    try:   # NISAR files are &quot;cloud optimised&quot;: a page buffer turns many tiny remote reads into few big ones
+        h5 = h5py.File(file_obj, &quot;r&quot;, page_buf_size=16 * 2**20, rdcc_nbytes=4 * 2**20)
+    except (OSError, ValueError):   # not a paged file (for example the local test file): open plainly
+        file_obj.seek(0)
+        h5 = h5py.File(file_obj, &quot;r&quot;)
+    with h5:
+        grid = h5[GRID]
+        if POLARIZATION not in grid:
+            return None
+        x, y = grid[&quot;xCoordinates&quot;][:], grid[&quot;yCoordinates&quot;][:]
+        crs = CRS.from_epsg(int(np.ravel(grid[&quot;projection&quot;].attrs[&quot;epsg_code&quot;])[0]))
+        left, bottom, right, top = transform_bounds(&quot;EPSG:4326&quot;, crs, *bounds_lonlat)
+        cols = np.flatnonzero((x &gt;= left) &amp; (x &lt;= right))
+        rows = np.flatnonzero((y &gt;= bottom) &amp; (y &lt;= top))
+        if not cols.size or not rows.size:
+            return None
+        c0, c1, r0, r1 = cols[0], cols[-1] + 1, rows[0], rows[-1] + 1
+        power = grid[POLARIZATION][r0:r1, c0:c1].astype(&quot;float32&quot;)
+    dx, dy = x[1] - x[0], y[1] - y[0]
+    transform = Affine(dx, 0, x[c0] - dx / 2, 0, dy, y[r0] - dy / 2)   # coordinates are pixel centres
+    power[~(power &gt; 0)] = np.nan     # fill values and zeros mean &quot;no data&quot;
+    return power, transform, crs
+
+
+def read_date(fs, granules, bounds_lonlat, grid):
+    &quot;&quot;&quot;STEP 2: stream every frame for one date and merge them onto the target grid.
+    Resampling averages POWER (not dB), which is physically correct and also calms speckle a little.&quot;&quot;&quot;
+    crs, transform, width, height = grid
+    merged = np.full((height, width), np.nan, &quot;float32&quot;)
+    for granule in granules:
+        print(f&quot;  frame {granule[&#x27;frame&#x27;]}, {granule[&#x27;date&#x27;]}: {granule[&#x27;size&#x27;] / 1e9:.1f} GB file, reading only the area...&quot;)
+        with fs.open(granule[&quot;url&quot;], mode=&quot;rb&quot;, cache_type=&quot;blockcache&quot;, block_size=8 * 2**20) as remote:
+            window = read_window(remote, bounds_lonlat)
+        if window is None:
+            continue
+        power, src_transform, src_crs = window
+        piece = np.full_like(merged, np.nan)
+        reproject(power, piece, src_transform=src_transform, src_crs=src_crs, dst_transform=transform,
+                  dst_crs=crs, resampling=Resampling.average, src_nodata=np.nan, dst_nodata=np.nan)
+        merged = np.where(np.isnan(merged), piece, merged)
+    with np.errstate(divide=&quot;ignore&quot;, invalid=&quot;ignore&quot;):
+        return 10 * np.log10(merged)     # linear power -&gt; dB; no-data stays NaN
+
+
+def usable_mask(grid, area):
+    &quot;&quot;&quot;
+    STEP 5&#x27;s masks, from Earth Engine with the same layers and settings as flood_extent.py:
+    not permanent water (JRC) and not steep (HydroSHEDS slope). Also returns which pixels fall
+    inside the area outline, since the grid is a rectangle around it.
+    &quot;&quot;&quot;
+    crs, transform, width, height = grid
+    occurrence = ee.Image(&quot;JRC/GSW1_4/GlobalSurfaceWater&quot;).select(&quot;occurrence&quot;).unmask(0)
+    slope = ee.Terrain.slope(ee.Image(&quot;WWF/HydroSHEDS/03VFDEM&quot;))
+    ok = occurrence.lte(fe.PERMANENT_WATER_PCT).And(slope.lt(fe.MAX_SLOPE_DEG)).toByte()
+    url = ok.getDownloadURL({&quot;crs&quot;: crs.to_string(), &quot;crs_transform&quot;: list(transform)[:6],
+                             &quot;dimensions&quot;: f&quot;{width}x{height}&quot;, &quot;format&quot;: &quot;GEO_TIFF&quot;})
+    path = fe.OUT_DIR / f&quot;{AOI_NAME}_usable.tif&quot;
+    urllib.request.urlretrieve(url, path)
+    with rasterio.open(path) as src:
+        ok = src.read(1) == 1
+    if ok.shape != (height, width):
+        raise SystemExit(f&quot;Earth Engine returned a {ok.shape} mask but the grid is {(height, width)}. &quot;
+                         &quot;Raise SCALE_M or use a smaller area.&quot;)
+    inside = features.geometry_mask([gpd.GeoSeries([area], crs=4326).to_crs(crs).iloc[0]],
+                                    out_shape=(height, width), transform=transform, invert=True)
+    return ok &amp; inside, inside
+
+
+def focal_median(image, radius_px, block=256):
+    &quot;&quot;&quot;STEP 3 on this computer: median over a circle of radius_px pixels, like Earth Engine&#x27;s
+    focal_median. Worked through in strips of rows so memory stays small.&quot;&quot;&quot;
+    r = int(radius_px)
+    dy, dx = np.mgrid[-r:r + 1, -r:r + 1]
+    circle = dx**2 + dy**2 &lt;= radius_px**2
+    padded = np.pad(image, r, constant_values=np.nan)
+    out = np.empty_like(image)
+    with warnings.catch_warnings():
+        warnings.simplefilter(&quot;ignore&quot;, RuntimeWarning)   # windows with no data at all just stay NaN
+        for top in range(0, image.shape[0], block):
+            windows = sliding_window_view(padded[top:top + block + 2 * r], circle.shape)[..., circle]
+            out[top:top + block] = np.nanmedian(windows, axis=-1)
+    return out
+
+
+def opening(flooded):
+    &quot;&quot;&quot;STEP 7a: shrink every patch by one pixel, then grow it back (see flood_extent.py step 7).&quot;&quot;&quot;
+    shrunk = sliding_window_view(np.pad(flooded, 1, constant_values=True), (3, 3)).all(axis=(-2, -1))
+    return sliding_window_view(np.pad(shrunk, 1, constant_values=False), (3, 3)).any(axis=(-2, -1))
+
+
+def otsu_threshold(ratio):
+    &quot;&quot;&quot;STEP 6a: Otsu on this computer, with the same fallback rule as flood_extent.pick_threshold().&quot;&quot;&quot;
+    values = ratio[np.isfinite(ratio)]
+    if not values.size:
+        return fe.DEFAULT_THRESHOLD, &quot;no usable pixels for Otsu, so the Sentinel-1 default was borrowed&quot;
+    counts, edges = np.histogram(values, bins=300, range=OTSU_RANGE)
+    value = fe.otsu((edges[:-1] + edges[1:]) / 2, counts)
+    if not PLAUSIBLE[0] &lt;= value &lt;= PLAUSIBLE[1]:
+        return fe.DEFAULT_THRESHOLD, (f&quot;Otsu gave {value:.2f}, outside {PLAUSIBLE[0]}-{PLAUSIBLE[1]}, so the &quot;
+                                      &quot;Sentinel-1 default was borrowed (NOT calibrated for L-band)&quot;)
+    return value, &quot;Otsu&#x27;s method&quot;
+
+
+def detect(before_db, during_db, usable):
+    &quot;&quot;&quot;STEPS 3-7 on this computer, mirroring flood_extent.flood_mask(). Returns a 0/1 flood grid.&quot;&quot;&quot;
+    before = focal_median(before_db, fe.SPECKLE_RADIUS_M / fe.SCALE_M)
+    during = focal_median(during_db, fe.SPECKLE_RADIUS_M / fe.SCALE_M)
+
+    # STEP 4: the same UN-SPIDER ratio of dB values. Above 1 means the ground got darker.
+    with np.errstate(divide=&quot;ignore&quot;, invalid=&quot;ignore&quot;):
+        ratio = during / before
+
+    # STEP 5: skip permanent water, steep ground and anything outside the area (usable_mask).
+    # Extra guard, L-band only: buildings can sit near or above 0 dB in HH, where a ratio of dB
+    # values explodes (-3 / -0.2 = 15) or flips sign. Those are double-bounce places this method
+    # can&#x27;t judge anyway, so they are skipped rather than turned into fake floods.
+    # ponytail: fixed -3 dB cut-off chosen by reasoning, not calibration; tune it after the first real run.
+    ratio[~usable | ~(before &lt; BRIGHT_DB)] = np.nan
+
+    # STEP 6 - !! only OPEN water turns darker. Flooded crops, trees and streets are MISSED
+    # (double bounce), and at L-band more so than at C-band. See flood_extent.LIMITATION. !!
+    threshold, how = otsu_threshold(ratio)
+    flooded = ratio &gt; threshold          # NaN compares as False, so skipped pixels are never flood
+
+    # STEP 7: opening, then drop patches under MIN_PATCH_PIXELS. sieve() also fills dry holes smaller
+    # than that inside a flood patch: a small difference from the Earth Engine version.
+    clean = features.sieve(opening(flooded).astype(&quot;uint8&quot;), size=fe.MIN_PATCH_PIXELS, connectivity=8)
+    return clean, before, during, threshold, how
+
+
+def write_tif(path, array, grid):
+    crs, transform, width, height = grid
+    nodata = np.nan if array.dtype.kind == &quot;f&quot; else None
+    with rasterio.open(path, &quot;w&quot;, driver=&quot;GTiff&quot;, height=height, width=width, count=1, dtype=array.dtype,
+                       crs=crs, transform=transform, nodata=nodata) as dst:
+        dst.write(array, 1)
+
+
+def main():
+    fe.init_earth_engine()
+    fe.OUT_DIR.mkdir(exist_ok=True)
+    area, _ = fe.load_aoi(AOI_PATH)
+    grid = target_grid(area)
+
+    before_files, during_files = find_granules(area, *BEFORE), find_granules(area, *DURING)
+    before_dates = sorted({g[&quot;date&quot;] for g in before_files})
+    during_dates = sorted({g[&quot;date&quot;] for g in during_files})
+    print(f&quot;NISAR track {TRACK} ({DIRECTION.lower()}): baseline {before_dates}, flood {during_dates}&quot;)
+
+    if not earthaccess.login().authenticated:
+        raise SystemExit(&quot;NASA Earthdata login failed. Create a free account at https://urs.earthdata.nasa.gov, &quot;
+                         &quot;then set EARTHDATA_USERNAME and EARTHDATA_PASSWORD (or a .netrc file) and rerun.&quot;)
+    fs = earthaccess.get_fsspec_https_session()
+    print(&quot;Streaming NISAR (only the chunks that cover the area)...&quot;)
+    before_db = read_date(fs, before_files, area.bounds, grid)
+    during_db = read_date(fs, during_files, area.bounds, grid)
+
+    print(&quot;Fetching the permanent-water and slope masks from Earth Engine...&quot;)
+    usable, inside = usable_mask(grid, area)
+    covered = (np.isfinite(before_db) &amp; np.isfinite(during_db))[inside].mean()
+    if covered &lt; 0.95:
+        print(f&quot;WARNING: only {covered:.0%} of the area has NISAR data on both dates. &quot;
+              &quot;The rest cannot be judged and is reported as not flooded.&quot;)
+
+    clean, before_s, during_s, threshold, how = detect(before_db, during_db, usable)
+
+    stem = f&quot;{AOI_NAME}_nisar_flood_{during_dates[0]}&quot;
+    paths = {name: fe.OUT_DIR / f&quot;{stem}_{name}.tif&quot; for name in (&quot;mask&quot;, &quot;before&quot;, &quot;during&quot;)}
+    write_tif(paths[&quot;mask&quot;], clean, grid)
+    write_tif(paths[&quot;before&quot;], before_s.astype(&quot;float32&quot;), grid)
+    write_tif(paths[&quot;during&quot;], during_s.astype(&quot;float32&quot;), grid)
+
+    properties = {&quot;aoi_name&quot;: AOI_NAME, &quot;sensor&quot;: SENSOR, &quot;acquisition_date&quot;: &quot;,&quot;.join(during_dates),
+                  &quot;baseline_date&quot;: &quot;,&quot;.join(before_dates), &quot;threshold&quot;: round(threshold, 4)}
+    fe.report(stem, paths[&quot;mask&quot;], paths[&quot;before&quot;], paths[&quot;during&quot;], area, properties, how,
+              f&quot;{AOI_NAME}: NISAR track {TRACK} {DIRECTION.lower()}, HH&quot;)
+    print(&quot;\nNISAR NOTE: thresholds are not calibrated for L-band yet. Before trusting these numbers, &quot;
+          &quot;run flood_extent.py on the same flood and compare.&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</pre>
+      </div>
+    </details>
+    <details>
+      <summary>test_flood_extent.py<span class="muted">local checks · 125 lines</span></summary>
+      <div class="inner">
+        <div class="bar"><span class="small muted">Otsu, polygon areas, the output format, the empty case, a NISAR-layout window read, the local detection steps, and catalogue size parsing.</span><button class="copy" id="copy-test" type="button" data-copy="src-test" data-label="Copy code">Copy code</button></div>
+        <pre class="src" id="src-test">&quot;&quot;&quot;Checks the parts of flood_extent.py that run on this computer (no Earth Engine login needed).
+Run:  python test_flood_extent.py&quot;&quot;&quot;
+
+import json
+import math
+import tempfile
+from pathlib import Path
+
+import numpy as np
+import rasterio
+from rasterio.transform import from_origin
+from rasterio.warp import transform_bounds
+
+import flood_extent as fe
+
+PROPS = {&quot;aoi_name&quot;: &quot;Test&quot;, &quot;sensor&quot;: &quot;Sentinel-1 C-band VH&quot;, &quot;acquisition_date&quot;: &quot;2024-08-21&quot;,
+         &quot;baseline_date&quot;: &quot;2024-08-09&quot;, &quot;threshold&quot;: 1.25}
+PIXEL_DEG = 0.0001          # about 10 m
+TOP, LEFT = 23.10, 91.40    # somewhere over Feni
+
+
+def write_mask(path, mask):
+    with rasterio.open(path, &quot;w&quot;, driver=&quot;GTiff&quot;, height=mask.shape[0], width=mask.shape[1], count=1,
+                       dtype=&quot;uint8&quot;, crs=&quot;EPSG:4326&quot;, transform=from_origin(LEFT, TOP, PIXEL_DEG, PIXEL_DEG)) as dst:
+        dst.write(mask, 1)
+
+
+def test_otsu_splits_two_humps():
+    # 90% unchanged land around ratio 1.0, 10% new water around 1.5
+    rng = np.random.default_rng(0)
+    values = np.concatenate([rng.normal(1.0, 0.05, 9000), rng.normal(1.5, 0.08, 1000)])
+    counts, edges = np.histogram(values, bins=200, range=(0.5, 2.5))
+    cut = fe.otsu(edges[:-1] + 0.005, counts)
+    assert 1.15 &lt; cut &lt; 1.35, cut
+
+
+def test_polygons_areas_and_contract(tmp):
+    mask = np.zeros((200, 200), np.uint8)
+    mask[10:20, 10:20] = 1      # 10 x 10 pixels
+    mask[50:90, 50:70] = 1      # 40 x 20 pixels, the bigger patch
+    write_mask(tmp / &quot;m.tif&quot;, mask)
+    polygons = fe.mask_to_polygons(tmp / &quot;m.tif&quot;, PROPS)
+
+    assert len(polygons) == 2
+    assert list(polygons.columns) == [&quot;aoi_name&quot;, &quot;sensor&quot;, &quot;acquisition_date&quot;, &quot;baseline_date&quot;,
+                                      &quot;area_km2&quot;, &quot;threshold&quot;, &quot;detects&quot;, &quot;geometry&quot;]
+    assert (polygons[&quot;detects&quot;] == &quot;open_water_only&quot;).all()
+    assert polygons[&quot;area_km2&quot;].iloc[0] &gt; polygons[&quot;area_km2&quot;].iloc[1]    # largest first
+
+    # expected ground area of one pixel at this latitude, from sphere geometry (~0.5% from UTM)
+    metres_per_degree = 111_195
+    lat = math.radians(TOP - 0.005)
+    pixel_km2 = (PIXEL_DEG * metres_per_degree) * (PIXEL_DEG * metres_per_degree * math.cos(lat)) / 1e6
+    for got, pixels in zip(polygons[&quot;area_km2&quot;], (800, 100)):
+        assert abs(got / (pixels * pixel_km2) - 1) &lt; 0.01, (got, pixels * pixel_km2)
+
+    feature = json.loads(polygons.to_json(drop_id=True))[&quot;features&quot;][0]
+    assert feature[&quot;properties&quot;][&quot;acquisition_date&quot;] == &quot;2024-08-21&quot;
+    assert feature[&quot;geometry&quot;][&quot;type&quot;] == &quot;Polygon&quot;
+
+
+def test_no_flood_gives_empty_collection(tmp):
+    write_mask(tmp / &quot;empty.tif&quot;, np.zeros((50, 50), np.uint8))
+    polygons = fe.mask_to_polygons(tmp / &quot;empty.tif&quot;, PROPS)
+    collection = json.loads(polygons.to_json(drop_id=True))
+    assert collection[&quot;type&quot;] == &quot;FeatureCollection&quot; and collection[&quot;features&quot;] == []
+
+
+def test_nisar_reads_only_the_window(tmp):
+    # A small file laid out like a NISAR GCOV product: 300 x 200 pixels, 20 m apart, UTM zone 46N
+    import h5py
+    import nisar_flood as nf
+    x = 500_010.0 + 20 * np.arange(300)          # pixel centres, west to east
+    y = 2_450_010.0 - 20 * np.arange(200)        # pixel centres, north to south
+    with h5py.File(tmp / &quot;gcov.h5&quot;, &quot;w&quot;) as f:
+        grid = f.create_group(nf.GRID)
+        grid[&quot;xCoordinates&quot;], grid[&quot;yCoordinates&quot;] = x, y
+        grid.create_dataset(&quot;projection&quot;, data=32646).attrs[&quot;epsg_code&quot;] = 32646
+        grid[&quot;HHHH&quot;] = np.full((200, 300), 0.05, &quot;float32&quot;)   # 0.05 linear = -13 dB, a typical field
+    # ask for a lon/lat box around a 2 km x 1 km patch in the middle
+    bounds = transform_bounds(&quot;EPSG:32646&quot;, &quot;EPSG:4326&quot;, 502_000, 2_447_000, 504_000, 2_448_000)
+    with open(tmp / &quot;gcov.h5&quot;, &quot;rb&quot;) as file_obj:
+        power, transform, crs = nf.read_window(file_obj, bounds)
+    assert crs.to_epsg() == 32646
+    assert 95 &lt;= power.shape[1] &lt;= 110 and 45 &lt;= power.shape[0] &lt;= 60, power.shape   # not all 300 x 200
+    assert (transform.a, transform.e) == (20, -20)
+    assert (transform.c + 10 - x[0]) % 20 == 0          # window edge sits exactly on the pixel grid
+    assert np.allclose(power, 0.05)
+
+
+def test_nisar_detect_keeps_flood_drops_noise_and_masked():
+    import nisar_flood as nf
+    rng = np.random.default_rng(1)
+    before = (-12 + rng.normal(0, 0.5, (120, 120))).astype(&quot;float32&quot;)     # fields, with a little noise
+    during = (-12 + rng.normal(0, 0.5, (120, 120))).astype(&quot;float32&quot;)
+    during[20:60, 20:60] = -24          # a real new flood: 40 x 40 pixels turned much darker
+    during[100, 40] = -24               # one lone speckle pixel
+    during[20:60, 90:110] = -24         # darkening inside an excluded strip (say, a permanent river)
+    usable = np.ones((120, 120), bool)
+    usable[:, 85:] = False
+    clean, _, _, threshold, how = nf.detect(before, during, usable)
+    assert clean[25:55, 25:55].all(), how   # the flood survives
+    assert clean[100, 40] == 0               # the lone pixel is gone
+    assert not clean[:, 85:].any()           # excluded pixels are never flood
+    assert 1.1 &lt;= threshold &lt;= 2.0, (threshold, how)
+
+
+def test_nisar_catalogue_size_parsing():
+    import nisar_flood as nf
+    record = {&quot;NISAR_L2_PR_GCOV_x.h5&quot;: {&quot;bytes&quot;: 6_100_000_000, &quot;format&quot;: &quot;HDF5&quot;},
+              &quot;NISAR_L2_PR_GCOV_x_LATLON.png&quot;: {&quot;bytes&quot;: 1_700_000, &quot;format&quot;: &quot;PNG&quot;}}
+    assert nf.h5_size(record) == 6_100_000_000        # the data file, not the preview picture
+    assert nf.h5_size(3_500_000_000) == 3_500_000_000  # a few records give one plain number
+    assert nf.h5_size(None) == 0
+
+
+if __name__ == &quot;__main__&quot;:
+    with tempfile.TemporaryDirectory() as folder:
+        test_otsu_splits_two_humps()
+        test_polygons_areas_and_contract(Path(folder))
+        test_no_flood_gives_empty_collection(Path(folder))
+        test_nisar_reads_only_the_window(Path(folder))
+        test_nisar_detect_keeps_flood_drops_noise_and_masked()
+        test_nisar_catalogue_size_parsing()
+    print(&quot;all 6 checks passed&quot;)
+</pre>
+      </div>
+    </details>
+    <details>
+      <summary>requirements.txt<span class="muted">8 libraries</span></summary>
+      <div class="inner"><pre id="src-req">earthengine-api&gt;=1.0
+geopandas&gt;=1.0
+rasterio&gt;=1.3
+shapely&gt;=2.0
+numpy&gt;=1.26
+matplotlib&gt;=3.8
+# NISAR path only (nisar_flood.py)
+h5py&gt;=3.10
+earthaccess&gt;=0.12</pre></div>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <p>Prepared 19 Sep 2026 as a practice build. It will be rebuilt from scratch at the event, as the BASIS ruling requires.</p>
+  <p>Sources: <a href="https://www.un-spider.org/advisory-support/recommended-practices/recommended-practice-google-earth-engine-flood-mapping">UN-SPIDER Recommended Practice</a> · <a href="https://en.wikipedia.org/wiki/August_2024_Bangladesh_floods">August 2024 Bangladesh floods</a> · <a href="https://reliefweb.int/map/bangladesh/satellite-detected-water-extents-between-28-august-4-september-2024-bangladesh-imagery-analysis-18-26082024-28082024-04092024-published-08092024-v1">UNOSAT water extents</a> · <a href="https://nisar-docs.asf.alaska.edu/availability-overview/">NISAR data availability</a> · <a href="https://nisar-docs.asf.alaska.edu/gcov/">NISAR GCOV product</a> · <a href="https://en.wikipedia.org/wiki/2026_Chittagong_floods">2026 Chittagong floods</a> · <a href="https://en.prothomalo.com/bangladesh/7jbpk0qmji">Prothom Alo, 12 Jul 2026</a></p>
+</footer>
+
+</main>
+
+<script>
+document.querySelectorAll("button.copy").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const text = document.getElementById(button.dataset.copy).innerText;
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = "Copied";
+    } catch {
+      button.textContent = "Copying is blocked here. Select the text instead";
+    }
+    setTimeout(() => { button.textContent = button.dataset.label; }, 2600);
+  });
+});
+</script>
