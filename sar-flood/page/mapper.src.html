@@ -187,12 +187,12 @@ footer { border-top: 1px solid var(--rule); padding-top: 18px; color: var(--mute
   <h1>Bangladesh SAR Flood Mapper</h1>
   <p class="lede">Finds new open floodwater from radar, either Sentinel-1 (C-band) or NISAR (L-band), and hands it on as GeoJSON polygons. It only maps the water. Deciding where boats, food and medicine go is a separate module that reads this output.</p>
   <div class="status" aria-label="Build status">
-    <span class="chip ok">5 of 5 local checks passed</span>
+    <span class="chip ok">6 of 6 local checks passed</span>
     <span class="chip ok">NISAR catalogue search works live</span>
     <span class="chip pending">Earth Engine and NISAR streaming not run yet</span>
     <span class="chip pending">Both validations pending</span>
   </div>
-  <p class="small muted">Waiting on two sign-ins: Google Earth Engine (both sensors) and NASA Earthdata (NISAR). Until then, what has run is the maths, polygons, areas and output file, reading a synthetic NISAR-layout file, and the live search for real NISAR files.</p>
+  <p class="small muted">Waiting on two sign-ins: Google Earth Engine (both sensors) and NASA Earthdata (NISAR). Until then, what has run is the maths, polygons, areas and output file, reading a synthetic NISAR-layout file, and the live search for real NISAR files. The code sits in a git repository with its working rules written down, so a bad change can be undone.</p>
 </header>
 
 <section class="limit" aria-labelledby="limit-h">
@@ -321,12 +321,14 @@ footer { border-top: 1px solid var(--rule); padding-top: 18px; color: var(--mute
 
 <section aria-labelledby="run-h">
   <h2 id="run-h">Run it</h2>
-  <pre>pip install -r requirements.txt
-earthengine authenticate                 # once; signs in with Google in your browser
-set EE_PROJECT=your-cloud-project-id     # a project registered for non-commercial Earth Engine
-python flood_extent.py                   # Sentinel-1: defaults reproduce the Feni 2024 run
-python nisar_flood.py                    # NISAR: needs a NASA Earthdata login too; Chattogram 2026 test
-python test_flood_extent.py              # local checks, no sign-in needed</pre>
+  <pre>earthengine authenticate              # once; signs in with Google in your browser
+set EE_PROJECT=your-cloud-project-id  # a project registered for non-commercial Earth Engine
+
+run.cmd test_flood_extent.py          # local checks, no sign-in needed
+run.cmd flood_extent.py               # Sentinel-1: reproduces the Feni 2024 run
+run.cmd nisar_flood.py                # NISAR: also needs Earthdata; the Chattogram 2026 test
+run.cmd page\build.py                 # rebuilds this page after a code change</pre>
+  <p class="small muted">The helper runs each script in the project's own Python environment, so the libraries are already installed. When something goes wrong the scripts say so in plain words: Earth Engine refusing an area that is too large, the two date windows being the wrong way round, or a mask grid that does not line up.</p>
   <p class="small muted">Register an Earth Engine project for free at <a href="https://code.earthengine.google.com/register">code.earthengine.google.com/register</a>, and a NASA Earthdata account at <a href="https://urs.earthdata.nasa.gov">urs.earthdata.nasa.gov</a>. For NISAR, set <code>EARTHDATA_USERNAME</code> and <code>EARTHDATA_PASSWORD</code>, use a <code>.netrc</code> file, or type them when the script asks. To map another area, change the settings block at the top of either script.</p>
 </section>
 
@@ -384,7 +386,7 @@ python test_flood_extent.py              # local checks, no sign-in needed</pre>
     <details>
       <summary>test_flood_extent.py<span class="muted">local checks · {{TEST_LINES}} lines</span></summary>
       <div class="inner">
-        <div class="bar"><span class="small muted">Otsu, polygon areas, the output format, the empty case, a NISAR-layout window read, and the local detection steps.</span><button class="copy" id="copy-test" type="button" data-copy="src-test" data-label="Copy code">Copy code</button></div>
+        <div class="bar"><span class="small muted">Otsu, polygon areas, the output format, the empty case, a NISAR-layout window read, the local detection steps, and catalogue size parsing.</span><button class="copy" id="copy-test" type="button" data-copy="src-test" data-label="Copy code">Copy code</button></div>
         <pre class="src" id="src-test">{{TEST_PY}}</pre>
       </div>
     </details>
