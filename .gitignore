@@ -19,3 +19,6 @@ sar-flood/out/
 .env
 .netrc
 _netrc
+
+# generated: a 1.4 MB inlined copy of the pack, rebuilt by pack/embed_pack.py
+guidebook/app/pack-embed.js
