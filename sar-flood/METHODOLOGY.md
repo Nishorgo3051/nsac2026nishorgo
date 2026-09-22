@@ -28,7 +28,7 @@ Status: **experimental.** It was built on 19 Sep 2026 at the team's request, bef
 - Reading a window from a file laid out like NISAR GCOV. This used a synthetic local file.
 - The local detection steps.
 
-**Not yet run:** streaming a real NISAR file (it needs a NASA Earthdata login) and the Earth Engine masks.
+**Run for real on 22 Sep 2026.** Four real granules were streamed from ASF and both masks were read from their public buckets; the numbers are in the results table below. Still not done: the cross-sensor check against Sentinel-1, which needs the Earth Engine sign-in.
 
 How it differs from the Sentinel-1 path:
 - **Processing location.** NISAR isn't in Earth Engine, so steps 3–7 run locally with numpy. The two exclusion masks are read straight from public buckets instead of Earth Engine, so the NISAR path needs no Google sign-in: permanent water comes from the *same* dataset as the Sentinel-1 path (JRC Global Surface Water v1.4 occurrence, same 50% cut-off), and slope is worked out from the Copernicus DEM GLO-30 rather than HydroSHEDS. Because Copernicus is a surface model that treats tree lines and buildings as cliffs at 20 m, the terrain is averaged to 90 m — HydroSHEDS' own scale — before the slope is measured. On the July 2026 test area this masked 2.4% of pixels as permanent water and 17.8% as steeper than 5°.
@@ -52,3 +52,30 @@ How it differs from the Sentinel-1 path:
   2. **A cross-sensor check:** run `flood_extent.py` (Sentinel-1) on the same area and dates. Both Sentinel-1A and 1C fly in 2026.
   3. No patches on the hill slopes east of Satkania.
   4. At least 95% data coverage on both dates. The script prints a warning if it's lower.
+
+**Result of the run on 22 Sep 2026** — output `out/South_Chattogram_nisar_flood_2026-07-12.geojson`:
+
+| | |
+|---|---|
+| New open water | **128.4 km² in 2,186 patches**, 11.7% of the 1,099 km² area |
+| Largest patch | 9.7 km² |
+| Threshold | **1.175**, chosen by Otsu — not the borrowed 1.25 fallback |
+| Data | 4 granules, 19.9 GB of files, of which about 460 MB was actually transferred |
+| Masked out | 2.4% permanent water, 17.8% steeper than 5° |
+
+By upazila (flood polygons intersected with the admin boundaries):
+
+| Upazila | New open water | Share of the upazila |
+|---|---|---|
+| Satkania | 56.4 km² | 20.4% |
+| Chandanaish | 27.0 km² | 13.5% |
+| Banshkhali | 36.1 km² | 10.0% |
+| Lohagara | 8.9 km² | 3.4% |
+
+Against the four checks above:
+1. **Met.** All four upazilas show new open water. Whether the ranking matches the damage reports has *not* been checked: no per-upazila published figures for this event have been found.
+2. **Not done.** The Sentinel-1 cross-check still needs the Earth Engine sign-in.
+3. **True by construction, not independently confirmed.** Pixels steeper than 5° are dropped before thresholding, so no patch *can* land on the Satkania hills. That is the mask working, not evidence about the hills.
+4. **Met.** The script warns below 95% coverage on both dates and printed no warning.
+
+This is a real measurement of real NISAR data. It is **not** a validated flood map: the threshold is uncalibrated for L-band, there is no published km² for this event to compare against, and open-water-only detection means the true flooded area is larger — most of all in the villages, which is where people are.

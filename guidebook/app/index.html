@@ -15,6 +15,9 @@
   --mono: ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace;
 }
 * { box-sizing: border-box; }
+/* Our own rule, not the browser's: #gate and #side set `display`, which would otherwise beat the
+   browser's default styling for [hidden] and leave the first-run panel covering the map. */
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.45 var(--sans); overflow: hidden; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }

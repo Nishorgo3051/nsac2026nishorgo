@@ -1,7 +1,7 @@
 {
   "pack_id": "chattogram-south",
   "name": "South Chattogram flood region",
-  "built_on": "2026-09-21",
+  "built_on": "2026-09-22",
   "coverage": {
     "bbox_lonlat": [
       91.85054,
@@ -56,9 +56,17 @@
       "kind": "vector",
       "file": "change.geojson",
       "source": "NISAR L-band GCOV, NASA / ISRO, via NASA Earthdata (ASF DAAC)",
-      "method": "See sar-flood/METHODOLOGY.md. Not yet produced.",
-      "limitations": "Detects open water only: flooded villages and crops are missed.",
-      "status": "pending: needs a free NASA Earthdata account to download the NISAR granules"
+      "limitations": "Detects open water only: flooded villages, crops and streets are missed (the double-bounce effect), so the flooded area is a lower bound.",
+      "product": "L2 GCOV, HH channel, gamma-0",
+      "method": "Ratio of the two dates in dB, threshold by Otsu's method, permanent water and steep ground excluded, patches under 8 pixels dropped. See sar-flood/METHODOLOGY.md.",
+      "status": "ready",
+      "from_file": "South_Chattogram_nisar_flood_2026-07-12.geojson",
+      "patches": 2186,
+      "flooded_km2": 128.4,
+      "acquisition_date": "2026-07-12",
+      "baseline_date": "2026-06-30",
+      "threshold": 1.175,
+      "detects": "open_water_only"
     }
   ]
 }

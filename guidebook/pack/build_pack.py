@@ -148,9 +148,15 @@ def change_layer():
              "flooded_km2": round(float(patches.area_km2.sum()), 1) if len(patches) else 0.0}
     if len(patches):
         row = patches.iloc[0]
-        patches.to_file(OUT / "change.geojson", driver="GeoJSON")
-        layer.update(acquisition_date=row.acquisition_date, baseline_date=row.baseline_date,
-                     threshold=float(row.threshold), detects=row.detects)
+        # Every patch carries the same sensor, dates and threshold; the manifest states them once,
+        # so the pack keeps only each patch's own area. COORDINATE_PRECISION trims coordinates to
+        # about a metre. Together these cut the file by more than half, which matters on a phone.
+        patches[["area_km2", "geometry"]].to_file(OUT / "change.geojson", driver="GeoJSON",
+                                                  COORDINATE_PRECISION=5)
+        as_date = lambda v: v.date().isoformat() if hasattr(v, "date") else str(v)
+        layer.update(acquisition_date=as_date(row.acquisition_date),
+                     baseline_date=as_date(row.baseline_date),
+                     threshold=float(row.threshold), detects=str(row.detects))
     else:
         # The pipeline ran and found nothing. Still ship the empty layer, and say so.
         (OUT / "change.geojson").write_text(
