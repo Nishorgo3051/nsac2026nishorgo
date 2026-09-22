@@ -123,6 +123,42 @@ def to_lonlat(shaded, transform, crs):
     return out, (left, bottom, right, top)
 
 
+def change_layer():
+    """
+    The NISAR change layer, copied in if sar-flood/nisar_flood.py has already produced one.
+
+    No file means the layer stays "pending". That is deliberate: a pack with an empty change layer
+    tells the truth about what we have, while a pack with invented water would be a lie that looks
+    like science. The app only loads and caches layers whose status is exactly "ready".
+    """
+    base = {"id": "change", "title": "NISAR surface change", "kind": "vector", "file": "change.geojson",
+            "source": "NISAR L-band GCOV, NASA / ISRO, via NASA Earthdata (ASF DAAC)",
+            "limitations": "Detects open water only: flooded villages, crops and streets are missed "
+                           "(the double-bounce effect), so the flooded area is a lower bound."}
+    found = sorted((GUIDEBOOK.parent / "sar-flood" / "out").glob("*_nisar_flood_*.geojson"))
+    if not found:
+        return {**base, "method": "See sar-flood/METHODOLOGY.md. Not yet produced.",
+                "status": "pending: run sar-flood/nisar_flood.py to produce it"}
+
+    patches = gpd.read_file(found[-1]).to_crs(4326)
+    method = ("Ratio of the two dates in dB, threshold by Otsu's method, permanent water and steep "
+              "ground excluded, patches under 8 pixels dropped. See sar-flood/METHODOLOGY.md.")
+    layer = {**base, "product": "L2 GCOV, HH channel, gamma-0", "method": method, "status": "ready",
+             "from_file": found[-1].name, "patches": len(patches),
+             "flooded_km2": round(float(patches.area_km2.sum()), 1) if len(patches) else 0.0}
+    if len(patches):
+        row = patches.iloc[0]
+        patches.to_file(OUT / "change.geojson", driver="GeoJSON")
+        layer.update(acquisition_date=row.acquisition_date, baseline_date=row.baseline_date,
+                     threshold=float(row.threshold), detects=row.detects)
+    else:
+        # The pipeline ran and found nothing. Still ship the empty layer, and say so.
+        (OUT / "change.geojson").write_text(
+            json.dumps({"type": "FeatureCollection", "features": []}), encoding="utf-8")
+        layer["note"] = "The pipeline ran on real NISAR data and detected no new open water."
+    return layer
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     area = gpd.read_file(AOI_FILE).to_crs(4326).union_all()
@@ -159,11 +195,7 @@ def main():
              "method": "Window read of the public tiles, merged to UTM, hillshade at azimuth 315 and altitude 45 degrees",
              "limitations": "A surface model, so it includes buildings and trees and smooths low flat land. Not a flood model.",
              "status": "ready"},
-            {"id": "change", "title": "NISAR surface change", "kind": "vector", "file": "change.geojson",
-             "source": "NISAR L-band GCOV, NASA / ISRO, via NASA Earthdata (ASF DAAC)",
-             "method": "See sar-flood/METHODOLOGY.md. Not yet produced.",
-             "limitations": "Detects open water only: flooded villages and crops are missed.",
-             "status": "pending: needs a free NASA Earthdata account to download the NISAR granules"},
+            change_layer(),
         ],
     }
     (OUT / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")

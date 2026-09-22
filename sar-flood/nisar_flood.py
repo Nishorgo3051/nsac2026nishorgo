@@ -8,17 +8,18 @@ experimental until both sensors have been run on the same flood and compared.
 WHY A SEPARATE FILE
   NISAR is not in Google Earth Engine. So the images are streamed from NASA's Alaska Satellite
   Facility (ASF) and steps 3-7 run on this computer with numpy, instead of on Google's servers.
-  The two exclusion masks (permanent water, steep slopes) still come from Earth Engine, so both
-  sensors exclude exactly the same places. Steps 8-9 and the output file are shared with
+  The two exclusion masks (permanent water, steep slopes) use the same datasets as the Sentinel-1
+  version, but are read straight from their public buckets, so this file needs NO Earth Engine
+  sign-in (see public_masks). Steps 8-9 and the output file are shared with
   flood_extent.py, so the downstream module reads both the same way (sensor = "NISAR L-band HH").
 
 HOW TO RUN
   1. pip install -r requirements.txt
-  2. Earth Engine sign-in, exactly as for flood_extent.py (needed for the two masks)
-  3. A free NASA Earthdata account: https://urs.earthdata.nasa.gov
+  2. A free NASA Earthdata account: https://urs.earthdata.nasa.gov
      Then set EARTHDATA_USERNAME and EARTHDATA_PASSWORD, or put them in a .netrc file.
      If neither is set, earthaccess asks for them in the terminal.
-  4. python nisar_flood.py        (the defaults reproduce the July 2026 Chattogram test)
+     Nothing else needs an account: the water and terrain files are open data.
+  3. python nisar_flood.py        (the defaults reproduce the July 2026 Chattogram test)
 
 WHAT IS DIFFERENT FROM SENTINEL-1 - read before comparing numbers
   - Wavelength: L-band (24 cm) instead of C-band (5.5 cm). L-band reaches further through leaves
@@ -40,7 +41,6 @@ import urllib.request
 import warnings
 
 import earthaccess
-import ee
 import geopandas as gpd
 import h5py
 import numpy as np
@@ -50,6 +50,7 @@ from rasterio import features
 from rasterio.crs import CRS
 from rasterio.transform import Affine
 from rasterio.warp import Resampling, reproject, transform_bounds
+from rasterio.windows import from_bounds
 
 import flood_extent as fe
 
@@ -77,6 +78,16 @@ PLAUSIBLE = (1.1, 3.0)
 
 GRID = "/science/LSAR/GCOV/grids/frequencyA"     # where GCOV keeps the main-band images
 SEARCH_URL = "https://api.daac.asf.alaska.edu/services/search/param"
+
+# The two mask datasets, as public files instead of Earth Engine (see public_masks).
+# JRC Global Surface Water v1.4: ten-degree tiles named after their top-left corner.
+JRC_URL = ("https://storage.googleapis.com/global-surface-water/downloads2021/occurrence/"
+           "occurrence_{lon}_{lat}v1_4_2021.tif")
+# Copernicus DEM GLO-30: one tile per degree, open data on AWS, no account needed.
+DEM_URL = ("https://copernicus-dem-30m.s3.eu-central-1.amazonaws.com/"
+           "Copernicus_DSM_COG_10_{ns}{lat:02d}_00_{ew}{lon:03d}_00_DEM/"
+           "Copernicus_DSM_COG_10_{ns}{lat:02d}_00_{ew}{lon:03d}_00_DEM.tif")
+SLOPE_SCALE_M = 90          # measure slope over this distance: see public_masks for why not 20 m
 
 
 def h5_size(entry):
@@ -186,28 +197,111 @@ def read_date(fs, granules, bounds_lonlat, grid):
         return 10 * np.log10(merged)     # linear power -> dB; no-data stays NaN
 
 
-def usable_mask(grid, area):
+def jrc_tiles(bounds):
+    """Which JRC water tiles the area touches. Each covers ten degrees and is named after its
+    top-left corner, so occurrence_90E_30N holds 90-100 E and 20-30 N."""
+    left, bottom, right, top = bounds
+    for lat in range(int(np.ceil(bottom / 10)) * 10, int(np.ceil(top / 10)) * 10 + 1, 10):
+        for lon in range(int(np.floor(left / 10)) * 10, int(np.floor(right / 10)) * 10 + 1, 10):
+            yield JRC_URL.format(lon=f"{abs(lon)}{'E' if lon >= 0 else 'W'}",
+                                 lat=f"{abs(lat)}{'N' if lat >= 0 else 'S'}")
+
+
+def dem_tiles(bounds):
+    """Which Copernicus DEM tiles the area touches: one per whole degree."""
+    left, bottom, right, top = bounds
+    for lat in range(int(np.floor(bottom)), int(np.floor(top)) + 1):
+        for lon in range(int(np.floor(left)), int(np.floor(right)) + 1):
+            yield DEM_URL.format(ns="N" if lat >= 0 else "S", lat=abs(lat),
+                                 ew="E" if lon >= 0 else "W", lon=abs(lon))
+
+
+def read_onto_grid(url, grid, bounds_lonlat, resampling):
     """
-    STEP 5's masks, from Earth Engine with the same layers and settings as flood_extent.py:
-    not permanent water (JRC) and not steep (HydroSHEDS slope). Also returns which pixels fall
-    inside the area outline, since the grid is a rectangle around it.
+    Read only this area's window out of one public cloud GeoTIFF and put it on our own grid.
+    Both files are internally tiled, so https fetches just the tiles that overlap the area:
+    a few MB instead of the 70 MB (water) or 100 MB+ (terrain) whole tile.
+    Returns None when a tile is missing or does not overlap, so one gap does not stop the run.
     """
     crs, transform, width, height = grid
-    occurrence = ee.Image("JRC/GSW1_4/GlobalSurfaceWater").select("occurrence").unmask(0)
-    slope = ee.Terrain.slope(ee.Image("WWF/HydroSHEDS/03VFDEM"))
-    ok = occurrence.lte(fe.PERMANENT_WATER_PCT).And(slope.lt(fe.MAX_SLOPE_DEG)).toByte()
-    url = ok.getDownloadURL({"crs": crs.to_string(), "crs_transform": list(transform)[:6],
-                             "dimensions": f"{width}x{height}", "format": "GEO_TIFF"})
-    path = fe.OUT_DIR / f"{AOI_NAME}_usable.tif"
-    urllib.request.urlretrieve(url, path)
-    with rasterio.open(path) as src:
-        ok = src.read(1) == 1
-    if ok.shape != (height, width):
-        raise SystemExit(f"Earth Engine returned a {ok.shape} mask but the grid is {(height, width)}. "
-                         "Raise SCALE_M or use a smaller area.")
+    out = np.full((height, width), np.nan, "float32")
+    name = url.rsplit("/", 1)[1]
+    try:
+        with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR"):
+            with rasterio.open(f"/vsicurl/{url}") as src:
+                window = from_bounds(*transform_bounds("EPSG:4326", src.crs, *bounds_lonlat),
+                                     transform=src.transform)
+                values = src.read(1, window=window, boundless=True, masked=True)
+                # astype first: the water layer is whole numbers, which cannot hold "no data".
+                reproject(values.astype("float32").filled(np.nan), out, src_crs=src.crs,
+                          src_transform=src.window_transform(window),
+                          dst_crs=crs, dst_transform=transform, resampling=resampling,
+                          src_nodata=np.nan, dst_nodata=np.nan)
+    except rasterio.errors.RasterioIOError as error:
+        print(f"  skipped {name}: {error}")
+        return None
+    print(f"  read {name}")
+    return out
+
+
+def public_masks(grid, area):
+    """
+    STEP 5's masks, from open files that need no account at all:
+
+      permanent water   JRC Global Surface Water v1.4 "occurrence", the SAME dataset and the same
+                        PERMANENT_WATER_PCT cut-off that flood_extent.py asks Earth Engine for,
+                        downloaded from the JRC's own public bucket instead.
+      steep ground      slope worked out from the Copernicus DEM GLO-30.
+
+    Why the slope is measured over SLOPE_SCALE_M metres and not over one 20 m pixel: the
+    Sentinel-1 version uses HydroSHEDS slope, which is a roughly 90 m product, and Copernicus is a
+    SURFACE model, so at 20 m every tree line and building edge looks like a cliff and would mask
+    out real flooded ground. Averaging the terrain to 90 m first keeps the two sensors comparable.
+
+    Also returns which pixels fall inside the area outline, since the grid is a rectangle round it.
+    """
+    crs, transform, width, height = grid
+
+    print("Reading the JRC permanent-water layer (public, no login)...")
+    occurrence = None
+    for url in jrc_tiles(area.bounds):
+        piece = read_onto_grid(url, grid, area.bounds, Resampling.max)
+        if piece is not None:
+            occurrence = piece if occurrence is None else np.where(np.isnan(occurrence), piece, occurrence)
+    if occurrence is None:
+        raise SystemExit("Could not read the JRC surface-water layer. Check the network and rerun.")
+    occurrence[occurrence > 100] = np.nan     # 255 means "never observed"
+    # Earth Engine's unmask(0) treats never-observed pixels as dry land, so do the same here.
+    wet = np.nan_to_num(occurrence, nan=0.0) > fe.PERMANENT_WATER_PCT
+
+    print(f"Reading the Copernicus DEM for slope, averaged to {SLOPE_SCALE_M} m (public, no login)...")
+    step = max(1, round(SLOPE_SCALE_M / fe.SCALE_M))
+    coarse_transform = transform * Affine.scale(step)
+    coarse = (crs, coarse_transform, -(-width // step), -(-height // step))
+    elevation = None
+    for url in dem_tiles(area.bounds):
+        piece = read_onto_grid(url, coarse, area.bounds, Resampling.average)
+        if piece is not None:
+            elevation = piece if elevation is None else np.where(np.isnan(elevation), piece, elevation)
+    if elevation is None:
+        raise SystemExit("Could not read the Copernicus DEM. Check the network and rerun.")
+
+    flat = np.nan_to_num(elevation, nan=float(np.nanmin(elevation)))
+    dy, dx = np.gradient(flat, fe.SCALE_M * step)
+    coarse_slope = np.degrees(np.arctan(np.hypot(dx, dy))).astype("float32")
+    slope = np.full((height, width), np.nan, "float32")
+    reproject(coarse_slope, slope, src_crs=crs, src_transform=coarse_transform,
+              dst_crs=crs, dst_transform=transform, resampling=Resampling.bilinear,
+              src_nodata=np.nan, dst_nodata=np.nan)
+    steep = np.nan_to_num(slope, nan=0.0) >= fe.MAX_SLOPE_DEG
+
     inside = features.geometry_mask([gpd.GeoSeries([area], crs=4326).to_crs(crs).iloc[0]],
                                     out_shape=(height, width), transform=transform, invert=True)
-    return ok & inside, inside
+    usable = ~wet & ~steep & inside
+    area_px = inside.sum()
+    print(f"  masked out: {(wet & inside).sum() / area_px:.1%} permanent water, "
+          f"{(steep & inside).sum() / area_px:.1%} steeper than {fe.MAX_SLOPE_DEG} degrees")
+    return usable, inside
 
 
 def focal_median(image, radius_px, block=256):
@@ -281,9 +375,9 @@ def write_tif(path, array, grid):
 
 
 def main():
-    fe.init_earth_engine()
     fe.OUT_DIR.mkdir(exist_ok=True)
-    area, _ = fe.load_aoi(AOI_PATH)
+    # Shapely only: fe.load_aoi() also builds an Earth Engine geometry, which this file no longer needs.
+    area = gpd.read_file(AOI_PATH).to_crs(4326).union_all()
     grid = target_grid(area)
 
     before_files, during_files = find_granules(area, *BEFORE), find_granules(area, *DURING)
@@ -299,8 +393,7 @@ def main():
     before_db = read_date(fs, before_files, area.bounds, grid)
     during_db = read_date(fs, during_files, area.bounds, grid)
 
-    print("Fetching the permanent-water and slope masks from Earth Engine...")
-    usable, inside = usable_mask(grid, area)
+    usable, inside = public_masks(grid, area)
     covered = (np.isfinite(before_db) & np.isfinite(during_db))[inside].mean()
     if covered < 0.95:
         print(f"WARNING: only {covered:.0%} of the area has NISAR data on both dates. "

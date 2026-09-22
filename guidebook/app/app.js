@@ -198,8 +198,9 @@ function layerButton(layer) {
 }
 
 function provenance(layer) {
-  const rows = [["Source", layer.source], ["Product", layer.product], ["Acquired", layer.acquired],
-                ["Method", layer.method], ["Limitations", layer.limitations]];
+  const rows = [["Source", layer.source], ["Product", layer.product],
+                ["Acquired", layer.acquisition_date], ["Baseline", layer.baseline_date],
+                ["File", layer.from_file], ["Method", layer.method], ["Limitations", layer.limitations]];
   return `<h3>${layer.title}</h3><dl class="meta">${rows.filter(([, value]) => value)
     .map(([key, value]) => `<dt>${key}</dt><dd>${value}</dd>`).join("")}</dl>`;
 }
@@ -236,9 +237,16 @@ function panels() {
       </div>
       <div class="card">
         <h2>What changed</h2>
-        <p class="note">${state.change
-          ? "Blue areas are pixels classified as newly covered by open water between the two radar passes."
-          : "Once the NISAR pair is processed, this compares a baseline pass with a flood pass and marks pixels that turned from land to open water."}</p>
+        ${state.change ? `<dl class="meta">
+          <dt>Flood pass</dt><dd class="num">${change.acquisition_date}</dd>
+          <dt>Baseline pass</dt><dd class="num">${change.baseline_date}</dd>
+          <dt>New open water</dt><dd class="num">${change.flooded_km2} km²</dd>
+          <dt>Share of region</dt><dd class="num">${(100 * change.flooded_km2 / pack.coverage.area_km2).toFixed(1)}%</dd>
+          <dt>Patches</dt><dd class="num">${change.patches}</dd>
+          <dt>Threshold</dt><dd class="num">${Number(change.threshold).toFixed(2)}</dd>
+        </dl>
+        <p class="note">Blue areas are pixels that turned from land to open water between those two NISAR passes. ${change.limitations}</p>`
+          : `<p class="note">Once the NISAR pair is processed, this compares a baseline pass with a flood pass and marks pixels that turned from land to open water.</p>`}
       </div>
       <div class="card">
         <h2>Provenance</h2>

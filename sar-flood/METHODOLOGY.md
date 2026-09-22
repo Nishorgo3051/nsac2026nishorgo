@@ -31,7 +31,7 @@ Status: **experimental.** It was built on 19 Sep 2026 at the team's request, bef
 **Not yet run:** streaming a real NISAR file (it needs a NASA Earthdata login) and the Earth Engine masks.
 
 How it differs from the Sentinel-1 path:
-- **Processing location.** NISAR isn't in Earth Engine, so steps 3–7 run locally with numpy. The permanent-water and slope masks still come from Earth Engine, so both sensors exclude the same places.
+- **Processing location.** NISAR isn't in Earth Engine, so steps 3–7 run locally with numpy. The two exclusion masks are read straight from public buckets instead of Earth Engine, so the NISAR path needs no Google sign-in: permanent water comes from the *same* dataset as the Sentinel-1 path (JRC Global Surface Water v1.4 occurrence, same 50% cut-off), and slope is worked out from the Copernicus DEM GLO-30 rather than HydroSHEDS. Because Copernicus is a surface model that treats tree lines and buildings as cliffs at 20 m, the terrain is averaged to 90 m — HydroSHEDS' own scale — before the slope is measured. On the July 2026 test area this masked 2.4% of pixels as permanent water and 17.8% as steeper than 5°.
 - **The data.** L-band HH, as GCOV gamma-0 in linear power, converted to dB. Only the chunks covering the area are read from each 2–9 GB file.
 - **Thresholds.** They aren't calibrated for L-band; the 1.25 fallback is borrowed from Sentinel-1.
 - **An extra guard.** Pixels brighter than −3 dB before the flood are skipped, because a ratio of dB values breaks down near 0 dB. This cut-off was chosen by reasoning, not calibration.
