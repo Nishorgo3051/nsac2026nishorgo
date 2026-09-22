@@ -1,0 +1,49 @@
+/*
+  Service worker: it keeps the instrument itself openable when there is no network.
+
+  Division of labour, on purpose:
+    THIS WORKER  caches the shell - the page, the script, itself. Three small files.
+    THE APP      caches the pack separately, under its own key, because the pack is megabytes and
+                 is replaced on its own schedule when a newer observation arrives.
+
+  Nothing here asks the network to decide what to serve: a cached shell is served first, always,
+  so opening the instrument never waits on a dying connection.
+*/
+
+const SHELL = "prohori-shell-v1";
+const FILES = ["./", "index.html", "app.js", "sw.js"];
+
+self.addEventListener("install", (event) => {
+  // allSettled, not all: one missing file must not leave the instrument with no cached shell.
+  event.waitUntil(
+    caches.open(SHELL)
+      .then((cache) => Promise.allSettled(
+        FILES.map((file) => cache.add(new Request(file, { cache: "reload" })))))
+      .then(() => self.skipWaiting()));
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys
+        .filter((key) => key.startsWith("prohori-shell-") && key !== SHELL)
+        .map((key) => caches.delete(key))))
+      .then(() => self.clients.claim()));
+});
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  event.respondWith((async () => {
+    const shell = await caches.open(SHELL);
+    const hit = await shell.match(event.request, { ignoreSearch: true });
+    if (hit) return hit;
+    try {
+      return await fetch(event.request);
+    } catch (error) {
+      // Offline and not on the device. Say so plainly rather than letting the browser show its own
+      // error page, which looks as though the instrument itself has failed.
+      return new Response("Offline, and this file is not stored on the device.",
+                          { status: 504, headers: { "Content-Type": "text/plain" } });
+    }
+  })());
+});

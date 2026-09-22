@@ -22,3 +22,7 @@ _netrc
 
 # generated: a 1.4 MB inlined copy of the pack, rebuilt by pack/embed_pack.py
 guidebook/app/pack-embed.js
+prohori/app/pack-embed.js
+brag-output-*/brag*.mp4
+brag-output-*/assets/*.png
+brag-output-*/composition/assets/

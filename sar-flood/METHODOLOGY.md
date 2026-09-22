@@ -4,11 +4,11 @@
 
 We map new open floodwater with Sentinel-1 radar, which sees through monsoon cloud, following the UN-SPIDER Recommended Practice for SAR flood mapping in Google Earth Engine. For a chosen area we compare a pre-flood and a during-flood VH radar image taken from the same orbit track, smooth radar speckle with a 50 m median filter, and flag pixels whose backscatter dropped sharply, using a threshold chosen automatically by Otsu's method (with UN-SPIDER's default of 1.25 as a fallback). We then remove permanent rivers and ponds using the JRC Global Surface Water dataset, remove steep slopes where radar shadow can mimic water, clean away isolated pixels, and export each flooded patch as a polygon with its area and image date. The method detects only open water: flooded crops, trees and built-up streets often turn brighter to radar rather than darker (the "double bounce" effect), so they are missed, which makes our flooded area a lower bound that most likely under-counts flooding in villages and towns. The same pipeline also runs on NISAR L-band radar (GCOV product, HH channel) streamed from NASA's Alaska Satellite Facility, reading only the area of interest from each multi-gigabyte file; this NISAR path is experimental until it has been checked against Sentinel-1 on the same flood.
 
-VALIDATION SENTENCE: add after the Feni run (see below). Do not claim validation before it exists.
+VALIDATION SENTENCE: the Feni run is done — see "Result of the Feni run" below for the sentence that is now supported by evidence, and for exactly what it does and does not claim.
 
 ## Validation plan: Feni district, August 2024 floods
 
-Status: **NOT YET RUN.** The Earth Engine steps need the team's Google sign-in. The local steps (Otsu, polygons, areas, empty output) pass `test_flood_extent.py`.
+Status: **RUN on 22 Sep 2026, with real Sentinel-1 data and no Google account** — by `s1_flood.py`, not `flood_extent.py`. The Earth Engine version still needs a Google sign-in the team does not have, so the pipeline was rebuilt on Sentinel-1 **RTC** products (radiometrically terrain-corrected gamma-0, 10 m) read from the open Microsoft Planetary Computer STAC catalogue: no account, anonymous asset signing, reproducible by anyone on a clean machine. `flood_extent.py` stays in the repo as the Earth Engine implementation of the identical method, still unrun. Results and the plausibility assessment are at the end of this section.
 
 - Images: Sentinel-1A, ascending, relative orbit 114. Baseline **9 Aug 2024**, flood **21 Aug 2024**. Dates were checked in the ASF catalogue on 19 Sep 2026.
 - Event facts: rain began 19 Aug, the flood began 21 Aug, and the Gumti peaked 23 Aug at 8.58 m, 53 cm above danger level. Feni had the highest death toll (28). Source: Wikipedia, "August 2024 Bangladesh floods".
@@ -20,6 +20,57 @@ What would count as plausible:
 2. The pattern matches how the flood moved. Parshuram, Fulgazi and Chhagalnaiya in the north were hit first by the flash flood from the Tripura hills, so they should show clear new water on 21 Aug.
 3. Built-up Feni Sadar should come out under the reference. Double bounce predicts this, so it is a check on the limitation, not a failure.
 4. There are no big patches on the Tripura hill slopes (the slope mask) and none along the permanent river channels (the JRC mask).
+
+### Result of the Feni run, 22 Sep 2026
+
+| | |
+|---|---|
+| Source | Sentinel-1 C-band VH, RTC gamma-0, 10 m, via the Microsoft Planetary Computer STAC catalogue (no account) |
+| Scenes | `S1A_IW_GRDH_1SDV_20240809T120441` (baseline) and `S1A_IW_GRDH_1SDV_20240821T120442` (flood) |
+| Track | Relative orbit 114, ascending, both dates |
+| Observation dates | Baseline **2024-08-09**, flood **2024-08-21** |
+| Masked out | 0.9% permanent water, 0.0% steeper than 5° (Feni is flat coastal plain) |
+| Threshold | **1.25** — Otsu returned 1.05, outside the plausible 1.1–2.0 range, so UN-SPIDER's default was used |
+| **Detected** | **21.7 km² of new open water in 1,159 patches** = 2.3% of the 929 km² district; largest patch 0.9 km² |
+
+By upazila:
+
+| Upazila | New open water | Share of upazila |
+|---|---|---|
+| Fulgazi | 5.1 km² | 4.9% |
+| Parashuram | 4.4 km² | 4.4% |
+| Chhagalnaiya | 5.1 km² | 3.8% |
+| Feni Sadar | 4.1 km² | 1.9% |
+| Sonagazi | 2.5 km² | 1.1% |
+| Daganbhuiyan | 0.5 km² | 0.4% |
+
+**Against the four checks above:**
+
+1. **Order of magnitude — does not match, and the reason is known.** 21.7 km² against a reported
+   201 km² is 11%. Two stated causes: the 21 August pass caught the flood on the day it *arrived*,
+   two days before the Gumti peaked on 23 August, so we imaged the leading edge rather than the
+   peak; and open-water detection misses flooded villages and cropland entirely. Both push the
+   figure down, and both are properties of the observation rather than errors in it. The next
+   same-track pass was 2 September, by which time water had receded, so no pass exists at the peak.
+2. **Pattern — matches.** Fulgazi, Parashuram and Chhagalnaiya, the northern upazilas struck first
+   by the flash flood off the Tripura hills, are the top three by share. Daganbhuiyan, furthest
+   from that path, is last. This is the check that actually validates the geography, and it passes.
+3. **Built-up Feni Sadar comes out low** (1.9%), below the three rural northern upazilas. That is
+   what double bounce predicts, so it supports the stated limitation rather than contradicting it.
+4. **Masks behaved.** Only 0.9% of the district was excluded as permanent water and none as steep,
+   which is correct for flat coastal plain, so the masks are not quietly removing the flood.
+
+**No accuracy figure is claimed.** The 201 km² reference is press reporting whose own observation
+date and method are unstated, so it cannot serve as ground truth; no validated flood map exists for
+this event. This is a qualitative plausibility check and nothing more.
+
+**VALIDATION SENTENCE (usable now):** "Our Sentinel-1 pipeline was run on the August 2024 Feni
+flood, comparing the 9 August baseline with the 21 August flood pass on the same orbit track. It
+detected 21.7 km² of new open water, concentrated in the northern upazilas that the flash flood
+reached first — a spatial pattern consistent with the documented event. The total is about 11% of
+the ~201 km² reported for the event, because the available pass predates the flood peak by two days
+and because radar-dark detection misses flooded vegetation and built-up areas. No accuracy figure
+is claimed: no validated flood map exists for this event."
 
 ## NISAR (L-band) version: `nisar_flood.py`
 

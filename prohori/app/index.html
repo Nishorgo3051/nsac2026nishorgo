@@ -1,0 +1,220 @@
+<title>Prohori field instrument</title>
+
+<!--
+  PROHORI - last-mile disaster intelligence.
+
+  Design language, deliberately narrow:
+    ONE SCREEN         the map is the instrument. Panels open over the lower part of it; nothing
+                       ever navigates away, because a responder in a boat cannot go looking for
+                       another page.
+    HIGH CONTRAST      pure black on white, saturated layer colours. Dark interfaces look good
+                       indoors and disappear in direct sun, which is where this gets used.
+    NO ANIMATION       nothing fades, slides or eases. Motion costs battery, costs attention and
+                       hides state. A control either shows the new state or does nothing.
+    SUNLIGHT READABLE  heavy type, 3px borders, 60px+ touch targets, no thin greys on grey.
+
+  Colour carries meaning and nothing else:
+    BLUE     = satellite observation (radar)
+    MAGENTA  = human field observation
+    ORANGE   = your own position
+    GREEN    = shelter reference point
+    BLACK    = roads and ground truth geometry
+-->
+
+<style>
+  :root {
+    --paper: #ffffff;
+    --ink: #000000;
+    --dim: #454545;
+    --flood: #1a4ed8;
+    --report: #d6006e;
+    --fix: #e05a00;
+    --shelter: #00722c;
+    --water: #0a6b8a;
+    --warn: #b40000;
+  }
+
+  /* No animation anywhere. This is a rule, not a preference. */
+  *, *::before, *::after {
+    box-sizing: border-box;
+    transition: none !important;
+    animation: none !important;
+  }
+  [hidden] { display: none !important; }
+
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font: 16px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%; overflow: hidden;
+  }
+  button { font: inherit; color: inherit; background: var(--paper); border: 0; cursor: pointer; }
+  :focus-visible { outline: 4px solid var(--flood); outline-offset: -4px; }
+
+  #screen { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
+
+  /* ---------------- status strip ---------------- */
+  #status {
+    display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    padding: 8px 10px; border-bottom: 3px solid var(--ink);
+  }
+  #status .mark { font-weight: 800; letter-spacing: 0.14em; font-size: 15px; }
+  #status .grow { flex: 1 1 auto; }
+  .chip {
+    border: 2px solid var(--ink); padding: 4px 8px; font-size: 13px; font-weight: 800;
+    letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+  }
+  .chip.on { background: var(--ink); color: var(--paper); }
+  .chip.alert { background: var(--warn); color: var(--paper); border-color: var(--warn); }
+
+  /* ---------------- map ---------------- */
+  #stage { position: relative; overflow: hidden; }
+  #map { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  #crosshair {
+    position: absolute; left: 50%; top: 50%; width: 36px; height: 36px;
+    margin: -18px 0 0 -18px; pointer-events: none;
+  }
+  #crosshair::before, #crosshair::after { content: ""; position: absolute; background: var(--ink); }
+  #crosshair::before { left: 0; right: 0; top: 17px; height: 2px; }
+  #crosshair::after { top: 0; bottom: 0; left: 17px; width: 2px; }
+
+  #readout {
+    position: absolute; left: 8px; right: 8px; bottom: 8px;
+    background: var(--paper); border: 3px solid var(--ink); padding: 8px 10px;
+    font-size: 15px; font-weight: 700;
+  }
+  #readout .note { font-weight: 600; color: var(--dim); font-size: 13px; }
+  #readout .hit { color: var(--flood); }
+
+  #zoom { position: absolute; right: 8px; top: 8px; display: grid; gap: 6px; }
+  #zoom button { width: 58px; height: 58px; border: 3px solid var(--ink); font-size: 30px; font-weight: 800; }
+
+  #scale {
+    position: absolute; left: 10px; top: 10px; font-size: 13px; font-weight: 800;
+    letter-spacing: 0.06em; border: 2px solid var(--ink); padding: 3px 7px; background: var(--paper);
+  }
+
+  /* ---------------- action bar: the two field observations come first ---------------- */
+  #actions { border-top: 3px solid var(--ink); }
+  #reportbar { display: grid; grid-template-columns: 1fr 1fr; }
+  #reportbar button {
+    height: 74px; font-size: 20px; font-weight: 800; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--paper); background: var(--report);
+  }
+  #reportbar button + button { border-left: 3px solid var(--ink); }
+  #tools { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 3px solid var(--ink); }
+  #tools button {
+    height: 56px; font-size: 13px; font-weight: 800; letter-spacing: 0.06em;
+    text-transform: uppercase; border-right: 2px solid var(--ink);
+  }
+  #tools button:last-child { border-right: 0; }
+  #tools button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+  /* ---------------- panels ---------------- */
+  .panel {
+    position: absolute; left: 0; right: 0; bottom: 0; max-height: 78%; overflow-y: auto;
+    background: var(--paper); border-top: 3px solid var(--ink); padding: 12px 12px 18px;
+  }
+  .panel h2 {
+    margin: 0 0 10px; font-size: 15px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .panel h3 { margin: 16px 0 4px; font-size: 15px; font-weight: 800; }
+  .rows { display: grid; gap: 8px; }
+  .row {
+    display: flex; align-items: center; gap: 10px; border: 2px solid var(--ink);
+    padding: 11px; width: 100%; text-align: left; font-size: 16px; font-weight: 700;
+  }
+  .row[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .row .swatch { width: 22px; height: 22px; border: 2px solid var(--ink); flex: none; }
+  .row[aria-pressed="true"] .swatch { border-color: var(--paper); }
+  .row .count { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 800; }
+
+  dl.meta { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; font-size: 15px; }
+  dl.meta dt { font-weight: 800; }
+  dl.meta dd { margin: 0; }
+  .limit { border: 3px solid var(--warn); padding: 10px; margin: 12px 0; font-size: 15px; }
+  .limit b { color: var(--warn); }
+  .plain { font-size: 15px; }
+  .dim { color: var(--dim); }
+  .wide {
+    width: 100%; height: 62px; border: 3px solid var(--ink); font-size: 17px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-top: 10px;
+  }
+  .wide.solid { background: var(--ink); color: var(--paper); }
+  textarea {
+    width: 100%; height: 110px; border: 2px solid var(--ink); padding: 6px; margin-top: 8px;
+    font: 12px/1.3 ui-monospace, monospace;
+  }
+  ul.reports { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  ul.reports li { border: 2px solid var(--ink); padding: 8px 10px; font-size: 15px; }
+  ul.reports .kind { font-weight: 800; color: var(--report); text-transform: uppercase; }
+  ul.reports .when { color: var(--dim); font-size: 13px; }
+
+  /* ---------------- first run ---------------- */
+  #gate { position: absolute; inset: 0; background: var(--paper); padding: 16px; overflow-y: auto; }
+  #gate h1 { margin: 0 0 4px; font-size: 25px; font-weight: 800; }
+  #gate .sub { margin: 0 0 14px; font-size: 16px; font-weight: 600; }
+  #gate .card { border: 3px solid var(--ink); padding: 12px; }
+  #gate .line { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; padding: 3px 0; }
+  #gate .line b { font-weight: 800; }
+  #progress { margin-top: 10px; font-size: 14px; font-weight: 700; min-height: 1.4em; }
+  #gate label.file { display: block; margin-top: 14px; font-size: 15px; font-weight: 700; }
+  #gate input[type=file] { display: block; margin-top: 6px; font-size: 15px; width: 100%; }
+</style>
+
+<div id="screen">
+  <header id="status">
+    <span class="mark">PROHORI</span>
+    <span class="chip" id="chip-net">NETWORK</span>
+    <span class="chip" id="chip-pack">NO PACK</span>
+    <span class="chip" id="chip-fix">NO FIX</span>
+    <span class="grow"></span>
+    <span class="chip" id="chip-obs" hidden></span>
+  </header>
+
+  <main id="stage">
+    <canvas id="map"></canvas>
+    <div id="scale" hidden></div>
+    <div id="crosshair" hidden></div>
+    <div id="zoom" hidden>
+      <button id="zoom-in" aria-label="Zoom in">+</button>
+      <button id="zoom-out" aria-label="Zoom out">&minus;</button>
+    </div>
+    <div id="readout" hidden></div>
+
+    <section class="panel" id="panel-layers" hidden></section>
+    <section class="panel" id="panel-source" hidden></section>
+    <section class="panel" id="panel-reports" hidden></section>
+
+    <section id="gate">
+      <h1>Load the disaster pack</h1>
+      <p class="sub">Do this while you still have a connection. After that the instrument needs no
+        network at all: no tiles, no services, no accounts.</p>
+      <div class="card" id="gate-card">
+        <div class="line"><span>Looking for packs&hellip;</span></div>
+      </div>
+      <div id="progress"></div>
+      <label class="file">Or open a pack file handed to you by another team
+        <input type="file" id="pack-file" accept=".json,application/json">
+      </label>
+    </section>
+  </main>
+
+  <div id="actions">
+    <div id="reportbar">
+      <button id="btn-water">Water here</button>
+      <button id="btn-road">Road cut</button>
+    </div>
+    <div id="tools">
+      <button id="tool-layers" aria-pressed="false">Layers</button>
+      <button id="tool-source" aria-pressed="false">Source</button>
+      <button id="tool-reports" aria-pressed="false">Reports</button>
+      <button id="tool-locate">Locate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Only present in a published build: the pack inlined so the page needs no packs folder.
+     Missing locally, which is harmless - the instrument then downloads or imports a pack file. -->
+<script src="pack-embed.js"></script>
+<script src="app.js"></script>
