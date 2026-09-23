@@ -39,9 +39,11 @@ Everything below came out of the pipeline in this folder. None of it is placehol
   threshold 1.25.
 - **By upazila:** Fulgazi 5.1 km² (4.9%), Parashuram 4.4 km² (4.4%), Chhagalnaiya 5.1 km² (3.8%),
   Feni Sadar 4.1 km² (1.9%), Sonagazi 2.5 km² (1.1%), Daganbhuiyan 0.5 km² (0.4%).
-- **Pack:** one file, 3.2 MB — the flood layer, 2,293 road lines (51 crossing detected water),
-  927 waterway lines, 278 shelter points (169 mosques, 73 schools, 36 hospitals and clinics),
-  terrain 0–141 m, and six upazila outlines.
+- **Pack:** one file, 6.7 MB — the flood layer, a Sentinel-2 photograph of the district
+  (17 Dec 2023, 20 m), the two radar passes as pictures, 2,293 road lines (51 crossing detected
+  water), 927 waterway lines, 86 named places (29 from OpenStreetMap, 57 villages from GeoNames),
+  278 shelter points (169 mosques, 73 schools, 36 hospitals and clinics), terrain 0–141 m, and six
+  upazila outlines — with Bangla and English names wherever the map has them.
 
 ### The sanity check, stated honestly
 
@@ -92,7 +94,8 @@ inside deep folders.
 
 ```bash
 python ../sar-flood/s1_flood.py       # Sentinel-1 flood layer + provenance   (~10 min)
-python pipeline/fetch_context.py      # roads, waterways, shelters from OSM    (~15 s)
+python pipeline/fetch_context.py      # roads, rivers, places, shelters (OSM)  (~15 s)
+python pipeline/fetch_imagery.py      # Sentinel-2 photo + the radar pictures  (~1 min)
 python pipeline/build_pack.py         # one pack file + the pack index         (~1 min)
 ```
 
@@ -130,12 +133,13 @@ involved at any point.
 
 ```
 prohori/
-  pipeline/fetch_context.py   roads, waterways, shelters from OpenStreetMap
+  pipeline/fetch_context.py   roads, waterways, places, shelters from OpenStreetMap, both scripts
+  pipeline/fetch_imagery.py   the Sentinel-2 photograph and the two radar pictures, one grid
   pipeline/build_pack.py      assembles ONE pack file: hazard + context + terrain + provenance
   pipeline/embed_pack.py      inlines a pack for a published build
   packs/                      the built packs, one file each, plus index.json
-  context/                    the fetched OSM context, kept between pack builds
-  app/                        the field instrument (index.html, app.js, sw.js)
+  context/                    the fetched OSM context and imagery, kept between pack builds
+  app/                        the field instrument (index.html, app.js, sw.js, fonts/)
   serve.mjs                   local server for preparation and testing
 ../sar-flood/s1_flood.py      the Sentinel-1 pipeline that produces the flood layer
 ../sar-flood/nisar_flood.py   the NISAR L-band extension (see below)
@@ -145,37 +149,76 @@ prohori/
 
 The instrument keeps these apart on screen, inside the pack and in the export:
 
-- **Satellite observation** — the radar flood layer. Blue. Carries sensor, both dates, method and
-  limitations. Never described as ground truth.
-- **Geographic reference** — terrain, roads, waterways, shelters. Black lines, slate rivers, grey
-  dashed boundaries, green squares.
-- **Human field observation** — what the operator recorded. Magenta circles (water here) and
-  triangles (road cut). Stored separately and exported separately as GeoJSON marked
-  `"source": "field observation"`.
+- **Satellite observation** — the radar flood layer. Close up it is a silty wash multiplied into the
+  photograph, so the fields and village trees show through it as they would through shallow
+  floodwater; over that, a fine cyan hatch and a bright edge, the cartographer's sign for
+  "measured, not drawn". Far out it is solid cyan, so the smallest patch still shows. Carries sensor, both dates, the pass time, method and limitations. Never
+  described as ground truth. Roads crossing that water are *derived* from it, so they are drawn in
+  the same cyan, as dashes.
+- **Geographic reference** — the Sentinel-2 photograph, terrain relief, roads (cream with a dark
+  edge, highway numbers as shields), rivers (pale blue, named), villages and towns (named),
+  upazila boundaries (white dashes), shelters (green squares with a roof).
+- **Human field observation** — what the operator recorded, in the flag's red: circles (water
+  here) and triangles (road cut). The operator's own position is a red ring round a white core.
+  Stored separately and exported separately as GeoJSON marked `"source": "field observation"`.
 
 Every one of those meanings is carried by shape as well as colour, so nothing on the map depends
-on telling colours apart. Roads crossing detected water are a *derived* product, so they are drawn
-as a dashed casing, never in the satellite's blue.
+on telling colours apart.
 
-## Design language
+## Identity and design language
 
-One screen, high contrast, no animation, readable in sunlight — and at night.
+**A satellite instrument brought down to human scale.** The screen reads top to bottom like the
+flag of Bangladesh, and like the two points of view it connects:
 
-- **Day:** black on white. **Night:** amber on black with no white anywhere, because a bright
-  screen at night destroys dark adaptation and turns the phone into a lamp. Every text pair was
-  measured: day body text 10.9:1, report buttons 7.0:1, night text 11.5:1.
-- **No animation is not no feedback.** Each report shows a persistent confirmation with an UNDO
-  button, updates the count printed on its button, and buzzes where the phone supports it. Any
-  single report can be deleted; deleting all of them takes two taps.
-- **The readout is three fixed slots** — WHERE, WATER, SHELTER — that never move. The radar's
-  limitation appears in the WATER slot exactly when it matters: on a spot the radar called dry.
-- **Panels stop at 45% height,** so the crosshair and the readout are never covered.
-- **Clutter scales with zoom.** Village roads and streams appear only when zoomed in; the flood
-  layer, main roads, rivers, wet roads and shelters are always shown.
-- **Text sizes are in rem,** so a reader's own enlarged-text setting is respected.
-- **The connectivity chip tells the truth.** A radio being on is not a working link, so the
-  instrument asks the network for something every 20 seconds: ONLINE only when an answer comes
-  back, NO LINK when the radio is on but nothing answers, OFFLINE when the radio is off.
+- **Orbit — the green band.** What the satellite saw, in the satellite's own voice: a key to the
+  radar layer, and the pass as telemetry (`21 AUG 2024 · 18:04 UTC+6 · SENTINEL-1A · C-BAND SAR`).
+- **Earth — the map.** The real piece of Bangladesh: Feni from Sentinel-2 on a clear dry-season
+  morning (17 Dec 2023) — the Muhuri and Selonia rivers, the dark tree clusters of the village
+  homesteads, the Tripura hills the flash flood came down from — with the district bright and
+  everything outside it dimmed, a fine latitude/longitude grid, and the radar's water laid on top.
+- **Ground — the red bar.** What the person standing there records. The largest things to touch.
+
+The two views meet in the readout. The WATER slot always has two labelled lines: **ORBIT** (what
+the radar saw) and **GROUND** (what has been recorded there — a count of nearby reports, "nothing
+recorded here yet", or, on a spot the radar called dry, the radar's blind spot and an invitation to
+record what you see).
+
+- **See the flood arrive.** The Radar button swaps the photograph for the two radar passes the
+  flood layer was computed from — 9 Aug on one side of a line, 21 Aug on the other. Drag the line
+  and watch the water appear. That is the evidence behind the layer, shown as the satellite
+  recorded it. Pinch to zoom anywhere.
+- **Two native languages.** English and বাংলা are written separately, not translated word for
+  word, and the switch is always on screen. Bangla uses Bangla numerals, Bangladeshi usage (পানি)
+  and local time words (সন্ধ্যা ৬:০৪); scientific names — Sentinel-1, C-band — stay as the world
+  writes them. Place names come from OpenStreetMap in whichever script was mapped, and are never
+  transliterated by the app. A phone set to Bangla opens in Bangla.
+- **Real places.** Villages come from OpenStreetMap and GeoNames. GeoNames positions rounded to the
+  nearest arc-minute (up to a kilometre off) are dropped rather than drawn in the wrong place.
+  Close up, rivers are the real rivers in the photograph; the drawn line steps back.
+- **Installable.** Served from `serve.mjs` (or any web host), the instrument can be added to a
+  phone's home screen: its own icon — the flag's disc crossed by an orbit — and full screen.
+- **One typeface for both scripts.** Anek Bangla, designed for Bangla and Latin together, stored
+  with the app so it works offline.
+- **Light and dark, one tap.** The switch changes the instrument's surfaces only; the Earth, the
+  radar and the meaning of every mark are identical in both. It follows the phone's setting until
+  the operator chooses.
+- **The flag's colours are the primary colours.** Flag green `#006a4e` for the orbit band and
+  everything geographic; flag red `#f42a41` for the ground and the operator. Radar cyan is the
+  one colour added, and it belongs to the satellite alone.
+- **Measured contrast.** Body text 15:1 or better in both modes, dim text 7.6:1+, coloured text
+  7.3:1+, labels on the flag green 6.6:1, report buttons 6.7:1.
+- **No animation, but never silent.** Nothing fades or slides. Each report shows a persistent
+  confirmation with UNDO directly above the report buttons, says whether it went to the GPS
+  position or the crosshair, updates the count on its button and buzzes where the phone supports
+  it. Deleting all reports takes two separate taps; a double tap does not count.
+- **The first glance carries the job.** The instrument opens on the biggest body of water the radar
+  found, reticle on it, so the first things read are "Flood water seen from orbit" and "Radar saw
+  water here".
+- **One screen.** Panels stop at 45% height; the readout stays at the top; the confirmation sits
+  by the thumb. Checked on phones down to 320 × 568 in both languages: the reticle stays clear.
+- **The connectivity chip tells the truth.** ONLINE only when the network actually answers, NO
+  LINK when the radio is on but nothing answers, OFFLINE when the radio is off — shown bright, as
+  the instrument's normal working state, not as an error.
 
 Shelter points are reference locations from OpenStreetMap, not a verified shelter registry. A road
 flagged as crossing detected water is not a claim that it is impassable, and an unflagged road is
@@ -200,7 +243,11 @@ same instrument displays either source without a line of code changing.
 ## Attribution
 
 - Sentinel-1 data: ESA Copernicus; RTC product via the Microsoft Planetary Computer.
+- Sentinel-2 photograph (17 Dec 2023): ESA Copernicus; L2A true colour via the Microsoft Planetary
+  Computer.
 - Terrain: Copernicus DEM GLO-30 (ESA / Airbus).
 - Permanent water mask: JRC Global Surface Water v1.4 (European Commission JRC).
-- Roads, waterways, shelter points: © OpenStreetMap contributors, ODbL.
+- Roads, waterways, place names, shelter points: © OpenStreetMap contributors, ODbL.
+- Village names: GeoNames (geonames.org), CC BY 4.0.
+- Typeface: Anek Bangla by Ek Type, SIL Open Font License (`app/fonts/OFL.txt`).
 - Method: UN-SPIDER Recommended Practice for SAR flood mapping.

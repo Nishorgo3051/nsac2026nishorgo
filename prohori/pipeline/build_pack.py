@@ -31,18 +31,19 @@ HOW TO RUN
   2. python fetch_context.py                   produces the roads, waterways and shelters
   3. python build_pack.py                      writes ../packs/<pack-id>.pack.json
 
-Dependencies: geopandas, rasterio, numpy, matplotlib (see ../../sar-flood/requirements.txt).
+Dependencies: geopandas, rasterio, numpy, Pillow (see ../../sar-flood/requirements.txt).
 """
 
 import base64
+import io
 import json
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
 import rasterio
-from matplotlib import pyplot as plt
+from PIL import Image
 from rasterio.warp import Resampling, reproject, transform_bounds
 from rasterio.windows import from_bounds
 
@@ -61,6 +62,22 @@ PARTS_FILE = AOI_DIR / "feni_upazilas.geojson"
 AOI_FILE = AOI_DIR / "feni.geojson"
 
 PACK_NAME = "Feni district flood"
+PACK_NAME_BN = "ফেনী জেলার বন্যা"
+IMAGERY_DIR = PROHORI / "context" / "imagery"
+
+# The pack is bilingual, so the places it names need both spellings. These are the official
+# upazila names as the Bangladesh government writes them, and the standard names of the district's
+# rivers and towns. Only names we are sure of are listed: anything else keeps the one spelling the
+# map gives it, rather than an invented one.
+AREA_BN = {"Feni Sadar": "ফেনী সদর", "Fulgazi": "ফুলগাজী", "Parashuram": "পরশুরাম",
+           "Chhagalnaiya": "ছাগলনাইয়া", "Sonagazi": "সোনাগাজী", "Daganbhuiyan": "দাগনভূঞা"}
+KNOWN_NAMES = [("Feni", "ফেনী"), ("Daganbhuiyan", "দাগনভূঁইয়া"), ("Parshuram", "পরশুরাম"),
+               ("Chhagalnaiya", "ছাগলনাইয়া"), ("Fulgazi", "ফুলগাজী"), ("Sonagazi", "সোনাগাজী"),
+               ("Basurhat", "বসুরহাট"), ("Mirsarai", "মীরসরাই"), ("Chauddagram", "চৌদ্দগ্রাম"),
+               ("Muhuriganj", "মুহুরীগঞ্জ"), ("Baraiyarhat", "বারৈয়ারহাট"),
+               ("Muhuri River", "মুহুরী নদী"), ("Selonia River", "সিলোনিয়া নদী"),
+               ("Kahua River", "কহুয়া নদী"), ("Dakatia River", "ডাকাতিয়া নদী"),
+               ("Feni River", "ফেনী নদী")]
 HAZARD_TYPE = "flood"
 HAZARD_LABEL = "Flood - open water seen by radar"
 
@@ -200,6 +217,36 @@ def mark_wet_roads(context, geojson_path):
     return len(wet_rows)
 
 
+def complete_names(items):
+    """Fill in the missing spelling of a place when it is one of the names we are sure of."""
+    to_bn = dict(KNOWN_NAMES)
+    to_en = {bn: en for en, bn in KNOWN_NAMES}
+    for item in items:
+        if item.get("name") and not item.get("name_bn") and item["name"] in to_bn:
+            item["name_bn"] = to_bn[item["name"]]
+        if item.get("name_bn") and not item.get("name") and item["name_bn"] in to_en:
+            item["name"] = to_en[item["name_bn"]]
+
+
+def data_uri(path, mime="image/jpeg"):
+    """Embed a picture in the pack. Base64 costs a third in size and keeps the pack ONE file."""
+    return f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode("ascii")
+
+
+def imagery_block():
+    """The real landscape and the radar evidence, from fetch_imagery.py. Optional: a pack without
+    pictures still works, it just shows the map on a plain ground."""
+    meta_path = IMAGERY_DIR / "imagery.json"
+    if not meta_path.exists():
+        print("  no imagery (run fetch_imagery.py to add the satellite pictures)")
+        return None
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["optical"]["image"] = data_uri(IMAGERY_DIR / meta["optical"].pop("file"))
+    for when in ("before", "during"):
+        meta["radar"][when]["image"] = data_uri(IMAGERY_DIR / meta["radar"][when].pop("file"))
+    return meta
+
+
 def observation_block():
     """The satellite hazard layer, plus everything needed to judge it."""
     found = sorted(SAR_OUT.glob(HAZARD_GLOB))
@@ -221,6 +268,13 @@ def observation_block():
             features.append({"km2": round(float(km2), 3), "rings": rings})
 
     block = dict(provenance)                 # provenance travels verbatim, nothing rewritten
+    # When the satellite passed, read from the scene name (S1A_..._20240821T120442_...), so the
+    # instrument can say "Sentinel-1A, 18:04 Bangladesh time" rather than just a date.
+    flood_scene = (provenance.get("scene_ids") or {}).get("flood", [""])[0]
+    if flood_scene.startswith("S1") and "T" in flood_scene:
+        stamp = flood_scene.split("_")[4]
+        block["platform"] = "Sentinel-1" + flood_scene[2]
+        block["acquisition_time_utc"] = f"{stamp[9:11]}:{stamp[11:13]}"
     block["features"] = features
     block["feature_count"] = len(features)
     return block, geojson_path.name
@@ -241,6 +295,8 @@ def main():
     if not CONTEXT_FILE.exists():
         raise SystemExit(f"No {CONTEXT_FILE.name}. Run fetch_context.py first.")
     context = json.loads(CONTEXT_FILE.read_text(encoding="utf-8"))
+    for key in ("roads", "waterways", "shelters", "places"):
+        complete_names(context.get(key, []))
     wet = mark_wet_roads(context, sorted(SAR_OUT.glob(HAZARD_GLOB))[-1])
     context["roads_crossing_water"] = wet
     context["roads_note"] = ("A road is flagged when it crosses an area where the radar saw open "
@@ -254,8 +310,9 @@ def main():
     print("Packing the terrain from the public Copernicus DEM...")
     elevation, transform, crs = read_dem(area)
     shaded, bounds = to_lonlat(hillshade(elevation), transform, crs)
-    image_path = PACKS / "_terrain_tmp.png"
-    plt.imsave(image_path, shaded, cmap="gray", vmin=0, vmax=1)
+    buffer = io.BytesIO()
+    Image.fromarray((np.nan_to_num(shaded, nan=1.0) * 255).round().astype("uint8"), mode="L").save(
+        buffer, format="JPEG", quality=80, optimize=True)
     terrain = {
         "bounds": [round(v, PLACES) for v in bounds],
         "elevation_m": {"min": round(float(np.nanmin(elevation)), 1),
@@ -268,25 +325,32 @@ def main():
                         "land. It shows the shape of the ground. It is not a flood model."),
         # The picture is embedded so the pack stays one file. Base64 costs about a third in size
         # and buys a package a responder can hand to somebody else with no network involved.
-        "image": "data:image/png;base64," + base64.b64encode(image_path.read_bytes()).decode("ascii"),
+        "image": "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii"),
     }
-    image_path.unlink()
 
-    areas = [{"name": name, "km2": round(float(km2), 1), "rings": rings_of(geometry)}
+    print("Packing the satellite pictures...")
+    imagery = imagery_block()
+
+    areas = [{"name": name, "name_bn": AREA_BN.get(name, ""), "km2": round(float(km2), 1),
+              "rings": rings_of(geometry)}
              for name, km2, geometry in zip(parts.adm3_name, parts.area_sqkm, parts.geometry)]
 
     pack = {
         "format": "prohori.pack/1",
         "pack_id": f"feni-{observation['acquisition_date']}",
         "name": PACK_NAME,
+        "name_bn": PACK_NAME_BN,
         "hazard": {"type": HAZARD_TYPE, "label": HAZARD_LABEL},
         "built_on": date.today().isoformat(),
+        # To the second, so an instrument can tell two builds from the same day apart.
+        "built_at": datetime.now().isoformat(timespec="seconds"),
         "coverage": {"bbox": [round(v, PLACES) for v in area.bounds],
                      "area_km2": round(float(parts.area_sqkm.sum()), 1),
                      "places": sorted(parts.adm3_name)},
         "observation": observation,
         "context": context,
         "terrain": terrain,
+        **({"imagery": imagery} if imagery else {}),
         "areas": areas,
         "usage": ("Prepared while online, then carried into the field. Once this file is on the "
                   "device the instrument needs no network: no tiles, no services, no accounts."),

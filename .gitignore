@@ -26,3 +26,6 @@ prohori/app/pack-embed.js
 brag-output-*/brag*.mp4
 brag-output-*/assets/*.png
 brag-output-*/composition/assets/
+
+# Raw GeoNames country file: fetch_context.py downloads it again when it is missing.
+prohori/context/geonames/

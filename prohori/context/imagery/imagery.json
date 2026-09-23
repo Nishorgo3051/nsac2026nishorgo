@@ -1,0 +1,36 @@
+{
+  "bounds": [
+    91.236265,
+    22.725394,
+    91.590932,
+    23.296771
+  ],
+  "grid_m": 20,
+  "optical": {
+    "file": "optical.jpg",
+    "date": "2023-12-17",
+    "time_utc": "04:31",
+    "sensor": "Sentinel-2A MSI",
+    "product": "L2A true colour (TCI)",
+    "scene": "S2A_MSIL2A_20231217T043151_R133_T46QCL_20231220T054932",
+    "cloud_cover": 0.035307,
+    "source": "ESA Copernicus via Microsoft Planetary Computer (open catalogue, no account)",
+    "note": "Dry-season picture of the landscape, taken before the flood. It is not a picture of the flood."
+  },
+  "radar": {
+    "before": {
+      "file": "radar_before.jpg",
+      "date": "2024-08-09"
+    },
+    "during": {
+      "file": "radar_during.jpg",
+      "date": "2024-08-21"
+    },
+    "sensor": "Sentinel-1A C-band SAR, VH, RTC gamma-0",
+    "display_db": [
+      -24.0,
+      -7.0
+    ],
+    "note": "Radar sees smooth water as dark. These are the same passes the flood layer was computed from, scaled for display only."
+  }
+}

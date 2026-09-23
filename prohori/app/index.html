@@ -1,264 +1,420 @@
-<title>Prohori field instrument</title>
+<title>Prohori · প্রহরী</title>
 
 <!--
-  PROHORI - last-mile disaster intelligence.
+  PROHORI · প্রহরী - a satellite instrument brought down to human scale.
 
-  Design language:
-    ONE SCREEN         The map is the instrument. Panels open over the lower part and never cover
-                       the crosshair or the readout, so you never lose sight of where you are.
-    HIGH CONTRAST      Day: black on white. Night: amber on black. Every text pair measured:
-                       day body text 10.9:1 or better, report buttons 7.0:1, night text 11.5:1.
-    NO ANIMATION       Nothing fades, slides or eases. But no animation is not no feedback: every
-                       action leaves a visible, persistent state change, and a buzz where the
-                       phone supports it.
-    READABLE ANYWHERE  Sizes are in rem, so the reader's own text-size setting is respected.
-                       Night mode exists because flood teams work through the night, and a
-                       full-brightness white screen destroys night vision.
+  THE COMPOSITION IS THE IDENTITY. Read top to bottom, the screen is the flag of Bangladesh and
+  the two points of view the instrument connects:
 
-  Colour carries meaning, and each meaning is also carried by shape, so no reading of the map
-  depends on colour alone:
-    BLUE fill               satellite radar observation - nothing else is ever blue
-    MAGENTA circle/triangle human field observation (water here / road cut)
-    ORANGE dot with ring    your position
-    GREEN square            shelter reference point
-    BLACK line              road      DASHED CASING  road crossing radar-detected water (derived)
-    SLATE line              river or canal           GREY DASHES    upazila boundary
+    ORBIT   The green band. What the satellite saw, said the way a satellite would say it: a key to
+            the radar layer, and the pass itself as telemetry - platform, band, time.
+    EARTH   The map. The real piece of Bangladesh - a Sentinel-2 photograph of Feni, its rivers,
+            villages, roads and shelters - with the radar's flood water laid on it, hatched,
+            because it is a measurement and not a painting.
+    GROUND  The red bar. What the person standing there records. Human, immediate, and the largest
+            things on the screen to touch.
+
+  Two languages, both native. English and বাংলা are written separately, not translated word for
+  word; the switch is always on screen. Bangla uses Bangla numerals and Bangladeshi usage (পানি).
+
+  Light and dark change the instrument's surfaces only. The Earth, the radar and the meaning of
+  every mark stay exactly the same in both.
+
+  Rules kept from the field design:
+    NO ANIMATION       nothing fades, slides or eases; every action leaves a visible state.
+    ONE SCREEN         panels stop at 45% height, so the reticle and the readout stay visible.
+    CONTRAST           every text pair measured with the WCAG formula: body text 15:1 or better,
+                       dim text 7.6:1+, coloured text 7.3:1+, labels on the flag green 6.6:1,
+                       report buttons 6.7:1 (bold 20 px).
+    REM SIZES          the reader's own text-size setting is respected.
+
+  Marks - each meaning carried by shape as well as colour:
+    CYAN hatched area       flood water seen by radar from orbit (the only cyan on the map)
+    RED circle / triangle   the operator's own report: water here / road cut
+    RED ring, white core    the operator's position
+    GREEN square, roof      shelter reference point (unverified)
+    CREAM line, dark edge   road          CYAN dashes on a road   road crossing radar water
+    PALE BLUE line          river, canal  WHITE dashes            upazila boundary
 -->
 
 <style>
+  /* Anek Bangla - one family drawn for Bangla and Latin together, so both languages are the same
+     product. Open Font License (fonts/OFL.txt). Stored with the app: it works with no network. */
+  @font-face {
+    font-family: "Anek Bangla"; font-style: normal; font-weight: 100 800; font-stretch: 75% 125%;
+    font-display: swap; src: url(fonts/anek-bangla-bengali.woff2) format("woff2");
+    unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8,
+      U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+  }
+  @font-face {
+    font-family: "Anek Bangla"; font-style: normal; font-weight: 100 800; font-stretch: 75% 125%;
+    font-display: swap; src: url(fonts/anek-bangla-latin-ext.woff2) format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+      U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+      U+2C60-2C7F, U+A720-A7FF;
+  }
+  @font-face {
+    font-family: "Anek Bangla"; font-style: normal; font-weight: 100 800; font-stretch: 75% 125%;
+    font-display: swap; src: url(fonts/anek-bangla-latin.woff2) format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+      U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
   :root {
-    --paper: #ffffff;
-    --ink: #000000;
-    --dim: #3d3d3d;
-    --flood: #1a4ed8;
-    --report: #b0005a;
-    --report-ink: #ffffff;
-    --warn: #b40000;
-    --warn-ink: #ffffff;
+    /* The flag. These two never change with the theme. */
+    --bd-green: #006a4e;
+    --bd-red: #f42a41;
+    --red-surface: #b80f2a;       /* the flag red, deepened so white labels on it read at 6.7:1 */
+    --orbit: #22c7ee;             /* radar cyan: what was measured from orbit */
+
+    --paper: #fbfaf6;
+    --paper-2: #f0ede4;
+    --ink: #0e1a15;
+    --dim: #45544c;
+    --line: #d4cfc2;
+    --orbit-ink: #005a78;
+    --green-ink: #00563f;
+    --red-ink: #a3001b;
+    --shadow: 0 1px 2px rgba(10, 20, 15, 0.16), 0 6px 18px rgba(10, 20, 15, 0.14);
+
+    --font: "Anek Bangla", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "Roboto Mono", monospace;
     color-scheme: light;
   }
-  /* Night: amber on black, no white anywhere. Same layout, same meanings, lower luminance. */
-  :root[data-theme="night"] {
-    --paper: #000000;
-    --ink: #ffb000;
-    --dim: #b07a00;
-    --flood: #4d7cff;
-    --report: #8a0045;
-    --report-ink: #ffb000;
-    --warn: #ff5a3c;
-    --warn-ink: #000000;
+  :root[data-theme="dark"] {
+    --paper: #0f1a15;
+    --paper-2: #16241d;
+    --ink: #eef0e8;
+    --dim: #a9b6ae;
+    --line: #2c3d34;
+    --orbit-ink: #6fdcf6;
+    --green-ink: #4cc39a;
+    --red-ink: #ff7a88;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 18px rgba(0, 0, 0, 0.45);
     color-scheme: dark;
   }
 
-  /* No animation anywhere. This is a rule, not a preference. */
-  *, *::before, *::after {
-    box-sizing: border-box;
-    transition: none !important;
-    animation: none !important;
-  }
+  *, *::before, *::after { box-sizing: border-box; transition: none !important; animation: none !important; }
   [hidden] { display: none !important; }
-
-  /* 100% rather than a pixel size, so a reader who has enlarged text in their browser or phone
-     settings gets larger text here too. Everything below is in rem for the same reason. */
   html { font-size: 100%; }
   html, body { height: 100%; margin: 0; }
   body {
-    background: var(--paper); color: var(--ink);
-    font: 1rem/1.35 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    overflow: hidden;
+    background: var(--paper); color: var(--ink); overflow: hidden;
+    font: 400 1rem/1.35 var(--font);
   }
-  button { font: inherit; color: inherit; background: var(--paper); border: 0; cursor: pointer; }
-  :focus-visible { outline: 4px solid var(--flood); outline-offset: -4px; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  svg.i { width: 1.25rem; height: 1.25rem; flex: none; fill: none; stroke: currentColor;
+          stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .mono { font-family: var(--mono); }
+  .nobr { white-space: nowrap; }
+  /* Latin capitals get tracking; Bangla has no capitals, and spacing it apart breaks its joins. */
+  .caps { text-transform: uppercase; letter-spacing: 0.08em; }
+  html[lang="bn"] .caps { letter-spacing: 0; }
 
-  #screen { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
+  /* minmax(0, 1fr): without it one long unbreakable line (the telemetry) widens the whole screen. */
+  #screen { display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr); height: 100%; }
 
-  /* ---------------- status strip ---------------- */
-  #status {
-    display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
-    padding: 0.45rem 0.6rem; border-bottom: 3px solid var(--ink);
+  /* ================= ORBIT - the green band ================= */
+  #orbit { background: var(--bd-green); color: #fff; padding: 0.35rem 0.7rem 0.4rem; }
+  .bar { display: flex; align-items: center; gap: 0.45rem; }
+  .grow { flex: 1 1 auto; }
+  .brand { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+  .mark { width: 2.3rem; height: 2.3rem; flex: none; }
+  .word { line-height: 1; }
+  .word b { display: block; font-size: 1.3rem; font-weight: 700; }
+  .word small {
+    display: block; margin-top: 0.12rem; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.34em;
+    font-stretch: 115%; opacity: 0.85;
   }
-  #status .mark { font-weight: 800; letter-spacing: 0.12em; font-size: 0.95rem; }
-  #status .grow { flex: 1 1 auto; }
-  .chip {
-    border: 2px solid var(--ink); padding: 0.2rem 0.5rem; font-size: 0.9rem; font-weight: 800;
-    letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; background: var(--paper);
+  .seg { display: flex; border: 1.5px solid rgba(255, 255, 255, 0.75); border-radius: 999px; overflow: hidden; }
+  .seg button { min-width: 2.9rem; height: 2.75rem; padding: 0 0.55rem; font-weight: 700; font-size: 0.95rem; }
+  .seg button[aria-pressed="true"] { background: #fff; color: var(--bd-green); }
+  .round {
+    width: 2.75rem; height: 2.75rem; border-radius: 999px; display: grid; place-items: center;
+    border: 1.5px solid rgba(255, 255, 255, 0.75);
   }
-  .chip.on { background: var(--ink); color: var(--paper); }
-  .chip.alert { background: var(--warn); color: var(--warn-ink); border-color: var(--warn); }
-  button.chip { min-height: 2.4rem; }
+  #key { display: flex; align-items: center; gap: 0.5rem; margin: 0.35rem 0 0; font-size: 0.92rem; font-weight: 600; }
+  /* The key swatch is the map's own flood mark: a hatched cyan area with a bright edge. */
+  .swatch {
+    width: 1.7rem; height: 1.05rem; flex: none; border: 1.5px solid #7fe6ff; border-radius: 2px;
+    background: repeating-linear-gradient(135deg, rgba(150, 236, 255, 0.95) 0 1.5px, rgba(34, 199, 238, 0.35) 1.5px 5px);
+  }
+  .swatch.radar { background: linear-gradient(90deg, #1c2a2e, #d8eef5); border-color: #22c7ee; }
+  #telemetry { display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0 0; min-height: 1.6rem; }
+  #tele { flex: 1 1 auto; min-width: 0; font: 600 0.68rem/1.2 var(--mono); letter-spacing: 0.06em;
+          opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #chip-net {
+    flex: none; font-size: 0.78rem; font-weight: 700; border-radius: 999px; padding: 0.12rem 0.6rem;
+    border: 1.5px solid rgba(255, 255, 255, 0.8); white-space: nowrap;
+  }
+  /* Offline is the instrument's normal working state in the field, so it is shown bright and
+     proud, not as an error. */
+  #chip-net.lit { background: #fff; color: var(--bd-green); }
 
-  /* ---------------- map ---------------- */
-  #stage { position: relative; overflow: hidden; }
+  /* ================= EARTH - the map ================= */
+  #stage { position: relative; overflow: hidden; background: #0d1712; }
   #map { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
 
-  /* The crosshair gets a paper-coloured halo so it stays visible when it sits on a black road. */
-  #crosshair {
-    position: absolute; left: 50%; top: 50%; width: 40px; height: 40px;
-    margin: -20px 0 0 -20px; pointer-events: none;
-  }
-  #crosshair::before, #crosshair::after {
-    content: ""; position: absolute; background: var(--ink); box-shadow: 0 0 0 2px var(--paper);
-  }
-  #crosshair::before { left: 0; right: 0; top: 19px; height: 2px; }
-  #crosshair::after { top: 0; bottom: 0; left: 19px; width: 2px; }
+  /* The reticle: four white ticks around an open centre, so what is under it stays visible. */
+  #reticle { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; pointer-events: none; }
+  #reticle i { position: absolute; background: #fff; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.6); border-radius: 1px; }
+  #reticle i:nth-child(1) { left: 22px; top: 0; width: 2px; height: 14px; }
+  #reticle i:nth-child(2) { left: 22px; bottom: 0; width: 2px; height: 14px; }
+  #reticle i:nth-child(3) { top: 22px; left: 0; width: 14px; height: 2px; }
+  #reticle i:nth-child(4) { top: 22px; right: 0; width: 14px; height: 2px; }
+  #reticle i:nth-child(5) { left: 21px; top: 21px; width: 4px; height: 4px; border-radius: 50%; }
 
-  /* The readout sits at the TOP of the map so a panel opening from the bottom never hides it. */
-  #hud { position: absolute; left: 0.5rem; right: 0.5rem; top: 0.5rem; display: grid; gap: 0.4rem; }
-  #readout { background: var(--paper); border: 3px solid var(--ink); padding: 0.35rem 0.6rem; }
-  /* Three fixed slots in a fixed order, so the eye learns where each answer lives. */
-  .slot {
-    display: grid; grid-template-columns: 5.2rem 1fr; column-gap: 0.5rem; align-items: baseline;
-    min-height: 1.7rem;
+  #hud { position: absolute; left: 0.5rem; right: 0.5rem; top: 0.5rem; }
+  #readout {
+    background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: var(--shadow); padding: 0.3rem 0.65rem;
   }
-  .slot .k { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; }
-  .slot .v {
-    font-size: 1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  .slot { display: grid; grid-template-columns: 5.6rem 1fr; column-gap: 0.5rem; align-items: baseline; padding: 0.18rem 0; }
+  .slot + .slot { border-top: 1px solid var(--line); }
+  .slot .k { display: flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; color: var(--dim); align-self: center; }
+  html[lang="bn"] .slot .k { font-size: 0.86rem; }
+  .slot .k svg { width: 1rem; height: 1rem; }
+  .slot .v { font-size: 1rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  html[lang="bn"] .slot .v { font-size: 1.05rem; }
+  /* Never cut off: the water answer, and the shelter line's "unverified" warning. */
+  .slot .v.persp, #r-shelter { white-space: normal; }
+  .slot .sub { grid-column: 2; font-size: 0.84rem; color: var(--dim); }
+  #r-water.hit { color: var(--orbit-ink); font-weight: 700; }
+  #r-ground.near { color: var(--red-ink); font-weight: 600; }
+  /* The two tags that name the two points of view: ORBIT in the radar's colour, GROUND in the
+     field's. Outlined, not filled: they label a line, they are not buttons. */
+  .tag {
+    display: inline-block; margin-right: 0.4rem; padding: 0 0.32rem; border: 1.2px solid currentColor;
+    border-radius: 4px; font: 700 0.6rem/1.45 var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
+    vertical-align: 0.12em;
   }
-  .slot .v.hit { color: var(--flood); }
-  .slot .sub { grid-column: 2; font-size: 0.85rem; font-weight: 600; color: var(--dim); }
+  html[lang="bn"] .tag { font: 600 0.72rem/1.4 var(--font); letter-spacing: 0; vertical-align: 0.05em; }
+  .tag.orbit { color: var(--orbit-ink); }
+  .tag.ground { color: var(--red-ink); }
 
-  /* While a panel is open the undo strip steps aside: the Reports list already offers Delete on
-     every report, and on a short screen the strip would squeeze the map to a sliver. */
-  #stage.panelled #confirm { display: none; }
-  #confirm {
-    display: flex; align-items: center; gap: 0.6rem; background: var(--paper);
-    border: 3px solid var(--report); padding: 0.35rem 0.4rem 0.35rem 0.6rem;
-    font-size: 0.95rem; font-weight: 800;
+  #controls { position: absolute; right: 0.5rem; bottom: 0.5rem; display: grid; gap: 0.45rem; }
+  .mapbtn {
+    width: 3.2rem; height: 3.2rem; border-radius: 12px; display: grid; place-items: center;
+    background: var(--paper); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow);
+    font-size: 1.7rem; font-weight: 500;
   }
-  #confirm .text { flex: 1 1 auto; }
-  #confirm .text small { display: block; font-weight: 600; color: var(--dim); font-size: 0.8rem; }
-  #confirm button {
-    min-width: 5.5rem; height: 3.3rem; border: 3px solid var(--ink); font-weight: 800;
-    font-size: 1rem; letter-spacing: 0.06em;
-  }
+  #lens { height: auto; padding: 0.45rem 0 0.35rem; gap: 0.12rem; font-size: 0.66rem; font-weight: 700; }
+  html[lang="bn"] #lens { font-size: 0.78rem; }
+  /* Radar view on: the button takes the orbit's colours, the same in light and dark. */
+  #lens[aria-pressed="true"] { background: #0b2a33; color: #7fe6ff; border-color: #22c7ee; }
 
-  #zoom { position: absolute; right: 0.5rem; bottom: 0.5rem; display: grid; gap: 0.4rem; }
-  #zoom button {
-    width: 3.7rem; height: 3.7rem; border: 3px solid var(--ink); font-size: 1.9rem; font-weight: 800;
-  }
   #scale {
-    position: absolute; left: 0.6rem; bottom: 0.6rem; font-size: 0.85rem; font-weight: 800;
-    border: 2px solid var(--ink); padding: 0.15rem 0.45rem; background: var(--paper);
+    position: absolute; left: 0.5rem; bottom: 0.5rem; display: grid; gap: 0.1rem; padding: 0.25rem 0.5rem 0.3rem;
+    background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
+    box-shadow: var(--shadow); font: 700 0.72rem var(--mono);
+  }
+  #scale-bar { height: 5px; border: 2px solid var(--ink); border-top: 0; }
+
+  #compare { position: absolute; inset: 0; pointer-events: none; }
+  .pill {
+    position: absolute; bottom: 4.6rem; padding: 0.2rem 0.55rem; border-radius: 999px; white-space: nowrap;
+    font: 700 0.7rem var(--mono); letter-spacing: 0.05em; background: rgba(6, 22, 28, 0.86);
+    color: #d6f4ff; border: 1px solid rgba(127, 230, 255, 0.7);
+  }
+  html[lang="bn"] .pill { font-family: var(--font); font-size: 0.8rem; letter-spacing: 0; }
+
+  /* A one-time invitation to the radar view: static, next to the button it explains. */
+  #hint {
+    position: absolute; right: 4.2rem; bottom: 7.9rem; max-width: 13.5rem; text-align: left;
+    background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-left: 4px solid var(--orbit);
+    border-radius: 10px; box-shadow: var(--shadow); padding: 0.5rem 0.65rem; font-size: 0.86rem; font-weight: 600;
   }
 
-  /* ---------------- action bar: the two field observations come first ---------------- */
-  #actions { border-top: 3px solid var(--ink); }
-  #reportbar { display: grid; grid-template-columns: 1fr 1fr; }
-  #reportbar button {
-    height: 4.8rem; display: grid; place-content: center; gap: 0.1rem;
-    color: var(--report-ink); background: var(--report);
+  /* Directly above the report buttons: the answer appears where the thumb already is. */
+  #confirm {
+    position: absolute; left: 0.5rem; right: 4.2rem; bottom: 0.5rem;
+    display: flex; align-items: center; gap: 0.6rem; background: var(--paper); color: var(--ink);
+    border: 1px solid var(--line); border-left: 6px solid var(--bd-red); border-radius: 10px;
+    box-shadow: var(--shadow); padding: 0.35rem 0.4rem 0.35rem 0.65rem; font-size: 0.95rem; font-weight: 700;
   }
-  #reportbar button + button { border-left: 3px solid var(--ink); }
-  #reportbar .lbl { font-size: 1.3rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
-  #reportbar .n { font-size: 0.85rem; font-weight: 700; }
-  #tools { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 3px solid var(--ink); }
-  #tools button {
-    height: 3.6rem; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.05em;
-    text-transform: uppercase; border-right: 2px solid var(--ink);
+  #confirm .text { flex: 1 1 auto; cursor: pointer; }
+  #confirm .text small { display: block; font-weight: 500; color: var(--dim); font-size: 0.8rem; }
+  #confirm button {
+    min-width: 5rem; height: 3rem; border-radius: 8px; border: 1.5px solid var(--ink); font-weight: 700;
+    font-size: 0.95rem;
   }
-  #tools button:last-child { border-right: 0; }
-  #tools button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  #stage.panelled #confirm, #stage.panelled #hint { display: none; }
 
-  /* ---------------- panels: at most 45% high, so the crosshair at 50% stays visible ---------------- */
+  /* ================= panels: at most 45% high ================= */
   .panel {
     position: absolute; left: 0; right: 0; bottom: 0; max-height: 45%; overflow-y: auto;
-    background: var(--paper); border-top: 3px solid var(--ink); padding: 0.7rem 0.7rem 1rem;
+    background: var(--paper); color: var(--ink); border-top: 1px solid var(--line);
+    border-radius: 16px 16px 0 0; box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25); padding: 0.8rem 0.8rem 1.1rem;
   }
-  .panel h2 {
-    margin: 0 0 0.6rem; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .panel h3 { margin: 1rem 0 0.25rem; font-size: 0.95rem; font-weight: 800; }
-  .rows { display: grid; gap: 0.45rem; }
+  .panel h2 { margin: 0 0 0.6rem; font-size: 1.05rem; font-weight: 700; }
+  .panel h3 { margin: 1.1rem 0 0.3rem; font-size: 0.95rem; font-weight: 700; color: var(--green-ink); }
+  .rows { display: grid; gap: 0.4rem; }
   .row {
-    display: flex; align-items: center; gap: 0.6rem; border: 3px solid var(--ink);
-    padding: 0.45rem 0.6rem; width: 100%; text-align: left; font-size: 1rem; font-weight: 700;
-    min-height: 3.4rem;
+    display: flex; align-items: center; gap: 0.6rem; width: 100%; min-height: 3.2rem; padding: 0.35rem 0.6rem;
+    text-align: left; font-size: 0.98rem; font-weight: 600; border: 1.5px solid var(--line); border-radius: 10px;
+    background: var(--paper);
   }
-  /* Off is shown by a dashed border AND the word OFF - never by colour alone. */
+  .row[aria-pressed="true"] { border-color: var(--ink); }
   .row[aria-pressed="false"] { border-style: dashed; color: var(--dim); }
-  .row .icon { flex: none; }
   .row .label { flex: 1 1 auto; }
-  .row .count { font-variant-numeric: tabular-nums; font-weight: 800; }
-  .row .state {
-    min-width: 3rem; text-align: center; font-weight: 800; font-size: 0.85rem;
-    border: 2px solid currentColor; padding: 0.1rem 0.3rem;
-  }
-
-  dl.meta { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 0.75rem; font-size: 0.95rem; }
-  dl.meta dt { font-weight: 800; }
+  .row .count { font: 600 0.85rem var(--mono); color: var(--dim); }
+  .row .state { min-width: 3.2rem; text-align: center; font-size: 0.8rem; font-weight: 700; border-radius: 999px;
+                border: 1.5px solid currentColor; padding: 0.05rem 0.35rem; }
+  .row .icon { flex: none; border-radius: 6px; }
+  dl.meta { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 0.8rem; font-size: 0.92rem; }
+  dl.meta dt { font-weight: 700; color: var(--dim); }
   dl.meta dd { margin: 0; }
-  .limit { border: 3px solid var(--warn); padding: 0.6rem; margin: 0.75rem 0; font-size: 0.95rem; }
-  .limit b { color: var(--warn); }
-  .plain { font-size: 0.95rem; }
+  .limit { border-left: 4px solid var(--bd-red); background: var(--paper-2); border-radius: 8px; padding: 0.6rem 0.7rem; margin: 0.75rem 0; font-size: 0.93rem; }
+  .limit b { color: var(--red-ink); }
+  .plain { font-size: 0.93rem; }
   .dim { color: var(--dim); }
   .wide {
-    width: 100%; min-height: 3.8rem; border: 3px solid var(--ink); font-size: 1.05rem; font-weight: 800;
-    text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.6rem;
+    width: 100%; min-height: 3.5rem; margin-top: 0.6rem; border-radius: 10px; border: 1.5px solid var(--ink);
+    font-size: 1rem; font-weight: 700;
   }
-  .wide.solid { background: var(--ink); color: var(--paper); }
-  .wide.danger { border-color: var(--warn); color: var(--warn); }
-  .wide.danger.armed { background: var(--warn); color: var(--warn-ink); }
+  .wide.solid { background: var(--bd-green); border-color: var(--bd-green); color: #fff; }
+  .wide.danger { border-color: var(--red-ink); color: var(--red-ink); }
+  .wide.danger.armed { background: var(--red-surface); border-color: var(--red-surface); color: #fff; }
+  .wide.far { margin-top: 2rem; }        /* kept well away from Export: a slip must not delete */
   textarea {
-    width: 100%; height: 7rem; border: 2px solid var(--ink); padding: 0.4rem; margin-top: 0.5rem;
-    font: 0.75rem/1.3 ui-monospace, monospace; background: var(--paper); color: var(--ink);
+    width: 100%; height: 7rem; margin-top: 0.5rem; padding: 0.45rem; border: 1px solid var(--line); border-radius: 8px;
+    font: 0.72rem/1.3 var(--mono); background: var(--paper-2); color: var(--ink);
   }
   ul.reports { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
   ul.reports li {
-    display: flex; gap: 0.6rem; align-items: center; border: 2px solid var(--ink);
-    padding: 0.45rem 0.45rem 0.45rem 0.6rem; font-size: 0.95rem;
+    display: flex; gap: 0.6rem; align-items: center; border: 1px solid var(--line); border-radius: 10px;
+    padding: 0.45rem 0.45rem 0.45rem 0.65rem; font-size: 0.93rem;
   }
   ul.reports .body { flex: 1 1 auto; }
-  ul.reports .kind { font-weight: 800; text-transform: uppercase; }
+  ul.reports .kind { font-weight: 700; color: var(--red-ink); }
   ul.reports .when { color: var(--dim); font-size: 0.8rem; }
-  ul.reports button {
-    flex: none; min-width: 5rem; height: 3rem; border: 2px solid var(--ink); font-weight: 800;
-    font-size: 0.85rem; text-transform: uppercase;
+  ul.reports button { flex: none; min-width: 5rem; height: 3rem; border-radius: 8px; border: 1.5px solid var(--ink); font-weight: 700; font-size: 0.9rem; }
+
+  /* ================= GROUND - the red bar ================= */
+  #ground { background: var(--paper); }
+  #reportbar { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; background: #6d0717; }
+  #reportbar button {
+    height: 4.9rem; display: grid; place-content: center; justify-items: center; gap: 0.15rem;
+    background: var(--red-surface); color: #fff;
+  }
+  #reportbar .top { display: flex; align-items: center; gap: 0.45rem; }
+  #reportbar svg.i { width: 1.5rem; height: 1.5rem; stroke-width: 2.2; }
+  #reportbar .lbl { font-size: 1.2rem; font-weight: 700; }
+  html[lang="bn"] #reportbar .lbl { font-size: 1.35rem; }
+  #reportbar .n { font-size: 0.82rem; font-weight: 500; }
+  #tools { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 0.5rem; border-top: 1px solid var(--line); }
+  #tools button {
+    height: 3.7rem; display: grid; place-content: center; justify-items: center; gap: 0.15rem;
+    font-size: 0.72rem; font-weight: 700; color: var(--ink);
+  }
+  html[lang="bn"] #tools button { font-size: 0.86rem; font-weight: 600; }
+  #tools button[aria-pressed="true"] { color: var(--green-ink); box-shadow: inset 0 3px 0 var(--bd-green); background: var(--paper-2); }
+
+  /* Narrow phones: the slot names become their icons alone (pin, drop, house - the same marks the
+     buttons use), so each answer gets the width to stay on one line. The words stay readable to a
+     screen reader. */
+  @media (max-width: 360px) {
+    .slot { grid-template-columns: 1.3rem 1fr; }
+    .slot .k span {
+      position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+    }
+    html[lang="bn"] .slot .v { font-size: 0.97rem; }
+    .slot .sub { font-size: 0.8rem; }
   }
 
-  /* ---------------- first run ---------------- */
-  #gate { position: absolute; inset: 0; background: var(--paper); padding: 1rem; overflow-y: auto; }
-  #gate h1 { margin: 0 0 0.25rem; font-size: 1.55rem; font-weight: 800; }
-  #gate .sub { margin: 0 0 0.9rem; font-size: 1rem; font-weight: 600; }
-  #gate .card { border: 3px solid var(--ink); padding: 0.75rem; }
-  #gate .line { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.95rem; padding: 0.2rem 0; }
-  #gate .line b { font-weight: 800; }
-  #progress { margin-top: 0.6rem; font-size: 1rem; font-weight: 800; min-height: 1.5em; font-variant-numeric: tabular-nums; }
-  #gate label.file { display: block; margin-top: 0.9rem; font-size: 0.95rem; font-weight: 700; }
+  /* Short phones: the ground bar gives up a little height so the reticle keeps clear of the
+     readout. Every target stays at 48 px or more. */
+  @media (max-height: 640px) {
+    #reportbar button { height: 4.1rem; }
+    #tools button { height: 3.1rem; }
+    #tools { margin-top: 0.35rem; }
+    .mapbtn { width: 3rem; height: 3rem; }
+    #controls { gap: 0.35rem; }
+    .slot { padding: 0.1rem 0; }
+  }
+
+  /* ================= first run ================= */
+  #gate { position: absolute; inset: 0; background: var(--paper); color: var(--ink); overflow-y: auto; padding: 1.4rem 1.1rem; }
+  .gate-inner { max-width: 30rem; margin: 0 auto; }
+  .gate-mark { width: 4.2rem; height: 4.2rem; padding: 0.45rem; border-radius: 16px; background: var(--bd-green); }
+  #gate h1 { margin: 0.9rem 0 0.35rem; font-size: 1.65rem; font-weight: 700; line-height: 1.2; }
+  #gate .sub { margin: 0 0 1rem; font-size: 1rem; color: var(--dim); }
+  #gate .card { border: 1px solid var(--line); border-radius: 12px; padding: 0.8rem; background: var(--paper-2); }
+  #gate .line { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.95rem; padding: 0.15rem 0; }
+  #progress { margin-top: 0.6rem; font-size: 1rem; font-weight: 700; min-height: 1.5em; font-variant-numeric: tabular-nums; }
+  #gate label.file { display: block; margin-top: 1rem; font-size: 0.95rem; font-weight: 600; }
   #gate input[type=file] { display: block; margin-top: 0.4rem; font-size: 0.95rem; width: 100%; }
 </style>
 
+<!-- The icon set: one stroke weight, round ends, drawn for this instrument. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-water" viewBox="0 0 24 24"><path d="M12 3.5c2.6 3.2 4 5.3 4 7a4 4 0 0 1-8 0c0-1.7 1.4-3.8 4-7z"/><path d="M3 18c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 4.5 0 3 1.3 4.5 0"/></symbol>
+  <symbol id="i-road" viewBox="0 0 24 24"><path d="M8 3 6 9M16 3l2 6M6 15l-2 6M18 15l2 6"/><path d="M5 12l3-1.6 3 1.6 3-1.6 3 1.6 2-1"/></symbol>
+  <symbol id="i-shelter" viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 10v7h12v-7"/><path d="M10 17v-3.5h4V17"/><path d="M2.5 20.5h19"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
+  <symbol id="i-orbit" viewBox="0 0 24 24"><circle cx="11" cy="12" r="4.2"/><ellipse cx="12" cy="12" rx="10" ry="3.8" transform="rotate(-22 12 12)"/><circle cx="20.3" cy="10.6" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 2.5 8 12 13l9.5-5z"/><path d="M2.5 12.5 12 17.5l9.5-5"/><path d="M2.5 17 12 22l9.5-5"/></symbol>
+  <symbol id="i-source" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.01"/></symbol>
+  <symbol id="i-reports" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="17" rx="2"/><path d="M9 3h6v3H9z"/><path d="M8.5 11h7M8.5 15h5"/></symbol>
+  <symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"/></symbol>
+  <!-- The mark: the flag's red disc, crossed by an orbit with its satellite. -->
+  <symbol id="mark" viewBox="0 0 40 40">
+    <ellipse cx="20" cy="20" rx="17" ry="6" transform="rotate(-22 20 20)" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.6"/>
+    <circle cx="18" cy="20" r="10.5" fill="#f42a41"/>
+    <path d="M3 20a17 6 0 0 0 34 0" transform="rotate(-22 20 20)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="34.2" cy="17.9" r="2.4" fill="#fff"/>
+  </symbol>
+</svg>
+
 <div id="screen">
-  <header id="status">
-    <span class="mark">PROHORI</span>
-    <span class="chip" id="chip-net">CHECKING</span>
-    <span class="chip" id="chip-pack">NO PACK</span>
-    <span class="chip" id="chip-fix">NO FIX</span>
-    <span class="chip" id="chip-obs" hidden></span>
-    <span class="grow"></span>
-    <button class="chip" id="chip-theme" aria-label="Switch between day and night display">NIGHT</button>
+  <header id="orbit">
+    <div class="bar">
+      <span class="brand">
+        <svg class="mark" aria-hidden="true"><use href="#mark"/></svg>
+        <span class="word"><b>প্রহরী</b><small>PROHORI</small></span>
+      </span>
+      <span class="grow"></span>
+      <div class="seg" id="lang" role="group" aria-label="Language / ভাষা">
+        <button data-lang="en" aria-pressed="false" lang="en">EN</button>
+        <button data-lang="bn" aria-pressed="false" lang="bn">বাংলা</button>
+      </div>
+      <button class="round" id="theme"><svg class="i" id="theme-icon"><use href="#i-moon"/></svg></button>
+    </div>
+    <p id="key" hidden><span class="swatch" id="key-swatch"></span><span id="key-text"></span></p>
+    <p id="telemetry"><span id="tele"></span><span id="chip-net"></span></p>
   </header>
 
   <main id="stage">
     <canvas id="map"></canvas>
-    <div id="crosshair" hidden></div>
-    <div id="scale" hidden></div>
-    <div id="zoom" hidden>
-      <button id="zoom-in" aria-label="Zoom in">+</button>
-      <button id="zoom-out" aria-label="Zoom out">&minus;</button>
+    <div id="reticle" hidden><i></i><i></i><i></i><i></i><i></i></div>
+    <div id="compare" hidden><span class="pill" id="pill-before"></span><span class="pill" id="pill-during"></span></div>
+    <div id="scale" hidden><span id="scale-text"></span><span id="scale-bar"></span></div>
+    <div id="controls" hidden>
+      <button class="mapbtn" id="lens" aria-pressed="false"><svg class="i"><use href="#i-orbit"/></svg><span id="lens-text"></span></button>
+      <button class="mapbtn" id="zoom-in">+</button>
+      <button class="mapbtn" id="zoom-out">&minus;</button>
     </div>
+    <button id="hint" hidden></button>
 
     <div id="hud">
-      <div id="readout" hidden>
-        <div class="slot"><span class="k">WHERE</span><span class="v" id="r-where"></span></div>
-        <div class="slot"><span class="k">WATER</span><span class="v" id="r-water"></span>
-          <span class="sub" id="r-water-sub" hidden></span></div>
-        <div class="slot"><span class="k">SHELTER</span><span class="v" id="r-shelter"></span></div>
-      </div>
-      <div id="confirm" hidden>
-        <span class="text" id="confirm-text"></span>
-        <button id="confirm-undo">UNDO</button>
-      </div>
+      <section id="readout" hidden>
+        <div class="slot"><span class="k"><svg class="i"><use href="#i-pin"/></svg><span class="caps" data-t="where"></span></span>
+          <span class="v" id="r-where"></span></div>
+        <!-- Where the two points of view meet: what orbit saw, and what the ground says. -->
+        <div class="slot"><span class="k"><svg class="i"><use href="#i-water"/></svg><span class="caps" data-t="water"></span></span>
+          <span class="v persp"><span class="tag orbit" data-t="orbitTag"></span><span id="r-water"></span></span>
+          <span class="sub persp"><span class="tag ground" data-t="groundTag"></span><span id="r-ground"></span></span></div>
+        <div class="slot"><span class="k"><svg class="i"><use href="#i-shelter"/></svg><span class="caps" data-t="shelter"></span></span>
+          <span class="v" id="r-shelter"></span></div>
+      </section>
+    </div>
+
+    <div id="confirm" hidden>
+      <span class="text" id="confirm-text"></span>
+      <button id="confirm-undo" data-t="undo"></button>
     </div>
 
     <section class="panel" id="panel-layers" hidden></section>
@@ -266,31 +422,33 @@
     <section class="panel" id="panel-reports" hidden></section>
 
     <section id="gate">
-      <h1>Load the disaster pack</h1>
-      <p class="sub">Do this while you still have a connection. After that the instrument needs no
-        network at all: no tiles, no services, no accounts.</p>
-      <div class="card" id="gate-card">
-        <div class="line"><span>Looking for packs&hellip;</span></div>
+      <div class="gate-inner">
+        <svg class="gate-mark" aria-hidden="true"><use href="#mark"/></svg>
+        <h1 data-t="gateTitle"></h1>
+        <p class="sub" data-t="gateSub"></p>
+        <div class="card" id="gate-card"><div class="line"><span data-t="looking"></span></div></div>
+        <div id="progress"></div>
+        <label class="file"><span data-t="openFile"></span>
+          <input type="file" id="pack-file" accept=".json,application/json">
+        </label>
       </div>
-      <div id="progress"></div>
-      <label class="file">Or open a pack file handed to you by another team
-        <input type="file" id="pack-file" accept=".json,application/json">
-      </label>
     </section>
   </main>
 
-  <div id="actions">
+  <footer id="ground">
     <div id="reportbar">
-      <button id="btn-water"><span class="lbl">Water here</span><span class="n" id="n-water">0 recorded</span></button>
-      <button id="btn-road"><span class="lbl">Road cut</span><span class="n" id="n-road">0 recorded</span></button>
+      <button id="btn-water"><span class="top"><svg class="i"><use href="#i-water"/></svg><span class="lbl caps" data-t="waterHere"></span></span>
+        <span class="n" id="n-water"></span></button>
+      <button id="btn-road"><span class="top"><svg class="i"><use href="#i-road"/></svg><span class="lbl caps" data-t="roadCut"></span></span>
+        <span class="n" id="n-road"></span></button>
     </div>
-    <div id="tools">
-      <button id="tool-layers" aria-pressed="false">Layers</button>
-      <button id="tool-source" aria-pressed="false">Source</button>
-      <button id="tool-reports" aria-pressed="false">Reports</button>
-      <button id="tool-locate">Locate</button>
-    </div>
-  </div>
+    <nav id="tools">
+      <button id="tool-layers" aria-pressed="false"><svg class="i"><use href="#i-layers"/></svg><span class="caps" data-t="layers"></span></button>
+      <button id="tool-source" aria-pressed="false"><svg class="i"><use href="#i-source"/></svg><span class="caps" data-t="source"></span></button>
+      <button id="tool-reports" aria-pressed="false"><svg class="i"><use href="#i-reports"/></svg><span class="caps" data-t="reports"></span></button>
+      <button id="tool-locate"><svg class="i"><use href="#i-locate"/></svg><span class="caps" data-t="locate"></span></button>
+    </nav>
+  </footer>
 </div>
 
 <!-- Only present in a published build: the pack inlined so the page needs no packs folder.

@@ -16,12 +16,20 @@ const PORT = Number(process.env.PORT ?? 8767);
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8", ".geojson": "application/geo+json; charset=utf-8",
-  ".png": "image/png", ".webmanifest": "application/manifest+json",
+  ".png": "image/png", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml",
+  ".woff2": "font/woff2",
 };
 // The app's index.html carries no doctype or head, so the same file can also be published as an
 // artifact page. Add the wrapper here instead.
+// The manifest and icon make the instrument installable: on a phone it goes on the home screen
+// with its own icon and opens full screen, like any other app. The flag green colours the phone's
+// own status bar.
 const HEAD = '<!doctype html><html lang="en"><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
+  + '<meta name="theme-color" content="#006a4e">'
+  + '<link rel="manifest" href="manifest.webmanifest">'
+  + '<link rel="icon" href="icon.svg" type="image/svg+xml">'
+  + '<link rel="apple-touch-icon" href="icon-192.png">'
   + "</head><body>";
 
 createServer(async (request, response) => {

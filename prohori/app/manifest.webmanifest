@@ -1,0 +1,16 @@
+{
+  "name": "Prohori · প্রহরী",
+  "short_name": "Prohori",
+  "description": "Satellite flood map that works with no signal · নেটওয়ার্ক ছাড়াই চলে এমন স্যাটেলাইট বন্যা-মানচিত্র",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#006a4e",
+  "theme_color": "#006a4e",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

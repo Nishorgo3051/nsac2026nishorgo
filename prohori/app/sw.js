@@ -2,7 +2,7 @@
   Service worker: it keeps the instrument itself openable when there is no network.
 
   Division of labour, on purpose:
-    THIS WORKER  caches the shell - the page, the script, itself. Three small files.
+    THIS WORKER  caches the shell - the page, the script, itself and the typeface.
     THE APP      caches the pack separately, under its own key, because the pack is megabytes and
                  is replaced on its own schedule when a newer observation arrives.
 
@@ -10,11 +10,15 @@
   so opening the instrument never waits on a dying connection.
 */
 
-const SHELL = "prohori-shell-v2";
+// Bump on every change to the shell files: the browser only re-installs this worker when this
+// file's bytes change, so without a bump a phone keeps serving the old page from its cache.
+const SHELL = "prohori-shell-v6";
 // Marks replies this worker invents while offline, so the page's connectivity check can tell them
 // apart from real answers that came over the network.
 const OFFLINE_HEADER = { "Content-Type": "text/plain", "X-Prohori-Offline": "1" };
-const FILES = ["./", "index.html", "app.js", "sw.js"];
+const FILES = ["./", "index.html", "app.js", "sw.js", "fonts/anek-bangla-bengali.woff2",
+               "fonts/anek-bangla-latin.woff2", "fonts/anek-bangla-latin-ext.woff2",
+               "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (event) => {
   // allSettled, not all: one missing file must not leave the instrument with no cached shell.
