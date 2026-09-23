@@ -3,35 +3,51 @@
 <!--
   PROHORI - last-mile disaster intelligence.
 
-  Design language, deliberately narrow:
-    ONE SCREEN         the map is the instrument. Panels open over the lower part of it; nothing
-                       ever navigates away, because a responder in a boat cannot go looking for
-                       another page.
-    HIGH CONTRAST      pure black on white, saturated layer colours. Dark interfaces look good
-                       indoors and disappear in direct sun, which is where this gets used.
-    NO ANIMATION       nothing fades, slides or eases. Motion costs battery, costs attention and
-                       hides state. A control either shows the new state or does nothing.
-    SUNLIGHT READABLE  heavy type, 3px borders, 60px+ touch targets, no thin greys on grey.
+  Design language:
+    ONE SCREEN         The map is the instrument. Panels open over the lower part and never cover
+                       the crosshair or the readout, so you never lose sight of where you are.
+    HIGH CONTRAST      Day: black on white. Night: amber on black. Every text pair measured:
+                       day body text 10.9:1 or better, report buttons 7.0:1, night text 11.5:1.
+    NO ANIMATION       Nothing fades, slides or eases. But no animation is not no feedback: every
+                       action leaves a visible, persistent state change, and a buzz where the
+                       phone supports it.
+    READABLE ANYWHERE  Sizes are in rem, so the reader's own text-size setting is respected.
+                       Night mode exists because flood teams work through the night, and a
+                       full-brightness white screen destroys night vision.
 
-  Colour carries meaning and nothing else:
-    BLUE     = satellite observation (radar)
-    MAGENTA  = human field observation
-    ORANGE   = your own position
-    GREEN    = shelter reference point
-    BLACK    = roads and ground truth geometry
+  Colour carries meaning, and each meaning is also carried by shape, so no reading of the map
+  depends on colour alone:
+    BLUE fill               satellite radar observation - nothing else is ever blue
+    MAGENTA circle/triangle human field observation (water here / road cut)
+    ORANGE dot with ring    your position
+    GREEN square            shelter reference point
+    BLACK line              road      DASHED CASING  road crossing radar-detected water (derived)
+    SLATE line              river or canal           GREY DASHES    upazila boundary
 -->
 
 <style>
   :root {
     --paper: #ffffff;
     --ink: #000000;
-    --dim: #454545;
+    --dim: #3d3d3d;
     --flood: #1a4ed8;
-    --report: #d6006e;
-    --fix: #e05a00;
-    --shelter: #00722c;
-    --water: #0a6b8a;
+    --report: #b0005a;
+    --report-ink: #ffffff;
     --warn: #b40000;
+    --warn-ink: #ffffff;
+    color-scheme: light;
+  }
+  /* Night: amber on black, no white anywhere. Same layout, same meanings, lower luminance. */
+  :root[data-theme="night"] {
+    --paper: #000000;
+    --ink: #ffb000;
+    --dim: #b07a00;
+    --flood: #4d7cff;
+    --report: #8a0045;
+    --report-ink: #ffb000;
+    --warn: #ff5a3c;
+    --warn-ink: #000000;
+    color-scheme: dark;
   }
 
   /* No animation anywhere. This is a rule, not a preference. */
@@ -42,11 +58,14 @@
   }
   [hidden] { display: none !important; }
 
+  /* 100% rather than a pixel size, so a reader who has enlarged text in their browser or phone
+     settings gets larger text here too. Everything below is in rem for the same reason. */
+  html { font-size: 100%; }
   html, body { height: 100%; margin: 0; }
   body {
     background: var(--paper); color: var(--ink);
-    font: 16px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    -webkit-text-size-adjust: 100%; overflow: hidden;
+    font: 1rem/1.35 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    overflow: hidden;
   }
   button { font: inherit; color: inherit; background: var(--paper); border: 0; cursor: pointer; }
   :focus-visible { outline: 4px solid var(--flood); outline-offset: -4px; }
@@ -55,132 +74,192 @@
 
   /* ---------------- status strip ---------------- */
   #status {
-    display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
-    padding: 8px 10px; border-bottom: 3px solid var(--ink);
+    display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+    padding: 0.45rem 0.6rem; border-bottom: 3px solid var(--ink);
   }
-  #status .mark { font-weight: 800; letter-spacing: 0.14em; font-size: 15px; }
+  #status .mark { font-weight: 800; letter-spacing: 0.12em; font-size: 0.95rem; }
   #status .grow { flex: 1 1 auto; }
   .chip {
-    border: 2px solid var(--ink); padding: 4px 8px; font-size: 13px; font-weight: 800;
-    letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+    border: 2px solid var(--ink); padding: 0.2rem 0.5rem; font-size: 0.9rem; font-weight: 800;
+    letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; background: var(--paper);
   }
   .chip.on { background: var(--ink); color: var(--paper); }
-  .chip.alert { background: var(--warn); color: var(--paper); border-color: var(--warn); }
+  .chip.alert { background: var(--warn); color: var(--warn-ink); border-color: var(--warn); }
+  button.chip { min-height: 2.4rem; }
 
   /* ---------------- map ---------------- */
   #stage { position: relative; overflow: hidden; }
   #map { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+
+  /* The crosshair gets a paper-coloured halo so it stays visible when it sits on a black road. */
   #crosshair {
-    position: absolute; left: 50%; top: 50%; width: 36px; height: 36px;
-    margin: -18px 0 0 -18px; pointer-events: none;
+    position: absolute; left: 50%; top: 50%; width: 40px; height: 40px;
+    margin: -20px 0 0 -20px; pointer-events: none;
   }
-  #crosshair::before, #crosshair::after { content: ""; position: absolute; background: var(--ink); }
-  #crosshair::before { left: 0; right: 0; top: 17px; height: 2px; }
-  #crosshair::after { top: 0; bottom: 0; left: 17px; width: 2px; }
-
-  #readout {
-    position: absolute; left: 8px; right: 8px; bottom: 8px;
-    background: var(--paper); border: 3px solid var(--ink); padding: 8px 10px;
-    font-size: 15px; font-weight: 700;
+  #crosshair::before, #crosshair::after {
+    content: ""; position: absolute; background: var(--ink); box-shadow: 0 0 0 2px var(--paper);
   }
-  #readout .note { font-weight: 600; color: var(--dim); font-size: 13px; }
-  #readout .hit { color: var(--flood); }
+  #crosshair::before { left: 0; right: 0; top: 19px; height: 2px; }
+  #crosshair::after { top: 0; bottom: 0; left: 19px; width: 2px; }
 
-  #zoom { position: absolute; right: 8px; top: 8px; display: grid; gap: 6px; }
-  #zoom button { width: 58px; height: 58px; border: 3px solid var(--ink); font-size: 30px; font-weight: 800; }
+  /* The readout sits at the TOP of the map so a panel opening from the bottom never hides it. */
+  #hud { position: absolute; left: 0.5rem; right: 0.5rem; top: 0.5rem; display: grid; gap: 0.4rem; }
+  #readout { background: var(--paper); border: 3px solid var(--ink); padding: 0.35rem 0.6rem; }
+  /* Three fixed slots in a fixed order, so the eye learns where each answer lives. */
+  .slot {
+    display: grid; grid-template-columns: 5.2rem 1fr; column-gap: 0.5rem; align-items: baseline;
+    min-height: 1.7rem;
+  }
+  .slot .k { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; }
+  .slot .v {
+    font-size: 1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .slot .v.hit { color: var(--flood); }
+  .slot .sub { grid-column: 2; font-size: 0.85rem; font-weight: 600; color: var(--dim); }
 
+  /* While a panel is open the undo strip steps aside: the Reports list already offers Delete on
+     every report, and on a short screen the strip would squeeze the map to a sliver. */
+  #stage.panelled #confirm { display: none; }
+  #confirm {
+    display: flex; align-items: center; gap: 0.6rem; background: var(--paper);
+    border: 3px solid var(--report); padding: 0.35rem 0.4rem 0.35rem 0.6rem;
+    font-size: 0.95rem; font-weight: 800;
+  }
+  #confirm .text { flex: 1 1 auto; }
+  #confirm .text small { display: block; font-weight: 600; color: var(--dim); font-size: 0.8rem; }
+  #confirm button {
+    min-width: 5.5rem; height: 3.3rem; border: 3px solid var(--ink); font-weight: 800;
+    font-size: 1rem; letter-spacing: 0.06em;
+  }
+
+  #zoom { position: absolute; right: 0.5rem; bottom: 0.5rem; display: grid; gap: 0.4rem; }
+  #zoom button {
+    width: 3.7rem; height: 3.7rem; border: 3px solid var(--ink); font-size: 1.9rem; font-weight: 800;
+  }
   #scale {
-    position: absolute; left: 10px; top: 10px; font-size: 13px; font-weight: 800;
-    letter-spacing: 0.06em; border: 2px solid var(--ink); padding: 3px 7px; background: var(--paper);
+    position: absolute; left: 0.6rem; bottom: 0.6rem; font-size: 0.85rem; font-weight: 800;
+    border: 2px solid var(--ink); padding: 0.15rem 0.45rem; background: var(--paper);
   }
 
   /* ---------------- action bar: the two field observations come first ---------------- */
   #actions { border-top: 3px solid var(--ink); }
   #reportbar { display: grid; grid-template-columns: 1fr 1fr; }
   #reportbar button {
-    height: 74px; font-size: 20px; font-weight: 800; letter-spacing: 0.04em;
-    text-transform: uppercase; color: var(--paper); background: var(--report);
+    height: 4.8rem; display: grid; place-content: center; gap: 0.1rem;
+    color: var(--report-ink); background: var(--report);
   }
   #reportbar button + button { border-left: 3px solid var(--ink); }
+  #reportbar .lbl { font-size: 1.3rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  #reportbar .n { font-size: 0.85rem; font-weight: 700; }
   #tools { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 3px solid var(--ink); }
   #tools button {
-    height: 56px; font-size: 13px; font-weight: 800; letter-spacing: 0.06em;
+    height: 3.6rem; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.05em;
     text-transform: uppercase; border-right: 2px solid var(--ink);
   }
   #tools button:last-child { border-right: 0; }
   #tools button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 
-  /* ---------------- panels ---------------- */
+  /* ---------------- panels: at most 45% high, so the crosshair at 50% stays visible ---------------- */
   .panel {
-    position: absolute; left: 0; right: 0; bottom: 0; max-height: 78%; overflow-y: auto;
-    background: var(--paper); border-top: 3px solid var(--ink); padding: 12px 12px 18px;
+    position: absolute; left: 0; right: 0; bottom: 0; max-height: 45%; overflow-y: auto;
+    background: var(--paper); border-top: 3px solid var(--ink); padding: 0.7rem 0.7rem 1rem;
   }
   .panel h2 {
-    margin: 0 0 10px; font-size: 15px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    margin: 0 0 0.6rem; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
-  .panel h3 { margin: 16px 0 4px; font-size: 15px; font-weight: 800; }
-  .rows { display: grid; gap: 8px; }
+  .panel h3 { margin: 1rem 0 0.25rem; font-size: 0.95rem; font-weight: 800; }
+  .rows { display: grid; gap: 0.45rem; }
   .row {
-    display: flex; align-items: center; gap: 10px; border: 2px solid var(--ink);
-    padding: 11px; width: 100%; text-align: left; font-size: 16px; font-weight: 700;
+    display: flex; align-items: center; gap: 0.6rem; border: 3px solid var(--ink);
+    padding: 0.45rem 0.6rem; width: 100%; text-align: left; font-size: 1rem; font-weight: 700;
+    min-height: 3.4rem;
   }
-  .row[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
-  .row .swatch { width: 22px; height: 22px; border: 2px solid var(--ink); flex: none; }
-  .row[aria-pressed="true"] .swatch { border-color: var(--paper); }
-  .row .count { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 800; }
+  /* Off is shown by a dashed border AND the word OFF - never by colour alone. */
+  .row[aria-pressed="false"] { border-style: dashed; color: var(--dim); }
+  .row .icon { flex: none; }
+  .row .label { flex: 1 1 auto; }
+  .row .count { font-variant-numeric: tabular-nums; font-weight: 800; }
+  .row .state {
+    min-width: 3rem; text-align: center; font-weight: 800; font-size: 0.85rem;
+    border: 2px solid currentColor; padding: 0.1rem 0.3rem;
+  }
 
-  dl.meta { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; font-size: 15px; }
+  dl.meta { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 0.75rem; font-size: 0.95rem; }
   dl.meta dt { font-weight: 800; }
   dl.meta dd { margin: 0; }
-  .limit { border: 3px solid var(--warn); padding: 10px; margin: 12px 0; font-size: 15px; }
+  .limit { border: 3px solid var(--warn); padding: 0.6rem; margin: 0.75rem 0; font-size: 0.95rem; }
   .limit b { color: var(--warn); }
-  .plain { font-size: 15px; }
+  .plain { font-size: 0.95rem; }
   .dim { color: var(--dim); }
   .wide {
-    width: 100%; height: 62px; border: 3px solid var(--ink); font-size: 17px; font-weight: 800;
-    text-transform: uppercase; letter-spacing: 0.06em; margin-top: 10px;
+    width: 100%; min-height: 3.8rem; border: 3px solid var(--ink); font-size: 1.05rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.6rem;
   }
   .wide.solid { background: var(--ink); color: var(--paper); }
+  .wide.danger { border-color: var(--warn); color: var(--warn); }
+  .wide.danger.armed { background: var(--warn); color: var(--warn-ink); }
   textarea {
-    width: 100%; height: 110px; border: 2px solid var(--ink); padding: 6px; margin-top: 8px;
-    font: 12px/1.3 ui-monospace, monospace;
+    width: 100%; height: 7rem; border: 2px solid var(--ink); padding: 0.4rem; margin-top: 0.5rem;
+    font: 0.75rem/1.3 ui-monospace, monospace; background: var(--paper); color: var(--ink);
   }
-  ul.reports { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  ul.reports li { border: 2px solid var(--ink); padding: 8px 10px; font-size: 15px; }
-  ul.reports .kind { font-weight: 800; color: var(--report); text-transform: uppercase; }
-  ul.reports .when { color: var(--dim); font-size: 13px; }
+  ul.reports { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+  ul.reports li {
+    display: flex; gap: 0.6rem; align-items: center; border: 2px solid var(--ink);
+    padding: 0.45rem 0.45rem 0.45rem 0.6rem; font-size: 0.95rem;
+  }
+  ul.reports .body { flex: 1 1 auto; }
+  ul.reports .kind { font-weight: 800; text-transform: uppercase; }
+  ul.reports .when { color: var(--dim); font-size: 0.8rem; }
+  ul.reports button {
+    flex: none; min-width: 5rem; height: 3rem; border: 2px solid var(--ink); font-weight: 800;
+    font-size: 0.85rem; text-transform: uppercase;
+  }
 
   /* ---------------- first run ---------------- */
-  #gate { position: absolute; inset: 0; background: var(--paper); padding: 16px; overflow-y: auto; }
-  #gate h1 { margin: 0 0 4px; font-size: 25px; font-weight: 800; }
-  #gate .sub { margin: 0 0 14px; font-size: 16px; font-weight: 600; }
-  #gate .card { border: 3px solid var(--ink); padding: 12px; }
-  #gate .line { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; padding: 3px 0; }
+  #gate { position: absolute; inset: 0; background: var(--paper); padding: 1rem; overflow-y: auto; }
+  #gate h1 { margin: 0 0 0.25rem; font-size: 1.55rem; font-weight: 800; }
+  #gate .sub { margin: 0 0 0.9rem; font-size: 1rem; font-weight: 600; }
+  #gate .card { border: 3px solid var(--ink); padding: 0.75rem; }
+  #gate .line { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.95rem; padding: 0.2rem 0; }
   #gate .line b { font-weight: 800; }
-  #progress { margin-top: 10px; font-size: 14px; font-weight: 700; min-height: 1.4em; }
-  #gate label.file { display: block; margin-top: 14px; font-size: 15px; font-weight: 700; }
-  #gate input[type=file] { display: block; margin-top: 6px; font-size: 15px; width: 100%; }
+  #progress { margin-top: 0.6rem; font-size: 1rem; font-weight: 800; min-height: 1.5em; font-variant-numeric: tabular-nums; }
+  #gate label.file { display: block; margin-top: 0.9rem; font-size: 0.95rem; font-weight: 700; }
+  #gate input[type=file] { display: block; margin-top: 0.4rem; font-size: 0.95rem; width: 100%; }
 </style>
 
 <div id="screen">
   <header id="status">
     <span class="mark">PROHORI</span>
-    <span class="chip" id="chip-net">NETWORK</span>
+    <span class="chip" id="chip-net">CHECKING</span>
     <span class="chip" id="chip-pack">NO PACK</span>
     <span class="chip" id="chip-fix">NO FIX</span>
-    <span class="grow"></span>
     <span class="chip" id="chip-obs" hidden></span>
+    <span class="grow"></span>
+    <button class="chip" id="chip-theme" aria-label="Switch between day and night display">NIGHT</button>
   </header>
 
   <main id="stage">
     <canvas id="map"></canvas>
-    <div id="scale" hidden></div>
     <div id="crosshair" hidden></div>
+    <div id="scale" hidden></div>
     <div id="zoom" hidden>
       <button id="zoom-in" aria-label="Zoom in">+</button>
       <button id="zoom-out" aria-label="Zoom out">&minus;</button>
     </div>
-    <div id="readout" hidden></div>
+
+    <div id="hud">
+      <div id="readout" hidden>
+        <div class="slot"><span class="k">WHERE</span><span class="v" id="r-where"></span></div>
+        <div class="slot"><span class="k">WATER</span><span class="v" id="r-water"></span>
+          <span class="sub" id="r-water-sub" hidden></span></div>
+        <div class="slot"><span class="k">SHELTER</span><span class="v" id="r-shelter"></span></div>
+      </div>
+      <div id="confirm" hidden>
+        <span class="text" id="confirm-text"></span>
+        <button id="confirm-undo">UNDO</button>
+      </div>
+    </div>
 
     <section class="panel" id="panel-layers" hidden></section>
     <section class="panel" id="panel-source" hidden></section>
@@ -202,8 +281,8 @@
 
   <div id="actions">
     <div id="reportbar">
-      <button id="btn-water">Water here</button>
-      <button id="btn-road">Road cut</button>
+      <button id="btn-water"><span class="lbl">Water here</span><span class="n" id="n-water">0 recorded</span></button>
+      <button id="btn-road"><span class="lbl">Road cut</span><span class="n" id="n-road">0 recorded</span></button>
     </div>
     <div id="tools">
       <button id="tool-layers" aria-pressed="false">Layers</button>

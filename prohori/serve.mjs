@@ -41,6 +41,8 @@ createServer(async (request, response) => {
     }
     response.writeHead(200, {
       "Content-Type": TYPES[extname(relative)] ?? "application/octet-stream",
+      // Lets the instrument show "downloading 1.4 of 3.2 MB" instead of a bare "downloading".
+      "Content-Length": body.length,
       "Cache-Control": "no-store",          // the service worker does the caching, not the browser
       "Service-Worker-Allowed": "/",
     });

@@ -147,9 +147,35 @@ The instrument keeps these apart on screen, inside the pack and in the export:
 
 - **Satellite observation** — the radar flood layer. Blue. Carries sensor, both dates, method and
   limitations. Never described as ground truth.
-- **Geographic reference** — terrain, roads, waterways, shelters. Black, grey, teal, green.
-- **Human field observation** — what the operator recorded. Magenta. Stored separately and exported
-  separately as GeoJSON marked `"source": "field observation"`.
+- **Geographic reference** — terrain, roads, waterways, shelters. Black lines, slate rivers, grey
+  dashed boundaries, green squares.
+- **Human field observation** — what the operator recorded. Magenta circles (water here) and
+  triangles (road cut). Stored separately and exported separately as GeoJSON marked
+  `"source": "field observation"`.
+
+Every one of those meanings is carried by shape as well as colour, so nothing on the map depends
+on telling colours apart. Roads crossing detected water are a *derived* product, so they are drawn
+as a dashed casing, never in the satellite's blue.
+
+## Design language
+
+One screen, high contrast, no animation, readable in sunlight — and at night.
+
+- **Day:** black on white. **Night:** amber on black with no white anywhere, because a bright
+  screen at night destroys dark adaptation and turns the phone into a lamp. Every text pair was
+  measured: day body text 10.9:1, report buttons 7.0:1, night text 11.5:1.
+- **No animation is not no feedback.** Each report shows a persistent confirmation with an UNDO
+  button, updates the count printed on its button, and buzzes where the phone supports it. Any
+  single report can be deleted; deleting all of them takes two taps.
+- **The readout is three fixed slots** — WHERE, WATER, SHELTER — that never move. The radar's
+  limitation appears in the WATER slot exactly when it matters: on a spot the radar called dry.
+- **Panels stop at 45% height,** so the crosshair and the readout are never covered.
+- **Clutter scales with zoom.** Village roads and streams appear only when zoomed in; the flood
+  layer, main roads, rivers, wet roads and shelters are always shown.
+- **Text sizes are in rem,** so a reader's own enlarged-text setting is respected.
+- **The connectivity chip tells the truth.** A radio being on is not a working link, so the
+  instrument asks the network for something every 20 seconds: ONLINE only when an answer comes
+  back, NO LINK when the radio is on but nothing answers, OFFLINE when the radio is off.
 
 Shelter points are reference locations from OpenStreetMap, not a verified shelter registry. A road
 flagged as crossing detected water is not a claim that it is impassable, and an unflagged road is

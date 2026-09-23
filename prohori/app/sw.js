@@ -10,7 +10,10 @@
   so opening the instrument never waits on a dying connection.
 */
 
-const SHELL = "prohori-shell-v1";
+const SHELL = "prohori-shell-v2";
+// Marks replies this worker invents while offline, so the page's connectivity check can tell them
+// apart from real answers that came over the network.
+const OFFLINE_HEADER = { "Content-Type": "text/plain", "X-Prohori-Offline": "1" };
 const FILES = ["./", "index.html", "app.js", "sw.js"];
 
 self.addEventListener("install", (event) => {
@@ -33,6 +36,13 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  // Connectivity probes must reach the real network. Answering them from the cache would make the
+  // instrument report ONLINE forever, which is the one lie the status strip must never tell.
+  if (new URL(event.request.url).searchParams.has("probe")) {
+    event.respondWith(fetch(event.request).catch(() =>
+      new Response("offline", { status: 504, headers: OFFLINE_HEADER })));
+    return;
+  }
   event.respondWith((async () => {
     const shell = await caches.open(SHELL);
     const hit = await shell.match(event.request, { ignoreSearch: true });
@@ -43,7 +53,7 @@ self.addEventListener("fetch", (event) => {
       // Offline and not on the device. Say so plainly rather than letting the browser show its own
       // error page, which looks as though the instrument itself has failed.
       return new Response("Offline, and this file is not stored on the device.",
-                          { status: 504, headers: { "Content-Type": "text/plain" } });
+                          { status: 504, headers: OFFLINE_HEADER });
     }
   })());
 });
