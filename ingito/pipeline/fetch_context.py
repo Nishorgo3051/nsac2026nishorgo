@@ -39,9 +39,9 @@ from pathlib import Path
 import geopandas as gpd
 
 HERE = Path(__file__).resolve().parent
-PROHORI = HERE.parent
-SAR = PROHORI.parent / "sar-flood"
-OUT_DIR = PROHORI / "context"
+INGITO = HERE.parent
+SAR = INGITO.parent / "sar-flood"
+OUT_DIR = INGITO / "context"
 
 AOI_FILE = SAR / "aoi" / "feni.geojson"
 AOI_NAME = "feni"

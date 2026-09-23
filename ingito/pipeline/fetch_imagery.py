@@ -43,9 +43,9 @@ from rasterio.warp import Resampling, reproject, transform_bounds
 from rasterio.windows import from_bounds
 
 HERE = Path(__file__).resolve().parent
-PROHORI = HERE.parent
-SAR = PROHORI.parent / "sar-flood"
-OUT = PROHORI / "context" / "imagery"
+INGITO = HERE.parent
+SAR = INGITO.parent / "sar-flood"
+OUT = INGITO / "context" / "imagery"
 AOI_FILE = SAR / "aoi" / "feni.geojson"
 
 OPTICAL_ID = "S2A_MSIL2A_20231217T043151_R133_T46QCL_20231220T054932"

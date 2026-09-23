@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["guidebook/serve.mjs"],
       "port": 8766
+    },
+    {
+      "name": "ingito",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["ingito/serve.mjs"],
+      "port": 8767
     }
   ]
 }

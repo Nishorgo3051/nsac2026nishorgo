@@ -1,6 +1,6 @@
 {
-  "name": "Prohori · প্রহরী",
-  "short_name": "Prohori",
+  "name": "Ingito · ইঙ্গিত",
+  "short_name": "Ingito",
   "description": "Satellite flood map that works with no signal · নেটওয়ার্ক ছাড়াই চলে এমন স্যাটেলাইট বন্যা-মানচিত্র",
   "start_url": "./",
   "scope": "./",

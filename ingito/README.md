@@ -1,4 +1,4 @@
-# Prohori — last-mile disaster intelligence
+# Ingito — last-mile disaster intelligence
 
 **NASA radar shows where the water is. We get that map to the teams who need it, in the places
 where the network has already died.**
@@ -6,11 +6,12 @@ where the network has already died.**
 Satellites observe hazards across whole countries. Agencies turn those observations into
 intelligence. But there is a physical gap between that intelligence and the person who walks or
 boats into the affected area — no network, no local knowledge, no way to reach anything stored
-elsewhere. Prohori closes that gap in both directions: intelligence goes *in* as a portable pack,
+elsewhere. Ingito closes that gap in both directions: intelligence goes *in* as a portable pack,
 and the field operator's own observations come *back out*.
 
-"Prohori" (প্রহরী) is Bengali for *sentinel*. The satellite is the sentinel above; this is the
-sentinel on the ground.
+"Ingito" (ইঙ্গিত) is Bangla for *a sign*: the signal that tells you what is happening and which way
+to go. The satellite gives the first sign of where the water is; the person standing in it sends
+the next one back.
 
 The product has exactly three functions. There is no fourth.
 
@@ -132,7 +133,7 @@ involved at any point.
 ## Files
 
 ```
-prohori/
+ingito/
   pipeline/fetch_context.py   roads, waterways, places, shelters from OpenStreetMap, both scripts
   pipeline/fetch_imagery.py   the Sentinel-2 photograph and the two radar pictures, one grid
   pipeline/build_pack.py      assembles ONE pack file: hazard + context + terrain + provenance

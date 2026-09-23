@@ -48,22 +48,22 @@ from rasterio.warp import Resampling, reproject, transform_bounds
 from rasterio.windows import from_bounds
 
 HERE = Path(__file__).resolve().parent
-PROHORI = HERE.parent
-NSAC = PROHORI.parent
+INGITO = HERE.parent
+NSAC = INGITO.parent
 SAR_OUT = NSAC / "sar-flood" / "out"
 AOI_DIR = NSAC / "sar-flood" / "aoi"
-PACKS = PROHORI / "packs"
+PACKS = INGITO / "packs"
 
 # Which observation to package. The glob keeps this honest: if the pipeline has not been run there
 # is nothing to package, and the script says so instead of inventing a layer.
 HAZARD_GLOB = "Feni_s1_flood_*.geojson"
-CONTEXT_FILE = PROHORI / "context" / "feni_context.json"
+CONTEXT_FILE = INGITO / "context" / "feni_context.json"
 PARTS_FILE = AOI_DIR / "feni_upazilas.geojson"
 AOI_FILE = AOI_DIR / "feni.geojson"
 
 PACK_NAME = "Feni district flood"
 PACK_NAME_BN = "ফেনী জেলার বন্যা"
-IMAGERY_DIR = PROHORI / "context" / "imagery"
+IMAGERY_DIR = INGITO / "context" / "imagery"
 
 # The pack is bilingual, so the places it names need both spellings. These are the official
 # upazila names as the Bangladesh government writes them, and the standard names of the district's
@@ -336,7 +336,7 @@ def main():
              for name, km2, geometry in zip(parts.adm3_name, parts.area_sqkm, parts.geometry)]
 
     pack = {
-        "format": "prohori.pack/1",
+        "format": "ingito.pack/1",
         "pack_id": f"feni-{observation['acquisition_date']}",
         "name": PACK_NAME,
         "name_bn": PACK_NAME_BN,

@@ -1,5 +1,5 @@
 /*
-  PROHORI · প্রহরী - the field instrument.
+  INGITO · ইঙ্গিত - the field instrument.
 
   A satellite instrument brought down to human scale. It connects two points of view:
     FROM ORBIT   what Sentinel-1's radar measured - the flood water, hatched cyan, with its sensor,
@@ -24,12 +24,12 @@
   No map library and no CDN: both would need a network in exactly the situation this is built for.
 */
 
-const PACK_CACHE = "prohori-pack-v1";
-const PACK_KEY = "/__prohori_pack__";          // cache key for whichever pack is loaded
-const REPORTS_KEY = "prohori.reports.v1";
-const THEME_KEY = "prohori.theme.v2";          // v2: light/dark (v1 stored day/night)
-const LANG_KEY = "prohori.lang.v1";
-const HINT_KEY = "prohori.hint.radar.v1";
+const PACK_CACHE = "ingito-pack-v1";
+const PACK_KEY = "/__ingito_pack__";          // cache key for whichever pack is loaded
+const REPORTS_KEY = "ingito.reports.v1";
+const THEME_KEY = "ingito.theme.v2";          // v2: light/dark (v1 stored day/night)
+const LANG_KEY = "ingito.lang.v1";
+const HINT_KEY = "ingito.hint.radar.v1";
 const INDEX_URLS = ["../packs/index.json", "packs/index.json"];
 const PROBE_EVERY_MS = 20000;
 const PROBE_TIMEOUT_MS = 4000;
@@ -38,7 +38,7 @@ const DELETE_ALL_DISARM_MS = 5000;
 const GROUND_NEAR_M = 300;            // field reports this close count as "here" in the readout
 /* A published build (an artifact page, or a single HTML file sent to somebody) has no packs folder
    to fetch from, so the pack can be embedded in the page instead. */
-const EMBEDDED = globalThis.PROHORI_PACK || null;
+const EMBEDDED = globalThis.INGITO_PACK || null;
 const FONT = '"Anek Bangla", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif';
 const MONO = 'ui-monospace, "Cascadia Mono", Consolas, "Roboto Mono", monospace';
 
@@ -400,7 +400,7 @@ async function probe() {
   try {
     const response = await fetch(`${location.pathname}?probe=${Date.now()}`,
                                  { cache: "no-store", signal: controller.signal });
-    state.link = response.headers.get("X-Prohori-Offline") ? "nolink" : "online";
+    state.link = response.headers.get("X-Ingito-Offline") ? "nolink" : "online";
   } catch (error) {
     state.link = "nolink";
   } finally {
@@ -1472,7 +1472,7 @@ function exportReports() {
   }
   const collection = {
     type: "FeatureCollection",
-    generator: "Prohori field instrument",
+    generator: "Ingito field instrument",
     exported_at: new Date().toISOString(),
     pack_id: state.pack.pack_id,
     note: "Human field observations. NOT satellite-derived. Each feature carries its own time and position.",
@@ -1497,7 +1497,7 @@ function exportReports() {
   try {
     const url = URL.createObjectURL(new Blob([json], { type: "application/geo+json" }));
     link = `<a class="wide solid" style="display:grid;place-items:center;text-decoration:none"
-      href="${url}" download="prohori-field-reports.geojson">${text.saveFile}</a>`;
+      href="${url}" download="ingito-field-reports.geojson">${text.saveFile}</a>`;
   } catch (error) {
     link = "";
   }
@@ -1614,8 +1614,8 @@ function picture(src) {
 
 function openPack(text, source) {
   const pack = JSON.parse(text);
-  if (!pack.format || !pack.format.startsWith("prohori.pack/")) {
-    throw new Error("that file is not a Prohori pack");
+  if (!pack.format || !pack.format.startsWith("ingito.pack/")) {
+    throw new Error("that file is not an Ingito pack");
   }
   state.pack = pack;
   state.source = source;

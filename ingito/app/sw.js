@@ -12,10 +12,10 @@
 
 // Bump on every change to the shell files: the browser only re-installs this worker when this
 // file's bytes change, so without a bump a phone keeps serving the old page from its cache.
-const SHELL = "prohori-shell-v6";
+const SHELL = "ingito-shell-v6";
 // Marks replies this worker invents while offline, so the page's connectivity check can tell them
 // apart from real answers that came over the network.
-const OFFLINE_HEADER = { "Content-Type": "text/plain", "X-Prohori-Offline": "1" };
+const OFFLINE_HEADER = { "Content-Type": "text/plain", "X-Ingito-Offline": "1" };
 const FILES = ["./", "index.html", "app.js", "sw.js", "fonts/anek-bangla-bengali.woff2",
                "fonts/anek-bangla-latin.woff2", "fonts/anek-bangla-latin-ext.woff2",
                "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"];
@@ -33,7 +33,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(keys
-        .filter((key) => key.startsWith("prohori-shell-") && key !== SHELL)
+        .filter((key) => key.startsWith("ingito-shell-") && key !== SHELL)
         .map((key) => caches.delete(key))))
       .then(() => self.clients.claim()));
 });

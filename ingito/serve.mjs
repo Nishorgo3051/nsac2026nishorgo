@@ -1,4 +1,4 @@
-// Serves the prohori folder so the app and the packs share one origin, which is what lets the
+// Serves the ingito folder so the app and the packs share one origin, which is what lets the
 // service worker and the pack cache behave the way they will on a real device.
 //
 //   node serve.mjs        then open http://localhost:8767/app/
@@ -58,4 +58,4 @@ createServer(async (request, response) => {
   } catch {
     response.writeHead(404).end("Not found");
   }
-}).listen(PORT, "127.0.0.1", () => console.log(`Prohori at http://localhost:${PORT}/app/`));
+}).listen(PORT, "127.0.0.1", () => console.log(`Ingito at http://localhost:${PORT}/app/`));
