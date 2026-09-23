@@ -22,11 +22,11 @@ const TYPES = {
 // The app's index.html carries no doctype or head, so the same file can also be published as an
 // artifact page. Add the wrapper here instead.
 // The manifest and icon make the instrument installable: on a phone it goes on the home screen
-// with its own icon and opens full screen, like any other app. The flag green colours the phone's
-// own status bar.
+// with its own icon and opens full screen, like any other app. River deep green colours the phone's
+// own status bar, so the brand bar runs to the top edge.
 const HEAD = '<!doctype html><html lang="en"><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
-  + '<meta name="theme-color" content="#006a4e">'
+  + '<meta name="theme-color" content="#0b3d32">'
   + '<link rel="manifest" href="manifest.webmanifest">'
   + '<link rel="icon" href="icon.svg" type="image/svg+xml">'
   + '<link rel="apple-touch-icon" href="icon-192.png">'

@@ -174,7 +174,7 @@ def main():
                      "was computed from, scaled for display only."),
         },
     }
-    (OUT / "imagery.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    (OUT / "imagery.json").write_text(json.dumps(meta, indent=2), encoding="utf-8", newline="\n")
     for path in sorted(OUT.glob("*.jpg")):
         print(f"  {path.name}: {path.stat().st_size / 1024:.0f} KB")
 

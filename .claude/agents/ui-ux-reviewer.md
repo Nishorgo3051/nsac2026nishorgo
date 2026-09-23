@@ -21,40 +21,50 @@ the satellite did not see: **Water here** or **Road cut**.
 
 These are deliberate decisions. Judge the build against them; do not argue them away.
 
-- **One screen.** The map is the instrument. Panels open over the lower part of the map, at most
-  45% of its height, and must never cover the crosshair (centre) or the readout (top).
-- **Identity: a satellite instrument brought down to human scale.** The screen reads like the
-  flag of Bangladesh: the GREEN band at the top is ORBIT (what the satellite saw, a key line and
-  telemetry), the map in the middle is EARTH (a real Sentinel-2 photograph of Feni with the radar
-  layer on it), the RED bar at the bottom is GROUND (the operator's two report buttons).
+- **The map is the product.** On a phone: a thin RIVER-DEEP brand bar (logo, INGITO / ইঙ্গিত,
+  EN / বাংলা, theme, the pass as telemetry, the connectivity chip); the map with search, layers,
+  the radar key and Before / After floating on it; one insight card; four ways in (Alerts, Area,
+  Reports, Source). Sheets rise over the lower part of the map; while one is open the card keeps
+  only its two report buttons. On screens 900 px and wider, the card and sheets sit in a column
+  beside the map. The crosshair and the report buttons must never be covered by anything the
+  operator did not open.
+- **Four layers of information: EARTH -> SIGNAL -> INSIGHT -> ACTION.** Earth is the real ground
+  (a Sentinel-2 photograph of Feni, rivers, roads, places, shelters); Signal is what the radar
+  measured; Insight is what that means (roads through the water, per-upazila figures); Action is
+  what people do and record. Screens, cards and the Layers sheet are organised this way.
 - **High contrast, light and dark.** One tap switches theme. It changes the instrument's surfaces
   ONLY: the map imagery, the radar and every mark's colour must be identical in both. Targets
-  (WCAG formula): body text 7:1 or better in both themes, report-button labels 6:1+ (bold 20 px),
-  nothing below 4.5:1.
+  (WCAG formula): body text 7:1 or better in both themes, report-button labels 6:1+,
+  nothing below 4.5:1. The measured values are listed in the comment at the top of index.html.
 - **Two native languages.** The EN / বাংলা switch is always on screen. In Bangla there must be no
   leftover English UI words, no Latin digits where a person reads a number (coordinates and
   scientific names like Sentinel-1 are the exception), and nothing cut off. The Bangla should
   read as written for Bangladesh (পানি, not জল), not translated word for word.
-- **No animation** - nothing fades, slides or eases. But no animation must not mean no feedback:
-  every action must leave a visible, persistent state change. Dragging the radar before/after
-  line and pinch-zoom are direct manipulation, not animation.
+- **Motion only where it explains**: a sheet rising, the before/after line opening, the map
+  gliding to a place the operator chose. Nothing decorative, and none of it under
+  prefers-reduced-motion. Every action must still leave a visible, persistent state change.
+- **Red means ATTENTION and nothing else**: a road through radar water, a person's report, a
+  widespread-water alert, the badge for reports not yet handed over. Flag any red used as
+  decoration, and any red that carries a meaning without its own shape or word.
 - **Colour carries meaning, and every meaning is also carried by shape**, so nothing depends on
   telling colours apart:
-  - Flood water seen by radar from orbit: close up a silty wash multiplied into the photo with a
-    CYAN hatch and bright edge; far out solid CYAN. Nothing else is ever cyan except CYAN DASHES
-    on a road = road crossing that water (derived from it)
-  - RED circle = "water here", RED triangle = "road cut" (human field observations)
-  - RED ring round a white core = the operator's position
+  - SIGNAL, water seen by radar: close up a teal wash multiplied into the photo with a fine HATCH
+    and a hard bright-teal edge; far out solid teal. Nothing else on the map is bright teal.
+  - INSIGHT, road through that water: RED DASHES on a dark casing
+  - ACTION: RED circle = "water here", RED triangle = "road cut" (human field observations)
+  - The operator: a river-green dot with a cream core inside a white ring (never red)
   - GREEN rounded square with a roof = shelter reference point (unverified)
   - CREAM line with a dark edge = road; small dark shields = highway numbers (N1, R151)
-  - PALE BLUE line = river or canal; WHITE dashes = upazila boundary
-- **The two points of view are named.** The WATER slot always shows an ORBIT line (what the radar
-  saw) and a GROUND line (what has been recorded there, or the radar's blind spot).
-- **Three kinds of information are never merged**: satellite observation, geographic reference,
-  human field observation. The satellite layer is never presented as ground truth, and its
-  limitation (radar misses water under trees and between buildings) must be visible where it
-  matters.
-- **Readout = three fixed slots** that never move: WHERE, WATER, SHELTER.
+  - PALE TEAL line = river or canal; WHITE dashes = upazila boundary
+- **The two points of view are named.** The insight card always shows a SATELLITE line (what the
+  radar saw) and a GROUND line (what has been recorded there, or the radar's blind spot), each
+  with the map's own mark. On phones 360 px and narrower the words hide and the marks stay.
+- **Satellite, reference and field information are never merged.** The satellite layer is never
+  presented as ground truth, and its limitation (radar misses water under trees and between
+  buildings) must be visible where it matters. Alert severities describe measured water share with
+  stated thresholds; they are not forecasts.
+- **The insight card answers in a fixed order**: where, what the satellite saw, what the ground
+  said, the nearest shelter outside radar water - then the two report buttons.
 - **Text in rem**, so the reader's own larger-text setting is respected.
 - **The connectivity chip tells the truth**: ONLINE only when a real request is answered, NO LINK
   when the radio is on but nothing answers, OFFLINE when the radio is off.

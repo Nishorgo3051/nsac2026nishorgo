@@ -1,25 +1,24 @@
 /*
   INGITO · ইঙ্গিত - the field instrument.
 
-  A satellite instrument brought down to human scale. It connects two points of view:
-    FROM ORBIT   what Sentinel-1's radar measured - the flood water, hatched cyan, with its sensor,
-                 dates and limits attached.
-    FROM GROUND  what the person standing there records - "water here", "road cut" - in red.
-  Between them sits the real piece of Bangladesh: a Sentinel-2 photograph of the district with its
-  rivers, villages, roads and shelters, all drawn from the pack on this device.
+  A satellite intelligence system brought down to human scale. Every screen follows one journey:
+    EARTH    the real piece of Bangladesh: a Sentinel-2 photograph of the district with its rivers,
+             villages, roads and shelters, all drawn from the pack on this device.
+    SIGNAL   what Sentinel-1's radar measured: the water, hatched teal, with its sensor, dates and
+             limits attached. Never presented as ground truth.
+    INSIGHT  what the signal means here: roads that run through that water, shelters clear of it,
+             how much of each upazila went under.
+    ACTION   what the person on the ground does: record "water here" or "road cut", compare before
+             and after, hand the observations over.
 
   Three jobs, in the order a responder needs them:
     1. Hold one disaster pack on the device and keep working when the network dies.
     2. Answer: where am I, which routes are under water, where is the nearest shelter.
     3. Send the operator's own observations back.
 
-  Three kinds of information are never mixed: SATELLITE (the radar layer), REFERENCE (photo,
-  terrain, roads, rivers, places, shelters) and FIELD (the operator's reports, stored and exported
-  separately). The satellite layer is never presented as ground truth.
-
   Two native languages. Every word on screen comes from STRINGS below, written separately in
   English and in Bangla - not translated word for word. Bangla uses Bangla numerals; coordinates
-  and scientific names (Sentinel-1, C-band) stay as the world writes them.
+  and scientific names (Sentinel-1, SAR) stay as the world writes them.
 
   No map library and no CDN: both would need a network in exactly the situation this is built for.
 */
@@ -36,35 +35,42 @@ const PROBE_TIMEOUT_MS = 4000;
 const DELETE_ALL_PAUSE_MS = 800;      // "tap again" must be a second decision, not a double tap
 const DELETE_ALL_DISARM_MS = 5000;
 const GROUND_NEAR_M = 300;            // field reports this close count as "here" in the readout
+const NEAR_PLACE_M = 4000;            // a village this close names where the reticle is
+const FLY_MS = 520;                   // gliding to a place the operator picked
+const REVEAL_MS = 700;                // the before/after line opening
+const PANELS = ["layers", "alerts", "area", "reports", "source"];
 /* A published build (an artifact page, or a single HTML file sent to somebody) has no packs folder
    to fetch from, so the pack can be embedded in the page instead. */
 const EMBEDDED = globalThis.INGITO_PACK || null;
-const FONT = '"Anek Bangla", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif';
-const MONO = 'ui-monospace, "Cascadia Mono", Consolas, "Roboto Mono", monospace';
+const FONT = '"Inter", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif';
 
 /*
   The map's materials. ONE palette for both themes: light and dark change the instrument's
   surfaces, never the picture of the Earth or the meaning of a mark. Every meaning is also carried
-  by a shape - hatching, a ring, a triangle, a dash - so no reading depends on telling colours apart.
+  by a shape - hatching, a dash, a ring, a triangle - so no reading depends on telling colours apart.
+    EARTH    cream roads, pale-teal rivers, green shelter squares, white upazila dashes
+    SIGNAL   bright teal, hatched, with a hard edge: measured, not drawn
+    INSIGHT  red dashes on a dark casing: a road through that water
+    ACTION   red circle / triangle: a person's report. The operator: a dark dot, cream core, white ring
 */
 const MAP = {
-  ground: "#18241e",                                   // under the photo, and when it is off
-  veil: "rgba(6, 14, 10, 0.58)",                       // outside the district: dimmed, not hidden
-  flood: "rgba(34, 199, 238, 0.30)", floodFar: "rgba(34, 199, 238, 0.92)",
-  floodWash: "#4f9fc4",                                // multiplied into the photo: submerged land
-  floodHatch: "rgba(175, 242, 255, 0.7)", floodEdge: "#7fe6ff",
-  radarTint: "#cfeefa", radarEdge: "#22c7ee",
-  road: "#f3ead2", roadCasing: "rgba(8, 14, 11, 0.82)", roadMinor: "rgba(243, 234, 210, 0.72)",
-  wetCasing: "#061519", wetDash: "#7fe6ff",
-  river: "rgba(140, 203, 232, 0.9)", riverLabel: "#d6f1ff",
-  riverOnPhoto: "rgba(140, 203, 232, 0.3)",            // close up the real river is in the photo
+  ground: "#0a2a22",                                   // under the photo, and when it is off
+  veil: "rgba(3, 22, 17, 0.6)",                        // outside the district: dimmed, not hidden
+  flood: "rgba(94, 224, 204, 0.3)", floodFar: "rgba(94, 224, 204, 0.92)",
+  floodWash: "#58b3a4",                                // multiplied into the photo: submerged land
+  floodHatch: "rgba(205, 252, 243, 0.72)", floodEdge: "#7ef0dc",
+  radarTint: "#d3efe8", radarEdge: "#5ee0cc",
+  road: "#eae6d9", roadCasing: "rgba(6, 22, 17, 0.85)", roadMinor: "rgba(234, 230, 217, 0.72)",
+  wetCasing: "#1b0507", wetDash: "#ff5361",            // sun red, lifted to hold on a dark casing
+  river: "rgba(150, 214, 201, 0.9)", riverLabel: "#d9f5ee",
+  riverOnPhoto: "rgba(150, 214, 201, 0.3)",            // close up the real river is in the photo
   admin: "rgba(255, 255, 255, 0.78)", adminUnder: "rgba(0, 0, 0, 0.45)",
-  grid: "rgba(255, 255, 255, 0.13)", gridLabel: "rgba(255, 255, 255, 0.75)",
-  label: "#ffffff", halo: "rgba(5, 12, 9, 0.88)",
-  shelter: "#006a4e", shelterEdge: "#ffffff",
-  report: "#f42a41", reportEdge: "#ffffff",
-  fix: "#f42a41", fixCore: "#ffffff",
-  shield: "#10231b",
+  grid: "rgba(255, 255, 255, 0.12)", gridLabel: "rgba(255, 255, 255, 0.72)",
+  label: "#ffffff", halo: "rgba(4, 22, 17, 0.88)",
+  shelter: "#1e7d6b", shelterEdge: "#ffffff",
+  report: "#e63946", reportEdge: "#ffffff",
+  you: "#0b3d32", youCore: "#eae6d9", youRing: "#ffffff",
+  shield: "#0b3d32",
 };
 
 /*
@@ -78,6 +84,9 @@ const HATCH_FLOOD_BELOW = 30;
 const LABEL_SHELTERS_BELOW = 6;
 const PLACE_VISIBLE_BELOW = { city: 400, town: 400, suburb: 45, village: 45, hamlet: 14 };
 const PLACE_SIZE = { city: 15, town: 13.5, suburb: 12.5, village: 12.5, hamlet: 11.5 };
+/* How much of an upazila the radar saw under open water, in words. Stated openly in the Alerts
+   sheet: a description of the measurement, not a forecast. */
+const SEVERITY = [[3, "wide"], [1, "patchy"], [0, "little"]];
 
 /* ------------------------------------------------------------------ the two languages */
 
@@ -90,59 +99,101 @@ const MONTHS = {
 
 const STRINGS = {
   en: {
-    where: "Where", water: "Water", shelter: "Shelter", undo: "Undo",
+    undo: "Undo", close: "Close",
     waterHere: "Water here", roadCut: "Road cut",
-    layers: "Layers", source: "Source", reports: "Reports", locate: "Locate",
-    lens: "Radar", zoomIn: "Zoom in", zoomOut: "Zoom out",
+    alerts: "Alerts", area: "Area", reports: "Reports", source: "Source", layers: "Layers",
+    locate: "Show where I am", lens: "Before / After", zoomIn: "Zoom in", zoomOut: "Zoom out",
     toDark: "Switch to dark mode", toLight: "Switch to light mode",
+    search: "Search a place", searchAria: "Search the places in this pack",
+    noResults: "No place by that name in this pack",
     gateTitle: "Satellite flood map that works with no signal",
     gateSub: "Download it while you still have a connection. After that it needs no network at all: no map tiles, no services, no accounts.",
     looking: "Looking for packs…",
     openFile: "Or open a pack file handed to you by another team",
-    keyFlood: "Flood water seen from orbit",
-    keyRadar: "Radar view · dark means smooth water · drag the line",
+    keyFlood: "Water seen by radar",
+    keyRadar: "Radar · dark = water",
     tele: (date, time, platform) => `${date.toUpperCase()} · ${time} · ${platform.toUpperCase()} · C-BAND SAR`,
     clock: (h, m) => `${String(h).padStart(2, "0")}:${m} UTC+6`,
     net: { online: "Online", nolink: "No link", offline: "Offline", checking: "Checking" },
     recorded: (n) => `${n} recorded`,
-    before: (d) => `${d} · before`, during: (d) => `${d} · flood`,
-    hint: "See the flood arrive: compare the radar from before and during",
+    before: (d) => `${d} · before`, during: (d) => `${d} · flood day`,
+    hint: "See the flood arrive: compare the radar from before and after",
+    satTag: "Satellite", groundTag: "Ground",
     whoGps: (acc) => `You (GPS ±${acc} m)`, whoCross: "Crosshair (no GPS)",
-    outside: "outside the pack area",
+    outside: "Outside the pack area",
+    upazila: (name) => `${name} upazila`,
+    nearPlace: (name) => `near ${name}`,
     radarWater: "Radar saw water here", radarDry: "Radar saw no water here",
-    limitShort: "Radar misses water under trees and between buildings. Record what you see.",
-    orbitTag: "Orbit", groundTag: "Ground",
+    limitShort: "Radar misses water under trees and between houses. Record what you see.",
     groundNear: (n) => `${n} of your reports within ${num(GROUND_NEAR_M)} m`,
     groundNone: "Nothing recorded here yet",
     shelterLine: (dist, dir, kind, name) => `${dist} ${dir} · ${kind} (unverified)${name ? ` · ${name}` : ""}`,
-    noShelter: "none in this pack",
+    shelterClear: "Nearest shelter outside the water radar saw",
+    noShelter: "No shelter point in this pack",
     dirs: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
     kinds: { mosque: "mosque", school: "school", hospital: "hospital", clinic: "clinic" },
+    kindCount: (n, count, kind) => `${n} ${kind}${count === 1 ? "" : "s"}`,
+    kindNames: { upazila: "Upazila", city: "Town", town: "Town", suburb: "Neighbourhood", village: "Village",
+                 hamlet: "Village", river: "River", canal: "Canal", mosque: "Mosque", school: "School",
+                 hospital: "Hospital", clinic: "Clinic" },
     km: (v) => `${v} km`, m: (v) => `${v} m`,
     noteSaved: (type, n, stored, gps) =>
       `${type.toUpperCase()} #${n} ${stored ? "saved" : "NOT SAVED"}<small>` +
       `${stored ? "" : "this browser refused storage · "}${gps ? "at your GPS position" : "at the crosshair (no GPS)"}</small>`,
     noteRemoved: (type, left) =>
-      `${type.toUpperCase()} removed<small>${left} report${left === 1 ? "" : "s"} left on this device</small>`,
+      `${type.toUpperCase()} removed<small>${left} report${left === "1" ? "" : "s"} left on this device</small>`,
     noteNoFix: (problem) =>
-      `No GPS fix yet<small>${problem} Until there is one, the readout and every report use the crosshair.</small>`,
+      `No GPS fix yet<small>${problem} Until there is one, the card and every report use the crosshair.</small>`,
     gps: {
       searching: "The GPS is still searching.",
       refused: "Location permission was refused in this browser.",
       unavailable: "The phone cannot work out its position.",
       none: "This device has no GPS.",
     },
+    layerGroups: { earth: "Earth · the ground itself", signal: "Signal · measured from orbit",
+                   insight: "Insight · worked out from the signal", field: "Field · seen by people" },
     layerNames: {
-      photo: (d) => `Satellite photo · ${d}`, flood: "Flood water (radar, from orbit)",
-      wet: "Roads crossing that water (calculated)", roads: "Roads", waterways: "Rivers and canals",
-      places: "Villages and places", shelters: "Shelter points (unverified)", reports: "My field reports",
-      terrain: "Terrain relief",
+      photo: "Satellite photo", terrain: "Terrain relief", waterways: "Rivers and canals", roads: "Roads",
+      places: "Villages and places", shelters: "Shelter points (unverified)", admin: "Upazila boundaries",
+      flood: "Water seen by radar", wet: "Roads through that water", reports: "My field reports",
     },
-    on: "On", off: "Off",
+    layerSubs: {
+      photo: (d) => `Sentinel-2 · ${d} · before the flood`, terrain: "Copernicus DEM", waterways: "OpenStreetMap",
+      roads: "OpenStreetMap", places: "OpenStreetMap, GeoNames", shelters: "Mosques, schools, clinics · OpenStreetMap",
+      admin: "Official upazila outlines", flood: (d) => `Sentinel-1 radar · ${d}`,
+      wet: "Calculated from the radar layer", reports: "Stored on this phone",
+    },
     layersNote: "Village roads, streams and small places appear as you zoom in.",
+    alertsTitle: "Alerts from the satellite",
+    alertsLead: (date) => `What Sentinel-1 radar saw on ${date}, upazila by upazila. Most water first.`,
+    newWater: "New open water",
+    sev: { wide: "Widespread", patchy: "Patchy", little: "Little" },
+    locLine: (district, division) => `Upazila · ${district} district${division ? ` · ${division} Division` : ""}`,
+    whenLine: (date, time, base) => `${date}, ${time} · compared with ${base}`,
+    why: (km2, pct) => `${km2} km² of land newly under open water: ${pct}% of the upazila.`,
+    roadsCross: (n, count) => (count === 1 ? " One road crosses it." : count ? ` ${n} roads cross it.` : ""),
+    basis: "Based on Sentinel-1 SAR · open water only",
+    viewArea: "View area",
+    districtTitle: (d) => `${d} district`,
+    districtWhy: (km2, patches) => `${km2} km² of new open water, in ${patches} separate patches.`,
+    sevNote: "The label says how much of each upazila radar saw under open water: widespread is 3% or more, patchy 1 to 3%, little under 1%. It is not a forecast, and radar misses water among trees and houses.",
+    sec: { overview: "Overview", signal: "Satellite signal", change: "Change", ground: "Ground context", next: "Next" },
+    coordLine: (lat, lon, km2) => `${lat} N, ${lon} E · ${km2} km²`,
+    overview: (name, km2, pct, top) => `Radar saw ${km2} km² of new open water in ${name}: ${pct}% of the upazila${top ? ", the highest share in the district" : ""}.`,
+    noOverview: "The radar layer has no figure for this upazila.",
+    signalLine: (platform, date, time) => `${platform} · C-band SAR, VH polarisation · ${date}, ${time}`,
+    signalWhat: "Radar sees calm, open water as dark. Water among crops, trees and houses is missed, so the real extent is larger than this.",
+    changeLine: (before, during, km2) => `From ${before} to ${during}: ${km2} km² more open water.`,
+    placesHere: (n) => `${n} named places`,
+    roadsWet: (n) => `${n} roads cross radar water`,
+    sheltersLine: (n, parts) => (parts ? `${n} shelter points, unverified (${parts})` : "No shelter point in the pack for this upazila"),
+    sheltersWet: (n) => `${n} of them stand in radar water`,
+    myReports: (n, total) => (total ? `${n} of your field reports` : "None of your field reports yet"),
+    viewOnMap: "View on map", compare: "Before / After",
     reportsTitle: (n) => `My field observations (${n})`,
     reportsEmpty: "No field reports yet. When you see water or a cut road that the satellite layer does not show, tap WATER HERE or ROAD CUT.",
-    reportsStored: "Stored on this device, kept separate from the satellite layer and never merged into it.",
+    reportsStored: "Kept separate from the satellite layer and never merged into it.",
+    syncLine: "Saved on this phone only. Nothing is sent automatically: export the file and hand it over when you have a connection.",
     atCrosshair: "placed at the crosshair", gpsAcc: (m) => `GPS ± ${m} m`,
     delete: "Delete", deleteAria: (n) => `Delete report ${n}`,
     exportBtn: "Export for handover", saveFile: "Save the file",
@@ -164,6 +215,8 @@ const STRINGS = {
       embedded: "embedded in this page", downloadedNotStored: "downloaded, not stored locally",
       file: (name, kept) => `file: ${name}${kept ? ", stored on this device" : ""}`,
     },
+    offlineReady: "Everything in this pack works with no network.",
+    offlineNot: "Not stored on this phone: opening it again will need a network.",
     linkWords: {
       online: "online - a request to the network was answered",
       nolink: "radio on, but nothing answers - treat as offline",
@@ -172,17 +225,19 @@ const STRINGS = {
   },
 
   bn: {
-    where: "অবস্থান", water: "পানি", shelter: "আশ্রয়", undo: "বাতিল",
+    undo: "বাতিল", close: "বন্ধ করুন",
     waterHere: "এখানে পানি", roadCut: "রাস্তা বন্ধ",
-    layers: "লেয়ার", source: "তথ্যসূত্র", reports: "রিপোর্ট", locate: "আমি কোথায়",
-    lens: "রাডার", zoomIn: "কাছে আনুন", zoomOut: "দূরে নিন",
+    alerts: "সতর্কতা", area: "এলাকা", reports: "রিপোর্ট", source: "তথ্যসূত্র", layers: "লেয়ার",
+    locate: "আমি কোথায় দেখান", lens: "আগে / পরে", zoomIn: "কাছে আনুন", zoomOut: "দূরে নিন",
     toDark: "অন্ধকার মোডে যান", toLight: "আলো মোডে যান",
+    search: "জায়গার নাম লিখুন", searchAria: "এই প্যাকের জায়গা খুঁজুন",
+    noResults: "এই নামে কোনো জায়গা এই প্যাকে নেই",
     gateTitle: "নেটওয়ার্ক ছাড়াই চলে এমন স্যাটেলাইট বন্যা-মানচিত্র",
     gateSub: "নেটওয়ার্ক থাকতে থাকতেই প্যাকটি নামিয়ে রাখুন। এরপর আর কোনো সংযোগ লাগবে না — না ম্যাপ টাইল, না সার্ভার, না অ্যাকাউন্ট।",
     looking: "প্যাক খোঁজা হচ্ছে…",
     openFile: "অথবা অন্য দলের কাছ থেকে পাওয়া প্যাক ফাইল খুলুন",
-    keyFlood: "স্যাটেলাইট থেকে দেখা বন্যার পানি",
-    keyRadar: "রাডার ভিউ · কালো মানে স্থির পানি · দাগটি টানুন",
+    keyFlood: "রাডারে দেখা পানি",
+    keyRadar: "রাডার · কালো = পানি",
     tele: (date, time, platform) => `${date} · ${time} · ${platform} · C-band রাডার`,
     clock: (h, m) => {
       const period = h < 4 ? "রাত" : h < 12 ? "সকাল" : h < 15 ? "দুপুর" : h < 18 ? "বিকেল" : h < 20 ? "সন্ধ্যা" : "রাত";
@@ -190,43 +245,82 @@ const STRINGS = {
     },
     net: { online: "অনলাইন", nolink: "নেট পাচ্ছে না", offline: "অফলাইন", checking: "যাচাই হচ্ছে" },
     recorded: (n) => `${n}টি জমা`,
-    before: (d) => `${d} · আগে`, during: (d) => `${d} · বন্যা`,
-    hint: "বন্যা কীভাবে এলো দেখুন — রাডারের আগের আর বন্যার দিনের ছবি পাশাপাশি",
+    before: (d) => `${d} · আগে`, during: (d) => `${d} · বন্যার দিন`,
+    hint: "বন্যা কীভাবে এলো দেখুন — রাডারের আগের আর পরের ছবি মিলিয়ে",
+    satTag: "স্যাটেলাইট", groundTag: "মাঠ",
     whoGps: (acc) => `আপনি (জিপিএস ±${acc} মি)`, whoCross: "নিশানা (জিপিএস নেই)",
     outside: "প্যাকের এলাকার বাইরে",
+    upazila: (name) => `${name} উপজেলা`,
+    nearPlace: (name) => `কাছেই ${name}`,
     radarWater: "রাডারে এখানে পানি ধরা পড়েছে", radarDry: "রাডারে এখানে পানি ধরা পড়েনি",
     limitShort: "গাছপালার নিচে বা ঘরবাড়ির ফাঁকে জমা পানি রাডারে ধরা পড়ে না। নিজের চোখে যা দেখছেন, জানিয়ে দিন।",
-    orbitTag: "স্যাটেলাইট", groundTag: "মাঠ",
     groundNear: (n) => `${num(GROUND_NEAR_M)} মিটারের মধ্যে আপনার ${n}টি রিপোর্ট`,
     groundNone: "এখানে এখনো কিছু জানানো হয়নি",
     shelterLine: (dist, dir, kind, name) => `${dist} ${dir} · ${kind} (যাচাই হয়নি)${name ? ` · ${name}` : ""}`,
-    noShelter: "এই প্যাকে নেই",
+    shelterClear: "রাডারে দেখা পানির বাইরে সবচেয়ে কাছের আশ্রয়",
+    noShelter: "এই প্যাকে কোনো আশ্রয়ের জায়গা নেই",
     dirs: ["উত্তরে", "উত্তর-পূর্বে", "পূর্বে", "দক্ষিণ-পূর্বে", "দক্ষিণে", "দক্ষিণ-পশ্চিমে", "পশ্চিমে", "উত্তর-পশ্চিমে"],
     kinds: { mosque: "মসজিদ", school: "স্কুল", hospital: "হাসপাতাল", clinic: "ক্লিনিক" },
+    kindCount: (n, count, kind) => `${n}টি ${kind}`,
+    kindNames: { upazila: "উপজেলা", city: "শহর", town: "শহর", suburb: "মহল্লা", village: "গ্রাম", hamlet: "গ্রাম",
+                 river: "নদী", canal: "খাল", mosque: "মসজিদ", school: "স্কুল", hospital: "হাসপাতাল", clinic: "ক্লিনিক" },
     km: (v) => `${v} কিমি`, m: (v) => `${v} মিটার`,
     noteSaved: (type, n, stored, gps) =>
       `${type} #${n} — ${stored ? "জমা হলো" : "জমা হয়নি"}<small>` +
       `${stored ? "" : "এই ব্রাউজার জমা রাখতে দিচ্ছে না · "}${gps ? "আপনার জিপিএস অবস্থানে" : "নিশানার জায়গায় (জিপিএস নেই)"}</small>`,
     noteRemoved: (type, left) => `${type} — বাতিল হলো<small>এই ফোনে আর ${left}টি রিপোর্ট আছে</small>`,
     noteNoFix: (problem) =>
-      `এখনো জিপিএস পাওয়া যায়নি<small>${problem} ততক্ষণ অবস্থান আর সব রিপোর্ট নিশানার জায়গা ধরে হবে।</small>`,
+      `এখনো জিপিএস পাওয়া যায়নি<small>${problem} ততক্ষণ কার্ডের তথ্য আর সব রিপোর্ট নিশানার জায়গা ধরে হবে।</small>`,
     gps: {
       searching: "জিপিএস এখনো খুঁজছে।",
       refused: "এই ব্রাউজারে লোকেশনের অনুমতি দেওয়া হয়নি।",
       unavailable: "ফোন নিজের অবস্থান বের করতে পারছে না।",
       none: "এই যন্ত্রে জিপিএস নেই।",
     },
+    layerGroups: { earth: "ভূমি · মাটির আসল চেহারা", signal: "সংকেত · স্যাটেলাইটের মাপা",
+                   insight: "বিশ্লেষণ · সংকেত থেকে বের করা", field: "মাঠ · মানুষের চোখে দেখা" },
     layerNames: {
-      photo: (d) => `স্যাটেলাইট ছবি · ${d}`, flood: "বন্যার পানি (রাডার, স্যাটেলাইট থেকে)",
-      wet: "ওই পানির ওপর দিয়ে যাওয়া রাস্তা (হিসাব করে বের করা)", roads: "রাস্তা", waterways: "নদী ও খাল",
-      places: "গ্রাম ও জায়গার নাম", shelters: "আশ্রয়ের জায়গা (যাচাই হয়নি)", reports: "আমার মাঠের রিপোর্ট",
-      terrain: "ভূমির উঁচু-নিচু",
+      photo: "স্যাটেলাইট ছবি", terrain: "ভূমির উঁচু-নিচু", waterways: "নদী ও খাল", roads: "রাস্তা",
+      places: "গ্রাম ও জায়গার নাম", shelters: "আশ্রয়ের জায়গা (যাচাই হয়নি)", admin: "উপজেলার সীমানা",
+      flood: "রাডারে দেখা পানি", wet: "ওই পানির ওপর দিয়ে যাওয়া রাস্তা", reports: "আমার মাঠের রিপোর্ট",
     },
-    on: "চালু", off: "বন্ধ",
+    layerSubs: {
+      photo: (d) => `Sentinel-2 · ${d} · বন্যার আগের`, terrain: "Copernicus DEM", waterways: "OpenStreetMap",
+      roads: "OpenStreetMap", places: "OpenStreetMap, GeoNames", shelters: "মসজিদ, স্কুল, ক্লিনিক · OpenStreetMap",
+      admin: "সরকারি উপজেলা-সীমানা", flood: (d) => `Sentinel-1 রাডার · ${d}`,
+      wet: "রাডারের পানি থেকে হিসাব করা", reports: "এই ফোনে জমা",
+    },
     layersNote: "কাছে গেলে গ্রামের রাস্তা, ছোট খাল আর ছোট জায়গার নাম দেখা যায়।",
+    alertsTitle: "স্যাটেলাইটের সতর্কবার্তা",
+    alertsLead: (date) => `${date} তারিখে Sentinel-1 রাডার কোন উপজেলায় কী দেখেছে। যেখানে পানি বেশি, সেটি আগে।`,
+    newWater: "নতুন খোলা পানি",
+    sev: { wide: "বিস্তৃত", patchy: "বিক্ষিপ্ত", little: "সামান্য" },
+    locLine: (district, division) => `উপজেলা · ${district} জেলা${division ? ` · ${division} বিভাগ` : ""}`,
+    whenLine: (date, time, base) => `${date}, ${time} · ${base}-এর তুলনায়`,
+    why: (km2, pct) => `${km2} বর্গকিমি জমি নতুন করে খোলা পানির নিচে — উপজেলার ${pct}%।`,
+    roadsCross: (n, count) => (count ? ` এর ওপর দিয়ে গেছে ${n}টি রাস্তা।` : ""),
+    basis: "Sentinel-1 SAR-এর ভিত্তিতে · শুধু খোলা পানি",
+    viewArea: "এলাকাটি দেখুন",
+    districtTitle: (d) => `${d} জেলা`,
+    districtWhy: (km2, patches) => `${patches}টি আলাদা জায়গায় মোট ${km2} বর্গকিমি নতুন খোলা পানি।`,
+    sevNote: "লেবেল বলে, প্রতিটি উপজেলার কতটা জায়গা রাডারে খোলা পানির নিচে দেখা গেছে: ৩% বা তার বেশি হলে বিস্তৃত, ১ থেকে ৩% বিক্ষিপ্ত, ১%-এর কম সামান্য। এটি পূর্বাভাস নয়; গাছপালা আর ঘরবাড়ির মাঝের পানি রাডারে ধরা পড়ে না।",
+    sec: { overview: "সংক্ষেপে", signal: "স্যাটেলাইটের সংকেত", change: "পরিবর্তন", ground: "মাটিতে যা আছে", next: "এরপর" },
+    coordLine: (lat, lon, km2) => `${lat} N, ${lon} E · ${km2} বর্গকিমি`,
+    overview: (name, km2, pct, top) => `${name} উপজেলার ${pct}% জায়গায়, মোট ${km2} বর্গকিমি, রাডারে নতুন খোলা পানি ধরা পড়েছে${top ? "। জেলায় এটিই সবচেয়ে বেশি" : ""}।`,
+    noOverview: "রাডারের স্তরে এই উপজেলার কোনো হিসাব নেই।",
+    signalLine: (platform, date, time) => `${platform} · C-band SAR, VH · ${date}, ${time}`,
+    signalWhat: "রাডারে স্থির, খোলা পানি কালো দেখায়। ফসল, গাছপালা আর ঘরবাড়ির মাঝের পানি ধরা পড়ে না, তাই আসল পানি এর চেয়ে বেশি।",
+    changeLine: (before, during, km2) => `${before} থেকে ${during}: খোলা পানি বেড়েছে ${km2} বর্গকিমি।`,
+    placesHere: (n) => `নামসহ ${n}টি জায়গা`,
+    roadsWet: (n) => `রাডারে দেখা পানির ওপর দিয়ে ${n}টি রাস্তা`,
+    sheltersLine: (n, parts) => (parts ? `${n}টি আশ্রয়ের জায়গা, যাচাই হয়নি (${parts})` : "এই উপজেলার কোনো আশ্রয়ের জায়গা প্যাকে নেই"),
+    sheltersWet: (n) => `এর ${n}টি রাডারে দেখা পানির মধ্যে`,
+    myReports: (n, total) => (total ? `আপনার ${n}টি মাঠের রিপোর্ট` : "এখানে আপনার কোনো রিপোর্ট এখনো নেই"),
+    viewOnMap: "মানচিত্রে দেখুন", compare: "আগে / পরে",
     reportsTitle: (n) => `আমার মাঠের পর্যবেক্ষণ (${n})`,
     reportsEmpty: "এখনো কোনো রিপোর্ট নেই। স্যাটেলাইটের মানচিত্রে নেই এমন পানি বা ভাঙা রাস্তা চোখে পড়লে ‘এখানে পানি’ বা ‘রাস্তা বন্ধ’ চাপুন।",
-    reportsStored: "এগুলো এই ফোনেই জমা থাকে, স্যাটেলাইটের তথ্যের সঙ্গে কখনো মেশানো হয় না।",
+    reportsStored: "স্যাটেলাইটের তথ্যের সঙ্গে এগুলো কখনো মেশানো হয় না।",
+    syncLine: "এগুলো শুধু এই ফোনেই আছে, নিজে থেকে কোথাও পাঠানো হয় না। নেট পেলে ফাইলটি এক্সপোর্ট করে হস্তান্তর করুন।",
     atCrosshair: "নিশানার জায়গায় বসানো", gpsAcc: (m) => `জিপিএস ± ${m} মিটার`,
     delete: "মুছুন", deleteAria: (n) => `${n} নম্বর রিপোর্ট মুছুন`,
     exportBtn: "হস্তান্তরের ফাইল তৈরি করুন", saveFile: "ফাইলটি সেভ করুন",
@@ -248,6 +342,8 @@ const STRINGS = {
       embedded: "এই পেজের ভেতরেই ছিল", downloadedNotStored: "নামানো হয়েছে, ফোনে জমা হয়নি",
       file: (name, kept) => `ফাইল: ${name}${kept ? ", ফোনে জমা রাখা হয়েছে" : ""}`,
     },
+    offlineReady: "এই প্যাকের সবকিছু নেটওয়ার্ক ছাড়াই চলে।",
+    offlineNot: "ফোনে জমা হয়নি: আবার খুলতে নেট লাগবে।",
     linkWords: {
       online: "অনলাইন — নেটওয়ার্কে পাঠানো অনুরোধের জবাব এসেছে",
       nolink: "রেডিও চালু, কিন্তু কোনো জবাব আসছে না — অফলাইন ধরে নিন",
@@ -262,6 +358,9 @@ const ctx = canvas.getContext("2d");
 
 const state = {
   pack: null,
+  stats: null,                             // what the pack says per upazila, worked out once
+  index: [],                               // every searchable name in the pack
+  hits: [],                                // the search results on screen
   images: {},                              // optical, before, during, terrain
   source: null,                            // {key, file, kept}: where the pack was loaded from
   found: undefined,                        // the pack list, kept so the gate can re-render
@@ -273,6 +372,7 @@ const state = {
   lastId: null,                            // the report the UNDO button would remove
   note: null,                              // {kind, args, undo}: what the box above the buttons says
   panel: null,
+  areaName: "",                            // the upazila the Area sheet is about
   deleteAllArmed: false,
   theme: "light",
   lang: "en",
@@ -280,13 +380,17 @@ const state = {
   lens: false,                             // the radar before/after view
   split: 0.5,                              // where the before/after line sits, 0..1 of the width
   layers: { photo: true, terrain: true, flood: true, wet: true, roads: true, waterways: true,
-            places: true, shelters: true, reports: true },
+            places: true, shelters: true, admin: true, reports: true },
   here: "",
 };
 
 const S = () => STRINGS[state.lang];
 /* Bangla numerals for everything a person reads as a number; coordinates stay as GPS writes them. */
 const num = (value) => (state.lang === "bn" ? String(value).replace(/[0-9]/g, (d) => BN_DIGITS[d]) : String(value));
+/* Counts with a thousands separator: 1,159 / ১,১৫৯. */
+const count = (value) => num(Number(value).toLocaleString("en-US"));
+const wide = () => Boolean(globalThis.matchMedia?.("(min-width: 900px)").matches);
+const calm = () => Boolean(globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 function fmtDate(iso) {
   const [y, m, d] = String(iso || "").split("-").map(Number);
@@ -315,6 +419,15 @@ function nameIn(item) {
 function areaName(english) {
   const area = (state.pack?.areas || []).find((candidate) => candidate.name === english);
   return area ? nameIn({ name: area.name, name_bn: area.name_bn }) : english;
+}
+
+function adminNames() {
+  const admin = state.pack?.admin || {};
+  const bn = state.lang === "bn";
+  return {
+    district: (bn ? admin.district_bn : admin.district) || admin.district || state.pack?.observation?.aoi_name || "",
+    division: (bn ? admin.division_bn : admin.division) || admin.division || "",
+  };
 }
 
 /* ------------------------------------------------------------------ storage */
@@ -427,17 +540,22 @@ function unproject(x, y) {
           clat - (y - canvas.height / 2) / ppd];
 }
 
-function fitTo([west, south, east, north]) {
+/* The view that shows a whole box, with a margin. */
+function viewFor([west, south, east, north], margin = 0.9) {
   const squeeze = Math.cos((((south + north) / 2) * Math.PI) / 180);
   const fitLat = canvas.height / Math.max(north - south, 1e-6);
   const fitLon = canvas.width / Math.max((east - west) * squeeze, 1e-6);
-  state.view = { lon: (west + east) / 2, lat: (south + north) / 2,
-                 ppd: Math.min(fitLat, fitLon) * 0.94 };
+  return { lon: (west + east) / 2, lat: (south + north) / 2, ppd: Math.min(fitLat, fitLon) * margin };
+}
+
+/* The view that shows about `metres` across the shorter side of the map, centred on a point. */
+function viewAt(lon, lat, metres) {
+  return { lon, lat, ppd: (Math.min(canvas.width, canvas.height) * 110540) / metres };
 }
 
 /*
   Open ON the water. The first thing anyone sees - a responder or a judge - should be the biggest
-  body of water the radar found, with the reticle on it, so the readout's first answer is "Radar
+  body of water the radar found, with the reticle on it, so the card's first answer is "Radar
   saw water here". The crosshair point is the grid point nearest the patch's middle that is
   actually inside it (a bent patch's middle can be dry land). No flood, or no inside point: show
   the whole pack instead.
@@ -446,12 +564,12 @@ const OPEN_SPAN_M = 6000;           // across the shorter side of the map
 
 function openOnWater(pack) {
   const features = pack.observation.features || [];
-  if (!features.length) return fitTo(pack.coverage.bbox);
+  if (!features.length) {
+    state.view = viewFor(pack.coverage.bbox, 0.94);
+    return;
+  }
   const ring = features.reduce((a, b) => (b.km2 > a.km2 ? b : a)).rings[0];
-  const lons = ring.map((v) => v[0]);
-  const lats = ring.map((v) => v[1]);
-  const [west, east, south, north] = [Math.min(...lons), Math.max(...lons),
-                                      Math.min(...lats), Math.max(...lats)];
+  const [west, south, east, north] = boxOf([ring]);
   let best = null;
   for (let i = 1; i < 20; i++) {
     for (let j = 1; j < 20; j++) {
@@ -461,9 +579,7 @@ function openOnWater(pack) {
       if ((!best || off < best.off) && inRing(ring, lon, lat)) best = { lon, lat, off };
     }
   }
-  if (!best) return fitTo(pack.coverage.bbox);
-  state.view = { lon: best.lon, lat: best.lat,
-                 ppd: (Math.min(canvas.width, canvas.height) * 110540) / OPEN_SPAN_M };
+  state.view = best ? viewAt(best.lon, best.lat, OPEN_SPAN_M) : viewFor(pack.coverage.bbox, 0.94);
 }
 
 /* Zoom about a point on screen (device pixels), so the ground under a pinch or cursor stays put. */
@@ -507,6 +623,22 @@ function inRing(ring, lon, lat) {
   return inside;
 }
 
+function boxOf(rings) {
+  const box = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const ring of rings) {
+    for (const [lon, lat] of ring) {
+      if (lon < box[0]) box[0] = lon;
+      if (lat < box[1]) box[1] = lat;
+      if (lon > box[2]) box[2] = lon;
+      if (lat > box[3]) box[3] = lat;
+    }
+  }
+  return box;
+}
+
+const inBox = (box, lon, lat) => lon >= box[0] && lon <= box[2] && lat >= box[1] && lat <= box[3];
+const boxesMeet = (a, b) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
+
 /* A pack can be a file handed over by another team, so every string from it is escaped before it
    goes into the page. A pack must never be able to run code on the operator's phone. */
 function esc(value) {
@@ -517,6 +649,108 @@ function esc(value) {
 function ageInDays(iso) {
   const then = Date.parse(`${iso}T00:00:00Z`);
   return Number.isFinite(then) ? Math.round((Date.now() - then) / 86400000) : null;
+}
+
+/* ------------------------------------------------------------------ what the pack says, per place */
+
+/*
+  Worked out once when a pack opens, so the card, the alerts and the area sheets all read the same
+  numbers. Nothing here is estimated: areas and shares come from the radar pipeline, counts are
+  counts of what the pack holds.
+*/
+function computeStats(pack) {
+  const features = (pack.observation.features || []).map((feature) => ({ rings: feature.rings, box: boxOf(feature.rings) }));
+  const inWater = (lon, lat) => features.some((feature) =>
+    inBox(feature.box, lon, lat) && feature.rings.some((ring) => inRing(ring, lon, lat)));
+  const shelters = pack.context.shelters || [];
+  shelters.forEach((shelter) => { shelter.wet = inWater(shelter.lon, shelter.lat); });
+  const wetRoads = (pack.context.roads || []).filter((road) => road.wet && road.coords.length);
+  const byUpazila = pack.observation.by_upazila || [];
+
+  const areas = (pack.areas || []).map((area) => {
+    const box = boxOf(area.rings);
+    const inside = (lon, lat) => inBox(box, lon, lat) && area.rings.some((ring) => inRing(ring, lon, lat));
+    const ring = area.rings.reduce((a, b) => (b.length > a.length ? b : a), []);
+    const label = [ring.reduce((s, v) => s + v[0], 0) / ring.length, ring.reduce((s, v) => s + v[1], 0) / ring.length];
+    const here = shelters.filter((shelter) => inside(shelter.lon, shelter.lat));
+    const kinds = {};
+    here.forEach((shelter) => { kinds[shelter.kind] = (kinds[shelter.kind] || 0) + 1; });
+    const figures = byUpazila.find((row) => row.name === area.name);
+    return {
+      name: area.name, name_bn: area.name_bn, km2: area.km2, rings: area.rings, box, label,
+      flood_km2: figures ? figures.flood_km2 : null, share: figures ? figures.share_pct : null,
+      shelters: here.length, kinds, sheltersWet: here.filter((shelter) => shelter.wet).length,
+      wetRoads: wetRoads.filter((road) => {
+        const [lon, lat] = road.coords[Math.floor(road.coords.length / 2)];
+        return inside(lon, lat);
+      }).length,
+      places: (pack.context.places || []).filter((place) => inside(place.lon, place.lat)).length,
+      features: features.filter((feature) => boxesMeet(feature.box, box)),
+      inside,
+    };
+  });
+  const ranked = areas.filter((area) => area.share !== null).sort((a, b) => b.share - a.share);
+  return { inWater, areas, ranked, top: ranked[0]?.name || "", wetRoads: wetRoads.length,
+           byName: Object.fromEntries(areas.map((area) => [area.name, area])) };
+}
+
+function areaAt([lon, lat]) {
+  return state.stats?.areas.find((area) => area.inside(lon, lat)) || null;
+}
+
+function nearestArea(point) {
+  let best = null;
+  for (const area of state.stats?.areas || []) {
+    const metres = distanceM(point, area.label);
+    if (!best || metres < best.metres) best = { area, metres };
+  }
+  return best?.area || null;
+}
+
+const areaLabel = (area) => nameIn({ name: area.name, name_bn: area.name_bn });
+
+/* The point everything answers about: the operator's GPS position, or the reticle. */
+function aim() {
+  return state.fix ? [state.fix.lon, state.fix.lat] : unproject(canvas.width / 2, canvas.height / 2);
+}
+
+/* ------------------------------------------------------------------ motion */
+
+/* Small tweens for the few moves that explain something, one per channel ("view", "split"), so a
+   glide and the before/after reveal can run together. Skipped entirely when the phone asks for
+   reduced motion; a newer move on the same channel cancels the older one. */
+const tweens = {};
+function animate(channel, ms, frame, done) {
+  const token = {};
+  tweens[channel] = token;
+  if (calm()) {
+    frame(1);
+    if (done) done();
+    return;
+  }
+  const start = performance.now();
+  const step = (now) => {
+    if (tweens[channel] !== token) return;
+    const t = Math.min((now - start) / ms, 1);
+    frame(t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+    if (t < 1) requestAnimationFrame(step);
+    else if (done) done();
+  };
+  requestAnimationFrame(step);
+}
+
+/* Glide to a place: position and zoom move together, zoom in log space, so it reads as one move. */
+function flyTo(target) {
+  const from = { ...state.view };
+  hideNote();
+  animate("view", FLY_MS, (e) => {
+    state.view = {
+      lon: from.lon + (target.lon - from.lon) * e,
+      lat: from.lat + (target.lat - from.lat) * e,
+      ppd: Math.exp(Math.log(from.ppd) + (Math.log(target.ppd) - Math.log(from.ppd)) * e),
+    };
+    draw();
+  }, updateReadout);
 }
 
 /* ------------------------------------------------------------------ drawing */
@@ -592,7 +826,8 @@ const ROAD_WIDTH = { motorway: 4, trunk: 3.6, primary: 3.1, secondary: 2.5, tert
 
 function draw() {
   const ratio = globalThis.devicePixelRatio || 1;
-  if (canvas.width !== Math.round(canvas.clientWidth * ratio)) resize();
+  if (canvas.width !== Math.round(canvas.clientWidth * ratio) ||
+      canvas.height !== Math.round(canvas.clientHeight * ratio)) resize();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = "source-over";
@@ -611,7 +846,7 @@ function draw() {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  // THE EARTH. In the radar view: the two passes, before on the left of the line, flood on the
+  // EARTH. In the radar view: the two passes, before on the left of the line, flood day on the
   // right, tinted cool so they read as instrument data. Otherwise: the photograph and its relief.
   if (lens) {
     drawPicture(state.images.during, imagery.bounds);
@@ -646,17 +881,19 @@ function draw() {
   drawGraticule(ratio);
 
   // Upazila boundaries: white dashes on a dark underline, readable on any ground.
-  for (const area of pack.areas || []) {
-    ctx.beginPath();
-    ringPath(area.rings);
-    ctx.lineWidth = 2.6 * ratio;
-    ctx.strokeStyle = MAP.adminUnder;
-    ctx.stroke();
-    ctx.setLineDash([6 * ratio, 5 * ratio]);
-    ctx.lineWidth = 1.2 * ratio;
-    ctx.strokeStyle = MAP.admin;
-    ctx.stroke();
-    ctx.setLineDash([]);
+  if (state.layers.admin) {
+    for (const area of pack.areas || []) {
+      ctx.beginPath();
+      ringPath(area.rings);
+      ctx.lineWidth = 2.6 * ratio;
+      ctx.strokeStyle = MAP.adminUnder;
+      ctx.stroke();
+      ctx.setLineDash([6 * ratio, 5 * ratio]);
+      ctx.lineWidth = 1.2 * ratio;
+      ctx.strokeStyle = MAP.admin;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
   }
 
   if (!lens && state.layers.waterways) {
@@ -685,8 +922,8 @@ function draw() {
     }
   }
 
-  // FROM ORBIT: the radar's flood water. The only cyan on the map. In the radar view only its
-  // edge is drawn, and only over the flood-day pass it was measured from.
+  // SIGNAL: the radar's water, the only bright teal on the map. In the radar view only its edge is
+  // drawn, and only over the flood-day pass it was measured from.
   if (state.layers.flood) {
     const rings = (pack.observation.features || []).flatMap((feature) => feature.rings);
     if (lens) {
@@ -731,7 +968,8 @@ function draw() {
     }
   }
 
-  // Roads crossing radar water: DERIVED from the observation, so drawn in its cyan, as dashes.
+  // INSIGHT: roads through radar water. Worked out from the signal, and a reason to pay attention,
+  // so red - as dashes, so the shape says "interrupted" even without the colour.
   if (!lens && state.layers.wet) {
     for (const road of pack.context.roads || []) {
       if (!road.wet) continue;
@@ -753,7 +991,7 @@ function draw() {
 
   drawLabels(ratio, mpp, lens);
 
-  // FROM THE GROUND, last, so nothing can cover them. Circle = water here, triangle = road cut.
+  // ACTION, last, so nothing can cover it. Circle = water here, triangle = road cut.
   if (state.layers.reports) {
     for (const report of state.reports) drawReport(report, ratio);
   }
@@ -820,35 +1058,36 @@ function drawReport(report, ratio) {
   ctx.stroke();
 }
 
-/* The operator: a red ring round a white core, with a second ring at a fixed size. A target, never
-   a filled dot, so it cannot be confused with a "water here" report. */
+/* The operator: a river-deep dot with a cream core inside a white ring, and the GPS accuracy as a
+   faint circle. Never red and never filled solid, so it cannot be mistaken for a report. */
 function drawFix(ratio) {
   const [x, y] = project(state.fix.lon, state.fix.lat);
   if (state.fix.accuracy) {
     ctx.beginPath();
     ctx.arc(x, y, (state.fix.accuracy / 110540) * state.view.ppd, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(234, 230, 217, 0.12)";
+    ctx.fill();
     ctx.lineWidth = 1.2 * ratio;
-    ctx.strokeStyle = "rgba(244, 42, 65, 0.7)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
     ctx.stroke();
   }
   ctx.beginPath();
-  ctx.arc(x, y, 16 * ratio, 0, Math.PI * 2);
-  ctx.lineWidth = 2.5 * ratio;
-  ctx.strokeStyle = MAP.fix;
+  ctx.arc(x, y, 10 * ratio, 0, Math.PI * 2);
+  ctx.fillStyle = MAP.you;
+  ctx.fill();
+  ctx.lineWidth = 3 * ratio;
+  ctx.strokeStyle = MAP.youRing;
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(x, y, 7 * ratio, 0, Math.PI * 2);
-  ctx.fillStyle = MAP.fixCore;
+  ctx.arc(x, y, 4 * ratio, 0, Math.PI * 2);
+  ctx.fillStyle = MAP.youCore;
   ctx.fill();
-  ctx.lineWidth = 3.5 * ratio;
-  ctx.strokeStyle = MAP.fix;
-  ctx.stroke();
 }
 
 /* The before/after line: a white rule with a handle. It is drawn on the map because it is part of
    the map - the boundary between two moments in time. */
 function drawDivider(ratio, splitX) {
-  const handleY = canvas.height * 0.64;
+  const handleY = canvas.height * 0.62;
   ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
   ctx.fillRect(splitX - 2 * ratio, 0, 4 * ratio, canvas.height);
   ctx.fillStyle = "#ffffff";
@@ -858,9 +1097,9 @@ function drawDivider(ratio, splitX) {
   ctx.fillStyle = "#ffffff";
   ctx.fill();
   ctx.lineWidth = 2 * ratio;
-  ctx.strokeStyle = "#0b2a33";
+  ctx.strokeStyle = MAP.you;
   ctx.stroke();
-  ctx.fillStyle = "#0b2a33";
+  ctx.fillStyle = MAP.you;
   for (const side of [-1, 1]) {
     ctx.beginPath();
     ctx.moveTo(splitX + side * 12 * ratio, handleY);
@@ -869,15 +1108,15 @@ function drawDivider(ratio, splitX) {
     ctx.closePath();
     ctx.fill();
   }
-  // The date labels sit either side of the line, but never leave the screen when it is dragged
-  // to an edge.
+  // The date labels sit either side of the line, just under the search and key rows - clear of
+  // the map buttons - and never leave the screen when the line is dragged to an edge.
   const cssX = splitX / ratio;
   const cssWidth = canvas.width / ratio;
-  const top = `${handleY / ratio + 28}px`;
+  const top = `${el("top").offsetHeight + 16}px`;
   const before = el("pill-before");
   const during = el("pill-during");
-  before.style.cssText = `left:${Math.max(cssX - 10, before.offsetWidth + 6)}px;top:${top};bottom:auto;transform:translateX(-100%)`;
-  during.style.cssText = `left:${Math.min(cssX + 10, cssWidth - during.offsetWidth - 6)}px;top:${top};bottom:auto`;
+  before.style.cssText = `left:${Math.max(cssX - 10, before.offsetWidth + 6)}px;top:${top};transform:translateX(-100%)`;
+  during.style.cssText = `left:${Math.min(cssX + 10, cssWidth - during.offsetWidth - 6)}px;top:${top}`;
 }
 
 /* A fine latitude/longitude grid with degree-minute labels: the instrument's frame of reference,
@@ -910,7 +1149,7 @@ function drawGraticule(ratio) {
     const total = Math.round(Math.abs(value) * 60);
     return `${Math.floor(total / 60)}°${String(total % 60).padStart(2, "0")}′${hemi}`;
   };
-  ctx.font = `600 ${10 * ratio}px ${MONO}`;
+  ctx.font = `600 ${10 * ratio}px ${FONT}`;
   ctx.fillStyle = MAP.gridLabel;
   ctx.textAlign = "left";
   for (const lat of lats) {
@@ -920,7 +1159,7 @@ function drawGraticule(ratio) {
   for (const lon of lons) {
     const [x] = project(lon, 0);
     if (x < 130 * ratio) continue;            // the scale bar lives in that corner
-    ctx.fillText(dm(lon, "E"), x + 4 * ratio, canvas.height - 6 * ratio);
+    ctx.fillText(dm(lon, "E"), x + 4 * ratio, canvas.height - 26 * ratio);
   }
 }
 
@@ -936,7 +1175,7 @@ function drawLabels(ratio, mpp, lens) {
   const spacing = (px) => { if ("letterSpacing" in ctx) ctx.letterSpacing = bn ? "0px" : `${px}px`; };
   const text = (label, x, y, { size, weight = 600, colour = MAP.label, center = false, track = 0 }) => {
     if (!label) return false;
-    const px = size * remScale * ratio;
+    const px = size * remScale * ratio * (bn ? 1.08 : 1);
     ctx.font = `${weight} ${px}px ${FONT}`;
     spacing(track * ratio);
     const width = ctx.measureText(label).width;
@@ -959,12 +1198,8 @@ function drawLabels(ratio, mpp, lens) {
 
   // Upazilas, only from far out, where they are the useful names.
   if (mpp > 40) {
-    for (const area of pack.areas || []) {
-      const ring = area.rings.reduce((a, b) => (b.length > a.length ? b : a), []);
-      if (!ring.length) continue;
-      const lon = ring.reduce((s, v) => s + v[0], 0) / ring.length;
-      const lat = ring.reduce((s, v) => s + v[1], 0) / ring.length;
-      const [x, y] = project(lon, lat);
+    for (const area of state.stats?.areas || []) {
+      const [x, y] = project(area.label[0], area.label[1]);
       const label = bn ? area.name_bn || area.name : area.name.toUpperCase();
       text(label, x, y, { size: 11.5, weight: 700, colour: "rgba(255,255,255,0.9)", center: true, track: 2.2 });
     }
@@ -1001,7 +1236,7 @@ function drawLabels(ratio, mpp, lens) {
     return points;
   };
 
-  // Rivers by name, once per stretch, in pale blue.
+  // Rivers by name, once per stretch, in pale teal.
   if (state.layers.waterways) {
     const placed = [];
     for (const way of pack.context.waterways || []) {
@@ -1020,7 +1255,7 @@ function drawLabels(ratio, mpp, lens) {
   // Highway numbers as small shields: "N1" is how a driver names the Dhaka-Chattogram road.
   if (!lens && state.layers.roads) {
     const shields = [];
-    ctx.font = `700 ${10 * remScale * ratio}px ${MONO}`;
+    ctx.font = `700 ${10 * remScale * ratio}px ${FONT}`;
     for (const road of pack.context.roads || []) {
       if (!road.ref || !/^[NR]\d/.test(road.ref) || road.coords.length < 2) continue;
       const [x, y] = onScreen(road.coords)[0] || [];
@@ -1052,7 +1287,7 @@ function drawLabels(ratio, mpp, lens) {
   if (!lens && state.layers.shelters && mpp < LABEL_SHELTERS_BELOW) {
     for (const shelter of pack.context.shelters || []) {
       const [x, y] = project(shelter.lon, shelter.lat);
-      text(nameIn(shelter), x + 10 * ratio, y + 4 * ratio, { size: 11.5, weight: 600, colour: "#e8fff4" });
+      text(nameIn(shelter), x + 10 * ratio, y + 4 * ratio, { size: 11.5, weight: 600, colour: "#e6f7f1" });
     }
   }
 }
@@ -1067,36 +1302,86 @@ function drawScale(ratio) {
   el("scale-bar").style.width = `${Math.round(((pick / 110540) * state.view.ppd) / ratio)}px`;
 }
 
-/* ------------------------------------------------------------------ readout */
+/* A small radar picture of one upazila, cut from the pack's own passes, for the Area sheet. The
+   flood-day picture also carries the radar's water edge, so the change is visible at a glance. */
+function drawThumb(target, image, area, withWater) {
+  const imagery = state.pack.imagery;
+  if (!target || !imagery || !image?.naturalWidth) return;
+  const [west, south, east, north] = area.box;
+  const padLon = (east - west) * 0.05;
+  const padLat = (north - south) * 0.05;
+  const [w, s, e, n] = [west - padLon, south - padLat, east + padLon, north + padLat];
+  const aspect = ((e - w) * Math.cos((((s + n) / 2) * Math.PI) / 180)) / (n - s);
+  const ratio = globalThis.devicePixelRatio || 1;
+  const cssWidth = target.clientWidth || 150;
+  target.width = Math.round(cssWidth * ratio);
+  target.height = Math.round((cssWidth * ratio) / aspect);
+  const g = target.getContext("2d");
+  const [bw, bs, be, bn] = imagery.bounds;
+  const sx = ((w - bw) / (be - bw)) * image.naturalWidth;
+  const sy = ((bn - n) / (bn - bs)) * image.naturalHeight;
+  const sw = ((e - w) / (be - bw)) * image.naturalWidth;
+  const sh = ((n - s) / (bn - bs)) * image.naturalHeight;
+  g.drawImage(image, sx, sy, sw, sh, 0, 0, target.width, target.height);
+  g.globalCompositeOperation = "multiply";
+  g.fillStyle = MAP.radarTint;
+  g.fillRect(0, 0, target.width, target.height);
+  g.globalCompositeOperation = "source-over";
+  const at = ([lon, lat]) => [((lon - w) / (e - w)) * target.width, ((n - lat) / (n - s)) * target.height];
+  const trace = (rings) => {
+    g.beginPath();
+    for (const ring of rings) {
+      ring.forEach((point, i) => {
+        const [x, y] = at(point);
+        i ? g.lineTo(x, y) : g.moveTo(x, y);
+      });
+      g.closePath();
+    }
+  };
+  if (withWater) {
+    trace(area.features.flatMap((feature) => feature.rings));
+    g.lineWidth = 1.2 * ratio;
+    g.strokeStyle = MAP.radarEdge;
+    g.stroke();
+  }
+  trace(area.rings);
+  g.setLineDash([4 * ratio, 3 * ratio]);
+  g.lineWidth = 1.3 * ratio;
+  g.strokeStyle = "rgba(255, 255, 255, 0.9)";
+  g.stroke();
+  g.setLineDash([]);
+}
+
+/* ------------------------------------------------------------------ the insight card */
 
 /*
-  The three field questions, in three fixed slots that never move: WHERE, WATER, SHELTER. The
-  WATER slot is where the two points of view meet: what the radar saw from orbit, and - when the
-  operator has recorded something nearby - what was seen from the ground.
+  One card, always about the point under the reticle (or the operator, with GPS):
+    EARTH    which upazila, which village nearby, whose position, the coordinates
+    SIGNAL   what the radar saw here - and next to it, what the ground has said
+    INSIGHT  the nearest shelter that is outside the water the radar saw
+  and under it, the two buttons that record what the satellite could not see.
 */
 function updateReadout() {
   if (!state.pack) return;
   const pack = state.pack;
   const text = S();
-  const point = state.fix ? [state.fix.lon, state.fix.lat]
-                          : unproject(canvas.width / 2, canvas.height / 2);
-
-  let area = null;
-  for (const candidate of pack.areas || []) {
-    if (candidate.rings.some((ring) => inRing(ring, point[0], point[1]))) {
-      area = candidate;
-      break;
-    }
-  }
+  const point = aim();
+  const area = areaAt(point);
   state.here = area ? area.name : "";
 
-  // Whose position this is comes FIRST: without a fix it is the crosshair, not the operator.
+  let place = null;
+  for (const candidate of pack.context.places || []) {
+    const metres = distanceM(point, [candidate.lon, candidate.lat]);
+    if (metres <= NEAR_PLACE_M && (!place || metres < place.metres)) place = { candidate, metres };
+  }
+  el("r-place").textContent = area
+    ? `${text.upazila(areaLabel(area))}${place ? ` · ${text.nearPlace(nameIn(place.candidate))}` : ""}`
+    : text.outside;
+  // Whose position this is comes first: without a fix it is the crosshair, not the operator.
   const who = state.fix ? text.whoGps(num(Math.round(state.fix.accuracy || 0))) : text.whoCross;
-  const areaLabel = area ? nameIn({ name: area.name, name_bn: area.name_bn }) : text.outside;
-  el("r-where").textContent = `${who} · ${areaLabel} · ${point[1].toFixed(4)}, ${point[0].toFixed(4)}`;
+  el("r-coords").textContent = `${who} · ${point[1].toFixed(4)}, ${point[0].toFixed(4)}`;
 
-  const onWater = (pack.observation.features || []).some((feature) =>
-    feature.rings.some((ring) => inRing(ring, point[0], point[1])));
+  const onWater = state.stats.inWater(point[0], point[1]);
   const nearby = state.reports.filter((report) =>
     distanceM(point, [report.lon, report.lat]) <= GROUND_NEAR_M).length;
   const water = el("r-water");
@@ -1111,84 +1396,222 @@ function updateReadout() {
 
   let nearest = null;
   for (const shelter of pack.context.shelters || []) {
+    if (shelter.wet) continue;
     const metres = distanceM(point, [shelter.lon, shelter.lat]);
     if (!nearest || metres < nearest.metres) nearest = { shelter, metres };
   }
   // "unverified" comes before the name, so a long name is what gets cut, never the warning.
-  el("r-shelter").textContent = nearest
-    ? text.shelterLine(kmText(nearest.metres),
-                       text.dirs[bearingIndex(point, [nearest.shelter.lon, nearest.shelter.lat])],
-                       text.kinds[nearest.shelter.kind] || nearest.shelter.kind, nameIn(nearest.shelter))
-    : text.noShelter;
+  el("r-shelter").innerHTML = nearest
+    ? `${esc(text.shelterLine(kmText(nearest.metres),
+                              text.dirs[bearingIndex(point, [nearest.shelter.lon, nearest.shelter.lat])],
+                              text.kinds[nearest.shelter.kind] || nearest.shelter.kind, nameIn(nearest.shelter)))}` +
+      `<small>${text.shelterClear}</small>`
+    : esc(text.noShelter);
 
-  el("readout").hidden = false;
+  el("sheet").hidden = false;
 }
 
-/* ------------------------------------------------------------------ panels */
+/* ------------------------------------------------------------------ sheets */
 
 function togglePanel(name) {
   state.panel = state.panel === name ? null : name;
   state.deleteAllArmed = false;
-  el("stage").classList.toggle("panelled", Boolean(state.panel));
-  for (const key of ["layers", "source", "reports"]) {
+  el("screen").classList.toggle("panelled", Boolean(state.panel));
+  for (const key of PANELS) {
     el(`panel-${key}`).hidden = state.panel !== key;
-    el(`tool-${key}`).setAttribute("aria-pressed", String(state.panel === key));
+    el(`tool-${key}`)?.setAttribute("aria-pressed", String(state.panel === key));
   }
+  closeResults();
   refreshPanel();
+  if (state.panel) el(`panel-${state.panel}`).scrollTop = 0;
+}
+
+function openPanel(name) {
+  if (state.panel === name) {
+    refreshPanel();
+    el(`panel-${name}`).scrollTop = 0;
+  } else {
+    togglePanel(name);
+  }
+}
+
+function closePanel() {
+  if (state.panel) togglePanel(state.panel);
 }
 
 function refreshPanel() {
   if (!state.pack) return;
   if (state.panel === "layers") renderLayers();
+  if (state.panel === "alerts") renderAlerts();
+  if (state.panel === "area") renderArea();
   if (state.panel === "source") renderSource();
   if (state.panel === "reports") renderReports();
+}
+
+function sheetHead(title) {
+  return `<header class="ph"><h2>${title}</h2><button class="x" data-close aria-label="${S().close}">` +
+         `<svg class="i"><use href="#i-close"/></svg></button></header>`;
 }
 
 /* Each layer's icon IS its map mark, on a scrap of map ground, so the key reads without colour. */
 function icon(kind) {
   const marks = {
-    photo: `<rect x="3" y="4" width="22" height="16" rx="2" fill="#7a6d5b"/><path d="M3 15c5-4 8 1 12-3s7-1 10-3v11H3z" fill="#3c5a3a"/><path d="M6 20c3-6 6-9 9-16" stroke="#8ccbe8" stroke-width="1.6" fill="none"/>`,
-    flood: `<defs><pattern id="ih" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="rgba(34,199,238,0.35)"/><line x1="0" y1="0" x2="0" y2="4" stroke="#a0eeff" stroke-width="1.4"/></pattern></defs><rect x="4" y="6" width="20" height="12" rx="2" fill="url(#ih)" stroke="#7fe6ff" stroke-width="1.6"/>`,
-    wet: `<line x1="2" y1="12" x2="26" y2="12" stroke="#061519" stroke-width="7"/><line x1="2" y1="12" x2="26" y2="12" stroke="#7fe6ff" stroke-width="2.4" stroke-dasharray="4 3"/>`,
-    roads: `<line x1="2" y1="12" x2="26" y2="12" stroke="rgba(8,14,11,0.9)" stroke-width="6"/><line x1="2" y1="12" x2="26" y2="12" stroke="#f3ead2" stroke-width="3.2"/>`,
-    waterways: `<path d="M2 16 Q8 6 14 12 T26 8" fill="none" stroke="#8ccbe8" stroke-width="3"/>`,
+    photo: `<rect x="3" y="4" width="22" height="16" rx="2" fill="#7a6d5b"/><path d="M3 15c5-4 8 1 12-3s7-1 10-3v11H3z" fill="#3c5a3a"/><path d="M6 20c3-6 6-9 9-16" stroke="#96d6c9" stroke-width="1.6" fill="none"/>`,
+    terrain: `<path d="M2 19 L9 8 L14 14 L19 6 L26 19 Z" fill="#5f7a6e" stroke="#d9e8e2" stroke-width="1.2"/>`,
+    waterways: `<path d="M2 16 Q8 6 14 12 T26 8" fill="none" stroke="#96d6c9" stroke-width="3"/>`,
+    roads: `<line x1="2" y1="12" x2="26" y2="12" stroke="rgba(6,22,17,0.9)" stroke-width="6"/><line x1="2" y1="12" x2="26" y2="12" stroke="#eae6d9" stroke-width="3.2"/>`,
     places: `<circle cx="7" cy="13" r="2.6" fill="#fff"/><text x="11" y="16.5" font-size="9" font-weight="700" fill="#fff">${state.lang === "bn" ? "গ্রাম" : "Aa"}</text>`,
-    shelters: `<rect x="8" y="5" width="13" height="13" rx="3" fill="#006a4e" stroke="#fff" stroke-width="1.5"/><path d="M11 12l3.5-3.5L18 12M12 11.5v3.5h5v-3.5" stroke="#fff" stroke-width="1.4" fill="none"/>`,
-    reports: `<circle cx="8" cy="12" r="5.5" fill="#f42a41" stroke="#fff" stroke-width="1.8"/><path d="M20 5 L26 17 L14 17 Z" fill="#f42a41" stroke="#fff" stroke-width="1.8"/>`,
-    terrain: `<path d="M2 19 L9 8 L14 14 L19 6 L26 19 Z" fill="#6f7d74" stroke="#d9e2dc" stroke-width="1.2"/>`,
+    shelters: `<rect x="8" y="5" width="13" height="13" rx="3" fill="#1e7d6b" stroke="#fff" stroke-width="1.5"/><path d="M11 12l3.5-3.5L18 12M12 11.5v3.5h5v-3.5" stroke="#fff" stroke-width="1.4" fill="none"/>`,
+    admin: `<path d="M3 18 L10 6 L25 9" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="3.2"/><path d="M3 18 L10 6 L25 9" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="3 2.5"/>`,
+    flood: `<defs><pattern id="ih" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="rgba(94,224,204,0.35)"/><line x1="0" y1="0" x2="0" y2="4" stroke="#cdfcf3" stroke-width="1.4"/></pattern></defs><rect x="4" y="6" width="20" height="12" rx="2" fill="url(#ih)" stroke="#7ef0dc" stroke-width="1.6"/>`,
+    wet: `<line x1="2" y1="12" x2="26" y2="12" stroke="#1b0507" stroke-width="7"/><line x1="2" y1="12" x2="26" y2="12" stroke="#ff5361" stroke-width="2.4" stroke-dasharray="4 3"/>`,
+    reports: `<circle cx="8" cy="12" r="5.5" fill="#e63946" stroke="#fff" stroke-width="1.8"/><path d="M20 5 L26 17 L14 17 Z" fill="#e63946" stroke="#fff" stroke-width="1.8"/>`,
   };
-  return `<svg class="icon" viewBox="0 0 28 24" width="40" height="34" aria-hidden="true"><rect width="28" height="24" rx="5" fill="#18241e"/>${marks[kind]}</svg>`;
+  return `<svg class="icon" viewBox="0 0 28 24" width="40" height="34" aria-hidden="true"><rect width="28" height="24" rx="5" fill="#0a2a22"/>${marks[kind]}</svg>`;
 }
 
+/* The layers, in the four groups the whole product is built on: Earth, Signal, Insight, Field. */
 function renderLayers() {
   const pack = state.pack;
   const text = S();
-  const wet = (pack.context.roads || []).filter((road) => road.wet).length;
-  const rows = [
-    ...(pack.imagery ? [["photo", text.layerNames.photo(fmtDate(pack.imagery.optical.date)), ""]] : []),
-    ["flood", text.layerNames.flood, (pack.observation.features || []).length],
-    ["wet", text.layerNames.wet, wet],
-    ["roads", text.layerNames.roads, (pack.context.roads || []).length],
-    ["waterways", text.layerNames.waterways, (pack.context.waterways || []).length],
-    ["places", text.layerNames.places, (pack.context.places || []).length],
-    ["shelters", text.layerNames.shelters, (pack.context.shelters || []).length],
-    ["reports", text.layerNames.reports, state.reports.length],
-    ["terrain", text.layerNames.terrain, ""],
+  const o = pack.observation;
+  const counts = {
+    flood: (o.features || []).length, wet: state.stats.wetRoads, roads: (pack.context.roads || []).length,
+    waterways: (pack.context.waterways || []).length, places: (pack.context.places || []).length,
+    shelters: (pack.context.shelters || []).length, admin: (pack.areas || []).length, reports: state.reports.length,
+  };
+  const groups = [
+    ["earth", [...(pack.imagery ? ["photo"] : []), "terrain", "waterways", "roads", "places", "shelters", "admin"]],
+    ["signal", ["flood"]],
+    ["insight", ["wet"]],
+    ["field", ["reports"]],
   ];
-  el("panel-layers").innerHTML =
-    `<h2>${text.layers}</h2><div class="rows">` +
-    rows.map(([key, label, count]) =>
-      `<button class="row" data-layer="${key}" aria-pressed="${state.layers[key]}">
-         ${icon(key)}<span class="label">${label}</span>
-         <span class="count">${count === "" ? "" : num(count)}</span>
-         <span class="state">${state.layers[key] ? text.on : text.off}</span>
-       </button>`).join("") +
-    `</div><p class="plain dim">${text.layersNote} ${esc(pack.context.attribution)}.</p>`;
+  const sub = (key) => {
+    const words = text.layerSubs[key];
+    const line = typeof words === "function"
+      ? words(key === "photo" ? fmtDate(pack.imagery.optical.date) : fmtDate(o.acquisition_date)) : words;
+    return counts[key] === undefined ? line : `${line} · ${count(counts[key])}`;
+  };
+  el("panel-layers").innerHTML = sheetHead(text.layers) +
+    groups.map(([group, keys]) => `<p class="group">${text.layerGroups[group]}</p>` +
+      keys.map((key) => `<button class="lrow" role="switch" aria-checked="${state.layers[key]}" data-layer="${key}">
+          ${icon(key)}<span class="txt"><b>${text.layerNames[key]}</b><small>${esc(sub(key))}</small></span>
+          <span class="switch" aria-hidden="true"></span></button>`).join("")).join("") +
+    `<p class="plain dim">${text.layersNote}</p><p class="plain dim">${esc(pack.context.attribution)}.</p>`;
   el("panel-layers").querySelectorAll("[data-layer]").forEach((button) => {
     button.addEventListener("click", () => {
       state.layers[button.dataset.layer] = !state.layers[button.dataset.layer];
-      renderLayers();
+      button.setAttribute("aria-checked", String(state.layers[button.dataset.layer]));
       draw();
+    });
+  });
+}
+
+const severity = (share) => SEVERITY.find(([floor]) => share >= floor)[1];
+
+/*
+  Alerts, one per upazila, most water first. Each says what happened, where, when, why it matters
+  and what to do. The severity is a word first and a bar second; only a widespread one is red.
+*/
+function renderAlerts() {
+  const pack = state.pack;
+  const o = pack.observation;
+  const text = S();
+  const admin = adminNames();
+  const totals = o.totals || {};
+  const when = text.whenLine(fmtDate(o.acquisition_date), passClock(o.acquisition_time_utc), fmtDate(o.baseline_date));
+  const cards = state.stats.ranked.map((area) => {
+    const level = severity(area.share);
+    return `<article class="alert ${level}">
+      <p class="sev"><span class="bar" aria-hidden="true"></span><span class="level">${text.sev[level]}</span><span>· ${text.newWater}</span></p>
+      <h3>${esc(areaLabel(area))}</h3>
+      <p class="where">${esc(text.locLine(admin.district, admin.division))}</p>
+      <p class="when">${when}</p>
+      <p class="why">${text.why(num(area.flood_km2), num(area.share))}${text.roadsCross(num(area.wetRoads), area.wetRoads)}</p>
+      <p class="basis"><span class="mk signal" aria-hidden="true"></span>${text.basis}</p>
+      <button class="btn primary" data-area="${esc(area.name)}">${text.viewArea}</button>
+    </article>`;
+  }).join("");
+  el("panel-alerts").innerHTML = sheetHead(text.alertsTitle) +
+    `<p class="lead">${text.alertsLead(fmtDate(o.acquisition_date))}</p>
+     <article class="alert">
+       <p class="sev"><span class="bar" aria-hidden="true"></span><span class="level">${text.newWater}</span></p>
+       <h3>${esc(text.districtTitle(admin.district))}</h3>
+       <p class="when">${when}</p>
+       <p class="why">${text.districtWhy(num(totals.flood_km2), count(totals.patches))}${text.roadsCross(num(state.stats.wetRoads), state.stats.wetRoads)}</p>
+       <p class="basis"><span class="mk signal" aria-hidden="true"></span>${text.basis}</p>
+     </article>` + cards + `<p class="plain dim">${text.sevNote}</p>`;
+  el("panel-alerts").querySelectorAll("[data-area]").forEach((button) => {
+    button.addEventListener("click", () => showArea(button.dataset.area));
+  });
+}
+
+function showArea(name) {
+  state.areaName = name;
+  openPanel("area");
+}
+
+/*
+  The Area sheet: an intelligence brief about one real place. Location and overview first, then
+  the change as the radar saw it, then - folded away until asked for - the signal's details and
+  what stands on the ground there, then what to do next.
+*/
+function renderArea() {
+  const text = S();
+  const pack = state.pack;
+  const o = pack.observation;
+  const area = state.stats.byName[state.areaName] || nearestArea(aim());
+  if (!area) return;
+  state.areaName = area.name;
+  const admin = adminNames();
+  const img = pack.imagery;
+  const name = areaLabel(area);
+  const kindParts = Object.entries(area.kinds).sort((a, b) => b[1] - a[1])
+    .map(([kind, count]) => text.kindCount(num(count), count, text.kinds[kind] || kind)).join(", ");
+  const myReports = state.reports.filter((report) => report.area === area.name).length;
+  el("panel-area").innerHTML = sheetHead(esc(name)) + `
+    <p class="lead">${esc(text.locLine(admin.district, admin.division))}<br>
+      ${text.coordLine(area.label[1].toFixed(3), area.label[0].toFixed(3), num(area.km2))}</p>
+    <p class="sec">${text.sec.overview}</p>
+    <p class="overview">${area.share === null ? text.noOverview
+      : text.overview(esc(name), num(area.flood_km2), num(area.share), area.name === state.stats.top)}</p>
+    <p class="sec">${text.sec.change}</p>
+    <p class="plain">${area.flood_km2 === null ? ""
+      : text.changeLine(fmtDate(o.baseline_date), fmtDate(o.acquisition_date), num(area.flood_km2))}</p>
+    ${img ? `<div class="thumbs">
+      <figure><canvas id="thumb-before"></canvas><figcaption>${text.before(fmtDate(img.radar.before.date))}</figcaption></figure>
+      <figure><canvas id="thumb-during"></canvas><figcaption>${text.during(fmtDate(img.radar.during.date))}</figcaption></figure>
+    </div>` : ""}
+    <p class="sec">${text.sec.next}</p>
+    <div class="btns">
+      <button class="btn primary" data-go="map">${text.viewOnMap}</button>
+      ${img ? `<button class="btn" data-go="compare">${text.compare}</button>` : ""}
+    </div>
+    <details><summary>${text.sec.signal}</summary>
+      <p class="plain">${esc(text.signalLine(o.platform || o.sensor, fmtDate(o.acquisition_date), passClock(o.acquisition_time_utc)))}</p>
+      <p class="basis"><span class="mk signal" aria-hidden="true"></span>${text.basis}</p>
+      <div class="limit">${text.signalWhat}</div>
+    </details>
+    <details><summary>${text.sec.ground}</summary>
+      <ul class="facts">
+        <li><svg class="i"><use href="#i-pin"/></svg><span>${text.placesHere(num(area.places))}</span></li>
+        <li><svg class="i"><use href="#i-road"/></svg><span>${text.roadsWet(num(area.wetRoads))}</span></li>
+        <li><svg class="i"><use href="#i-shelter"/></svg><span>${text.sheltersLine(num(area.shelters), esc(kindParts))}${
+          area.sheltersWet ? ` · ${text.sheltersWet(num(area.sheltersWet))}` : ""}</span></li>
+        <li><svg class="i"><use href="#i-reports"/></svg><span>${text.myReports(num(myReports), myReports)}</span></li>
+      </ul>
+    </details>`;
+  if (img) {
+    drawThumb(el("thumb-before"), state.images.before, area, false);
+    drawThumb(el("thumb-during"), state.images.during, area, true);
+  }
+  el("panel-area").querySelectorAll("[data-go]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const compare = button.dataset.go === "compare";
+      if (!wide()) closePanel();
+      resize();                          // the map just grew back: fit the area to its new size
+      flyTo(viewFor(area.box, 0.9));
+      if (compare) setLens(true);
     });
   });
 }
@@ -1205,11 +1628,13 @@ function renderSource() {
     ? Math.round((100 * totals.flood_km2) / event.reported_flooded_km2) : null;
   const img = pack.imagery;
   const when = `${fmtDate(o.acquisition_date)}${o.acquisition_time_utc ? `, ${passClock(o.acquisition_time_utc)}` : ""}`;
+  const kept = ["device", "embeddedKept"].includes(state.source?.key) || (state.source?.key === "file" && state.source.kept);
   const L = bn ? {
     title: "এই তথ্য কোথা থেকে এলো", flood: "বন্যার পানি — স্যাটেলাইট পর্যবেক্ষণ", sensor: "সেন্সর",
     product: "প্রোডাক্ট", observed: "পর্যবেক্ষণ", baseline: "তুলনার দিন", detected: "শনাক্ত",
     threshold: "থ্রেশহোল্ড", source: "উৎস", method: "পদ্ধতি", ago: (n) => `${num(n)} দিন আগে`,
-    detectedText: `${num(esc(totals.flood_km2))} বর্গকিমি খোলা পানি, ${num(esc(totals.patches))}টি টুকরোয়`,
+    how: "কীভাবে মাপা হয়েছে",
+    detectedText: `${num(esc(totals.flood_km2))} বর্গকিমি খোলা পানি, ${count(totals.patches)}টি টুকরোয়`,
     cannot: "এই স্তর যা দেখতে পায় না।",
     limitation: "রাডার শুধু খোলা, স্থির পানি চিনতে পারে। ধানক্ষেত, গাছপালা বা ঘরবাড়ির মাঝে দাঁড়িয়ে থাকা পানিতে রাডারের সংকেত পানি থেকে দেয়ালে বা গাছে লেগে সোজা ফিরে আসে (double bounce) — তাই সেখানে পানি উজ্জ্বল দেখায়, আর এই পদ্ধতিতে ধরা পড়ে না। ফলে এখানে দেখানো এলাকা আসলের চেয়ে কম, বিশেষ করে যেখানে মানুষ থাকে।",
     notTruth: "এটি মাঠে যাচাই করা তথ্য (ground truth) নয়; স্যাটেলাইটের একটি পরিমাপ। মাঠ থেকে আপনার রিপোর্টই এর ফাঁক পূরণ করে।",
@@ -1219,7 +1644,7 @@ function renderSource() {
     photo: "স্যাটেলাইট ছবি — রেফারেন্স", taken: "তোলা হয়েছে", scene: "দৃশ্য", remember: "মনে রাখুন",
     photoNote: "শুকনো মৌসুমের ছবি, বন্যার আগের। এটি বন্যার ছবি নয়।",
     radar: "রাডারের দুটি ছবি",
-    radarNote: img ? `রাডার ভিউতে সেই দুটি ছবিই দেখানো হয়, যা থেকে বন্যার স্তর হিসাব করা হয়েছে: ${fmtDate(img.radar.before.date)} আর ${fmtDate(img.radar.during.date)}। রাডারে স্থির পানি কালো দেখায়। ছবিগুলোর উজ্জ্বলতা শুধু দেখানোর জন্য ঠিক করা।` : "",
+    radarNote: img ? `আগে-পরে ভিউতে সেই দুটি ছবিই দেখানো হয়, যা থেকে বন্যার স্তর হিসাব করা হয়েছে: ${fmtDate(img.radar.before.date)} আর ${fmtDate(img.radar.during.date)}। রাডারে স্থির পানি কালো দেখায়। ছবিগুলোর উজ্জ্বলতা শুধু দেখানোর জন্য ঠিক করা।` : "",
     terrain: "ভূমির উচ্চতা — রেফারেন্স", elevation: "উচ্চতা",
     elevationText: `${num(esc(pack.terrain.elevation_m.min))} থেকে ${num(esc(pack.terrain.elevation_m.max))} মিটার`,
     limits: "সীমাবদ্ধতা", reference: "রাস্তা, নদী, জায়গা, আশ্রয় — রেফারেন্স",
@@ -1230,7 +1655,8 @@ function renderSource() {
     title: "Where this information comes from", flood: "Flood water — satellite observation",
     sensor: "Sensor", product: "Product", observed: "Observed", baseline: "Baseline", detected: "Detected",
     threshold: "Threshold", source: "Source", method: "Method", ago: (n) => `${n} days ago`,
-    detectedText: `${esc(totals.flood_km2)} km² of open water in ${esc(totals.patches)} patches`,
+    how: "How it was measured",
+    detectedText: `${esc(totals.flood_km2)} km² of open water in ${count(totals.patches)} patches`,
     cannot: "What this layer cannot see.", limitation: esc(o.limitations), notTruth: esc(o.not_ground_truth),
     event: "The event, and our sanity check", eventName: "Event", arrived: "Flood arrived",
     peak: "River peak", reported: "Reported",
@@ -1238,7 +1664,7 @@ function renderSource() {
     photo: "Satellite photo — reference", taken: "Taken", scene: "Scene", remember: "Remember",
     photoNote: img ? esc(img.optical.note) : "",
     radar: "The two radar pictures",
-    radarNote: img ? `The radar view shows the two passes the flood layer was computed from: ${fmtDate(img.radar.before.date)} and ${fmtDate(img.radar.during.date)}. Radar sees smooth water as dark. Brightness is scaled for display only.` : "",
+    radarNote: img ? `Before / After shows the two passes the flood layer was computed from: ${fmtDate(img.radar.before.date)} and ${fmtDate(img.radar.during.date)}. Radar sees smooth water as dark. Brightness is scaled for display only.` : "",
     terrain: "Terrain — reference", elevation: "Elevation",
     elevationText: `${esc(pack.terrain.elevation_m.min)} to ${esc(pack.terrain.elevation_m.max)} m`,
     limits: "Limits", reference: "Roads, rivers, places, shelters — reference",
@@ -1246,54 +1672,63 @@ function renderSource() {
     device: "This device", pack: "Pack", built: "Built", loaded: "Loaded from", network: "Network",
   };
 
-  el("panel-source").innerHTML = `
-    <h2>${L.title}</h2>
-    <h3>${L.flood}</h3>
+  el("panel-source").innerHTML = sheetHead(L.title) + `
+    <p class="sec">${L.flood}</p>
     <dl class="meta">
       <dt>${L.sensor}</dt><dd>${esc((o.sensor_detail || o.sensor).replace(/^Sentinel-1\b/, o.platform || "Sentinel-1"))}</dd>
-      <dt>${L.product}</dt><dd>${esc(o.product) || "&mdash;"}</dd>
       <dt>${L.observed}</dt><dd>${when}${age !== null ? ` &mdash; ${L.ago(age)}` : ""}</dd>
       <dt>${L.baseline}</dt><dd>${fmtDate(o.baseline_date)}</dd>
       <dt>${L.detected}</dt><dd>${L.detectedText}</dd>
-      <dt>${L.threshold}</dt><dd>${esc(o.threshold)} &mdash; ${esc(o.threshold_method)}</dd>
-      <dt>${L.source}</dt><dd>${esc(o.source)}</dd>
-      <dt>${L.method}</dt><dd>${esc(o.method)}</dd>
     </dl>
     <div class="limit"><b>${L.cannot}</b> ${L.limitation}</div>
     <p class="plain">${L.notTruth}</p>
-    <h3>${L.event}</h3>
-    <dl class="meta">
-      <dt>${L.eventName}</dt><dd>${esc(event.name) || "&mdash;"}</dd>
-      <dt>${L.arrived}</dt><dd>${esc(event.flood_arrived) || "&mdash;"}</dd>
-      <dt>${L.peak}</dt><dd>${esc(event.river_peak) || "&mdash;"}</dd>
-      <dt>${L.reported}</dt><dd>${esc(event.reported_flooded_km2)} km² &mdash; ${esc(event.reported_source)}</dd>
-    </dl>
-    <p class="plain">${L.sanity}</p>
-    ${img ? `<h3>${L.photo}</h3>
-    <dl class="meta">
-      <dt>${L.sensor}</dt><dd>${esc(img.optical.sensor)} &mdash; ${esc(img.optical.product)}</dd>
-      <dt>${L.taken}</dt><dd>${fmtDate(img.optical.date)}, ${passClock(img.optical.time_utc)}</dd>
-      <dt>${L.scene}</dt><dd class="mono" style="font-size:0.75rem;word-break:break-all">${esc(img.optical.scene)}</dd>
-      <dt>${L.source}</dt><dd>${esc(img.optical.source)}</dd>
-      <dt>${L.remember}</dt><dd>${L.photoNote}</dd>
-    </dl>
-    <h3>${L.radar}</h3><p class="plain">${L.radarNote}</p>` : ""}
-    <h3>${L.terrain}</h3>
-    <dl class="meta">
-      <dt>${L.source}</dt><dd>${esc(pack.terrain.source)}</dd>
-      <dt>${L.elevation}</dt><dd>${L.elevationText}</dd>
-      <dt>${L.limits}</dt><dd>${esc(pack.terrain.limitations)}</dd>
-    </dl>
-    <h3>${L.reference}</h3>
-    <p class="plain">${esc(pack.context.attribution)}. ${L.shelterNote}</p>
-    <p class="plain dim">${L.roadsNote}</p>
-    <h3>${L.device}</h3>
-    <dl class="meta">
-      <dt>${L.pack}</dt><dd>${esc(pack.pack_id)} &mdash; ${esc(bn ? pack.name_bn || pack.name : pack.name)}</dd>
-      <dt>${L.built}</dt><dd>${fmtDate(pack.built_on)}</dd>
-      <dt>${L.loaded}</dt><dd>${esc(sourceText())}</dd>
-      <dt>${L.network}</dt><dd>${text.linkWords[state.link]}</dd>
-    </dl>`;
+    <details><summary>${L.how}</summary>
+      <dl class="meta">
+        <dt>${L.product}</dt><dd>${esc(o.product) || "&mdash;"}</dd>
+        <dt>${L.threshold}</dt><dd>${esc(o.threshold)} &mdash; ${esc(o.threshold_method)}</dd>
+        <dt>${L.source}</dt><dd>${esc(o.source)}</dd>
+        <dt>${L.method}</dt><dd>${esc(o.method)}</dd>
+      </dl>
+    </details>
+    <details><summary>${L.event}</summary>
+      <dl class="meta">
+        <dt>${L.eventName}</dt><dd>${esc(event.name) || "&mdash;"}</dd>
+        <dt>${L.arrived}</dt><dd>${esc(event.flood_arrived) || "&mdash;"}</dd>
+        <dt>${L.peak}</dt><dd>${esc(event.river_peak) || "&mdash;"}</dd>
+        <dt>${L.reported}</dt><dd>${esc(event.reported_flooded_km2)} km² &mdash; ${esc(event.reported_source)}</dd>
+      </dl>
+      <p class="plain">${L.sanity}</p>
+    </details>
+    ${img ? `<details><summary>${L.photo}</summary>
+      <dl class="meta">
+        <dt>${L.sensor}</dt><dd>${esc(img.optical.sensor)} &mdash; ${esc(img.optical.product)}</dd>
+        <dt>${L.taken}</dt><dd>${fmtDate(img.optical.date)}, ${passClock(img.optical.time_utc)}</dd>
+        <dt>${L.scene}</dt><dd style="font-size:0.75rem;word-break:break-all">${esc(img.optical.scene)}</dd>
+        <dt>${L.source}</dt><dd>${esc(img.optical.source)}</dd>
+        <dt>${L.remember}</dt><dd>${L.photoNote}</dd>
+      </dl>
+    </details>
+    <details><summary>${L.radar}</summary><p class="plain">${L.radarNote}</p></details>` : ""}
+    <details><summary>${L.terrain}</summary>
+      <dl class="meta">
+        <dt>${L.source}</dt><dd>${esc(pack.terrain.source)}</dd>
+        <dt>${L.elevation}</dt><dd>${L.elevationText}</dd>
+        <dt>${L.limits}</dt><dd>${esc(pack.terrain.limitations)}</dd>
+      </dl>
+    </details>
+    <details><summary>${L.reference}</summary>
+      <p class="plain">${esc(pack.context.attribution)}. ${L.shelterNote}</p>
+      <p class="plain dim">${L.roadsNote}</p>
+    </details>
+    <details open><summary>${L.device}</summary>
+      <dl class="meta">
+        <dt>${L.pack}</dt><dd>${esc(pack.pack_id)} &mdash; ${esc(bn ? pack.name_bn || pack.name : pack.name)}</dd>
+        <dt>${L.built}</dt><dd>${fmtDate(pack.built_on)}</dd>
+        <dt>${L.loaded}</dt><dd>${esc(sourceText())}</dd>
+        <dt>${L.network}</dt><dd>${text.linkWords[state.link]}</dd>
+      </dl>
+      <p class="plain">${kept ? text.offlineReady : text.offlineNot}</p>
+    </details>`;
 }
 
 function sourceText() {
@@ -1319,13 +1754,13 @@ function renderReports() {
       + `</ul>`
     : `<p class="plain">${text.reportsEmpty}</p>`;
 
-  el("panel-reports").innerHTML = `
-    <h2>${text.reportsTitle(num(count))}</h2>
+  el("panel-reports").innerHTML = sheetHead(text.reportsTitle(num(count))) + `
     ${list}
-    <button class="wide solid" id="export-file">${text.exportBtn}</button>
+    <p class="sync"><svg class="i" aria-hidden="true"><use href="#i-sync"/></svg><span>${text.syncLine}</span></p>
+    <button class="btn wide primary" id="export-file"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>${text.exportBtn}</button>
     <div id="export-out"></div>
     <p class="plain dim">${text.reportsStored}</p>
-    ${count ? `<button class="wide danger far${state.deleteAllArmed ? " armed" : ""}" id="clear-reports">${
+    ${count ? `<button class="btn wide danger far${state.deleteAllArmed ? " armed" : ""}" id="clear-reports">${
       state.deleteAllArmed ? text.deleteAllArmed(num(count)) : text.deleteAll}</button>` : ""}`;
 
   el("export-file").addEventListener("click", exportReports);
@@ -1360,6 +1795,81 @@ function renderReports() {
   }
 }
 
+/* ------------------------------------------------------------------ search, offline */
+
+/* Every name the pack holds - upazilas, towns, villages, rivers, named shelters - in both scripts.
+   Searching never touches the network. */
+const KIND_RANK = { upazila: 0, city: 1, town: 1, suburb: 2, village: 2, hamlet: 3, river: 4, canal: 5,
+                    hospital: 6, clinic: 6, school: 7, mosque: 8 };
+
+function buildIndex(pack) {
+  const items = state.stats.areas.map((area) => ({
+    kind: "upazila", name: area.name, name_bn: area.name_bn, lon: area.label[0], lat: area.label[1], box: area.box }));
+  for (const place of pack.context.places || []) items.push({ ...place });
+  const rivers = new Map();
+  for (const way of pack.context.waterways || []) {
+    if (!(way.kind === "river" || way.kind === "canal") || !(way.name || way.name_bn) || !way.coords.length) continue;
+    const key = way.name || way.name_bn;
+    if (!rivers.has(key) || way.coords.length > rivers.get(key).coords.length) rivers.set(key, way);
+  }
+  for (const way of rivers.values()) {
+    const [lon, lat] = way.coords[Math.floor(way.coords.length / 2)];
+    items.push({ kind: way.kind, name: way.name, name_bn: way.name_bn, lon, lat });
+  }
+  for (const shelter of pack.context.shelters || []) {
+    if (shelter.name || shelter.name_bn) items.push({ ...shelter });
+  }
+  // OpenStreetMap sometimes holds the same place twice ("Feni General Hospital" / "Feni general
+  // hospital"): one result per kind and name is enough.
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = `${item.kind}|${(item.name || item.name_bn).toLowerCase()}`;
+    return !seen.has(key) && seen.add(key);
+  });
+}
+
+function searchFor(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return state.index.map((item) => {
+    const at = Math.min(...[item.name, item.name_bn].filter(Boolean).map((name) => {
+      const found = name.toLowerCase().indexOf(q);
+      return found < 0 ? 99 : found === 0 ? 0 : 1;
+    }));
+    return { item, score: at * 10 + (KIND_RANK[item.kind] ?? 9) };
+  }).filter((hit) => hit.score < 990).sort((a, b) => a.score - b.score).slice(0, 7).map((hit) => hit.item);
+}
+
+function renderResults() {
+  const list = el("results");
+  const query = el("q").value;
+  if (!query.trim()) {
+    closeResults();
+    return;
+  }
+  const text = S();
+  state.hits = searchFor(query);
+  list.innerHTML = state.hits.length
+    ? state.hits.map((item, i) => `<li><button type="button" data-hit="${i}"><b>${esc(nameIn(item))}</b>` +
+        `<small>${esc(text.kindNames[item.kind] || item.kind)}</small></button></li>`).join("")
+    : `<li class="none">${text.noResults}</li>`;
+  list.hidden = false;
+}
+
+function closeResults() {
+  el("results").hidden = true;
+}
+
+function goToHit(item) {
+  if (!item) return;
+  closeResults();
+  el("q").value = nameIn(item);
+  el("q").blur();
+  if (state.panel && !wide()) closePanel();
+  resize();
+  flyTo(item.box ? viewFor(item.box, 0.9) : viewAt(item.lon, item.lat, 3000));
+}
+
 /* ------------------------------------------------------------------ field reports */
 
 function buzz() {
@@ -1375,13 +1885,17 @@ function updateCounts() {
   const road = state.reports.filter((report) => report.type === "road_cut").length;
   el("n-water").textContent = S().recorded(num(water));
   el("n-road").textContent = S().recorded(num(road));
+  // Reports waiting to be handed over: a reason to open the sheet, so the badge is red.
+  const badge = el("nav-count");
+  badge.textContent = num(state.reports.length);
+  badge.hidden = !state.reports.length;
 }
 
 function afterReportsChanged() {
   updateCounts();
   updateReadout();
   draw();
-  if (state.panel === "reports" || state.panel === "layers") refreshPanel();
+  if (["reports", "layers", "area"].includes(state.panel)) refreshPanel();
 }
 
 /* The box above the report buttons. It is a state, not a toast: nothing times out, so an operator
@@ -1415,10 +1929,9 @@ function hideNote() {
 
 function addReport(type) {
   if (!state.pack) return;
-  if (state.panel) togglePanel(state.panel);      // close it, so the confirmation can be seen
-  const point = state.fix ? [state.fix.lon, state.fix.lat]
-                          : unproject(canvas.width / 2, canvas.height / 2);
-  updateReadout();                                 // so state.here names this exact point
+  if (state.panel && !wide()) closePanel();         // so the confirmation can be seen
+  const point = aim();
+  updateReadout();                                   // so state.here names this exact point
   const report = {
     id: `r${Date.now().toString(36)}${state.reports.length}`,
     type,
@@ -1496,8 +2009,8 @@ function exportReports() {
   let link = "";
   try {
     const url = URL.createObjectURL(new Blob([json], { type: "application/geo+json" }));
-    link = `<a class="wide solid" style="display:grid;place-items:center;text-decoration:none"
-      href="${url}" download="ingito-field-reports.geojson">${text.saveFile}</a>`;
+    link = `<a class="btn wide primary" href="${url}" download="ingito-field-reports.geojson">` +
+           `<svg class="i" aria-hidden="true"><use href="#i-download"/></svg>${text.saveFile}</a>`;
   } catch (error) {
     link = "";
   }
@@ -1512,7 +2025,7 @@ function exportReports() {
 const GPS_PROBLEMS = { 1: "refused", 2: "unavailable", 3: "searching" };
 
 function startWatching() {
-  if (!navigator.geolocation) {                // the WHERE slot already says "no GPS"
+  if (!navigator.geolocation) {                // the card already says "no GPS"
     state.gpsProblem = "none";
     return;
   }
@@ -1524,13 +2037,13 @@ function startWatching() {
       updateReadout();
       draw();
     },
-    // No fix: the readout keeps reading the crosshair, and Locate says why.
+    // No fix: the card keeps reading the crosshair, and Locate says why.
     (error) => { state.gpsProblem = GPS_PROBLEMS[error.code] || "searching"; },
     { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
   state.watching = true;
 }
 
-/* ------------------------------------------------------------------ the band, language, theme */
+/* ------------------------------------------------------------------ the bar, language, theme */
 
 function status() {
   const text = S();
@@ -1543,7 +2056,7 @@ function status() {
   el("key").hidden = !pack;
   if (pack) {
     const radarView = state.lens && pack.imagery;
-    el("key-swatch").className = radarView ? "swatch radar" : "swatch";
+    el("key-swatch").className = radarView ? "mk signal radar" : "mk signal";
     el("key-text").textContent = radarView ? text.keyRadar : text.keyFlood;
     // The pass as telemetry, date FIRST: when a narrow screen cuts the line, it cuts the sensor
     // name, never the day the water was seen.
@@ -1561,7 +2074,7 @@ function applyTheme() {
   el("theme").setAttribute("aria-label", dark ? S().toLight : S().toDark);
 }
 
-/* Switching language rewrites every word on screen, the open panel, the note box and the map's
+/* Switching language rewrites every word on screen, the open sheet, the note box and the map's
    own labels - there is no half-translated state. */
 function applyLang() {
   const text = S();
@@ -1570,9 +2083,12 @@ function applyLang() {
     button.setAttribute("aria-pressed", String(button.dataset.lang === state.lang)));
   document.querySelectorAll("[data-t]").forEach((node) => { node.textContent = text[node.dataset.t]; });
   el("lens-text").textContent = text.lens;
-  el("lens").setAttribute("aria-label", text.lens);
+  el("tool-layers").setAttribute("aria-label", text.layers);
+  el("tool-locate").setAttribute("aria-label", text.locate);
   el("zoom-in").setAttribute("aria-label", text.zoomIn);
   el("zoom-out").setAttribute("aria-label", text.zoomOut);
+  el("q").placeholder = text.search;
+  el("q").setAttribute("aria-label", text.searchAria);
   el("hint").textContent = text.hint;
   if (state.pack?.imagery) {
     el("pill-before").textContent = text.before(fmtDate(state.pack.imagery.radar.before.date));
@@ -1584,11 +2100,14 @@ function applyLang() {
   updateReadout();
   refreshPanel();
   renderNote();
+  if (!el("results").hidden) renderResults();
   if (state.found !== undefined && !el("gate").hidden) renderGate();
   draw();
   if (document.fonts?.ready) document.fonts.ready.then(draw);   // map labels in the new script
 }
 
+/* Before / After. Turning it on opens the line from the right edge to the middle, so the first
+   thing seen is the water arriving - the reveal is the explanation. */
 function setLens(on) {
   state.lens = Boolean(on && state.pack?.imagery);
   el("lens").setAttribute("aria-pressed", String(state.lens));
@@ -1596,6 +2115,10 @@ function setLens(on) {
   if (state.lens) {
     el("hint").hidden = true;
     remember(HINT_KEY, "seen");
+    animate("split", REVEAL_MS, (e) => {
+      state.split = 0.94 - 0.44 * e;
+      draw();
+    });
   }
   status();
   draw();
@@ -1619,6 +2142,8 @@ function openPack(text, source) {
   }
   state.pack = pack;
   state.source = source;
+  state.stats = computeStats(pack);
+  state.index = buildIndex(pack);
   state.images = {
     terrain: picture(pack.terrain?.image),
     optical: picture(pack.imagery?.optical?.image),
@@ -1628,11 +2153,16 @@ function openPack(text, source) {
 
   el("gate").hidden = true;
   el("reticle").hidden = false;
+  el("top").hidden = false;
   el("controls").hidden = false;
+  el("nav").hidden = false;
   el("lens").hidden = !pack.imagery;
   el("hint").hidden = !pack.imagery || remembered(HINT_KEY) === "seen";
   resize();                        // the canvas needs its real size before the view is fitted
   openOnWater(pack);
+  // On a wide screen the side column is always visible, so it opens on the alerts rather than
+  // standing empty.
+  if (wide() && !state.panel) togglePanel("alerts");
   applyLang();
 }
 
@@ -1682,15 +2212,15 @@ function renderGate() {
   const card = el("gate-card");
   const found = state.found;
   if (!found || !found.list.length) {
-    card.innerHTML = `<div class="line"><span>${text.noPacks}</span></div>
-       <div class="line dim"><span>${text.noPacksHelp}</span></div>`;
+    card.innerHTML = `<div class="row"><span>${text.noPacks}</span></div>
+       <div class="row dim"><span>${text.noPacksHelp}</span></div>`;
     return;
   }
   card.innerHTML = found.list.map((entry) => `
-    <div class="line"><span><b>${esc(entry.name)}</b></span><span>${num(esc(entry.size_mb))} MB</span></div>
-    <div class="line dim"><span>${esc(entry.hazard)} &middot; ${esc(entry.sensor)} ${fmtDate(entry.acquisition_date)}</span>
+    <div class="row"><span><b>${esc(entry.name)}</b></span><span>${num(esc(entry.size_mb))} MB</span></div>
+    <div class="row dim"><span>${esc(entry.hazard)} &middot; ${esc(entry.sensor)} ${fmtDate(entry.acquisition_date)}</span>
       <span>${num(esc(entry.area_km2))} km²</span></div>
-    <button class="wide solid" data-pack="${esc(found.base + entry.file)}"
+    <button class="btn wide primary" data-pack="${esc(found.base + entry.file)}"
       data-bytes="${Math.round(entry.size_mb * 1048576)}">${text.downloadPack}</button>`).join("");
   card.querySelectorAll("[data-pack]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -1725,7 +2255,12 @@ async function boot() {
 
   globalThis.addEventListener("online", probe);
   globalThis.addEventListener("offline", probe);
-  globalThis.addEventListener("resize", () => { resize(); draw(); });
+  // The map's box changes when a sheet opens, the phone turns, or the window is resized.
+  if ("ResizeObserver" in globalThis) {
+    new ResizeObserver(() => { resize(); draw(); }).observe(el("stage"));
+  } else {
+    globalThis.addEventListener("resize", () => { resize(); draw(); });
+  }
   probe();
   setInterval(probe, PROBE_EVERY_MS);
 
@@ -1793,8 +2328,9 @@ async function boot() {
 /* ------------------------------------------------------------------ input */
 
 /*
-  One finger pans - or, in the radar view, drags the before/after line when it starts on it.
-  Two fingers pinch to zoom about the point between them. Nothing moves on its own.
+  One finger pans - or, in Before / After, drags the line when it starts on it. Two fingers pinch
+  to zoom about the point between them. Nothing moves on its own except a glide the operator asked
+  for, and touching the map stops that too.
 */
 function bind() {
   const pointers = new Map();
@@ -1806,6 +2342,8 @@ function bind() {
   const startPan = (p) => ({ kind: "pan", x: p.x, y: p.y, lon: state.view.lon, lat: state.view.lat });
 
   canvas.addEventListener("pointerdown", (event) => {
+    tweens.view = tweens.split = null;              // a hand on the map wins over any glide
+    closeResults();
     try {
       canvas.setPointerCapture(event.pointerId);
     } catch (error) { /* a pointer already gone must not cost the gesture its second finger */ }
@@ -1856,6 +2394,7 @@ function bind() {
   canvas.addEventListener("pointercancel", end);
   canvas.addEventListener("wheel", (event) => {
     event.preventDefault();
+    tweens.view = null;
     const box = canvas.getBoundingClientRect();
     const ratio = globalThis.devicePixelRatio || 1;
     zoomAt(event.deltaY < 0 ? 1.25 : 0.8, (event.clientX - box.left) * ratio, (event.clientY - box.top) * ratio);
@@ -1871,9 +2410,39 @@ function bind() {
   el("btn-road").addEventListener("click", () => addReport("road_cut"));
   el("confirm-undo").addEventListener("click", undoLast);
   el("confirm-text").addEventListener("click", hideNote);
-  el("tool-layers").addEventListener("click", () => togglePanel("layers"));
-  el("tool-source").addEventListener("click", () => togglePanel("source"));
-  el("tool-reports").addEventListener("click", () => togglePanel("reports"));
+  for (const key of ["layers", "alerts", "reports", "source"]) {
+    el(`tool-${key}`).addEventListener("click", () => togglePanel(key));
+  }
+  // The Area sheet is about wherever the reticle is - or the nearest upazila, from outside them.
+  const openHere = () => {
+    const name = state.here || nearestArea(aim())?.name || "";
+    if (state.panel === "area" && state.areaName === name) closePanel();
+    else showArea(name);
+  };
+  el("tool-area").addEventListener("click", openHere);
+  el("r-earth").addEventListener("click", openHere);
+  document.querySelectorAll(".panel").forEach((panel) => {
+    panel.addEventListener("click", (event) => {
+      if (event.target.closest("[data-close]")) closePanel();
+    });
+  });
+
+  el("q").addEventListener("input", renderResults);
+  el("q").addEventListener("focus", () => { if (el("q").value.trim()) renderResults(); });
+  el("search").addEventListener("submit", (event) => {
+    event.preventDefault();
+    goToHit(state.hits[0]);
+  });
+  el("results").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-hit]");
+    if (button) goToHit(state.hits[Number(button.dataset.hit)]);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    if (!el("results").hidden) closeResults();
+    else closePanel();
+  });
+
   document.querySelectorAll("#lang [data-lang]").forEach((button) => {
     button.addEventListener("click", () => {
       state.lang = button.dataset.lang;
@@ -1890,11 +2459,7 @@ function bind() {
   el("tool-locate").addEventListener("click", () => {
     if (!state.watching) startWatching();
     if (state.fix) {
-      state.view.lon = state.fix.lon;
-      state.view.lat = state.fix.lat;
-      state.view.ppd = Math.max(state.view.ppd, 6000);
-      updateReadout();
-      draw();
+      flyTo({ lon: state.fix.lon, lat: state.fix.lat, ppd: Math.max(state.view.ppd, 6000) });
     } else {
       // A tap that changes nothing looks like a broken button. Say what is happening instead.
       showNote("nofix", {}, false);
@@ -1903,6 +2468,7 @@ function bind() {
 }
 
 function zoom(factor) {
+  tweens.view = null;
   zoomAt(factor);
   updateReadout();
   draw();

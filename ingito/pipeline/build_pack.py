@@ -63,6 +63,9 @@ AOI_FILE = AOI_DIR / "feni.geojson"
 
 PACK_NAME = "Feni district flood"
 PACK_NAME_BN = "ফেনী জেলার বন্যা"
+# Where the pack sits in Bangladesh's administration, so a place can be named the way people say
+# it: upazila, district, division.
+ADMIN = {"district": "Feni", "district_bn": "ফেনী", "division": "Chattogram", "division_bn": "চট্টগ্রাম"}
 IMAGERY_DIR = INGITO / "context" / "imagery"
 
 # The pack is bilingual, so the places it names need both spellings. These are the official
@@ -340,6 +343,7 @@ def main():
         "pack_id": f"feni-{observation['acquisition_date']}",
         "name": PACK_NAME,
         "name_bn": PACK_NAME_BN,
+        "admin": ADMIN,
         "hazard": {"type": HAZARD_TYPE, "label": HAZARD_LABEL},
         "built_on": date.today().isoformat(),
         # To the second, so an instrument can tell two builds from the same day apart.
@@ -371,7 +375,8 @@ def main():
                       "acquisition_date": head["observation"]["acquisition_date"],
                       "area_km2": head["coverage"]["area_km2"],
                       "size_mb": round(existing.stat().st_size / 1024 / 1024, 1)})
-    (PACKS / "index.json").write_text(json.dumps({"packs": index}, indent=2), encoding="utf-8")
+    # newline="\n": on Windows write_text would otherwise turn every line ending into CRLF.
+    (PACKS / "index.json").write_text(json.dumps({"packs": index}, indent=2), encoding="utf-8", newline="\n")
     print(f"\nPack written: packs/{path.name}  ({size_mb:.1f} MB, one file)")
     print(f"  hazard      {observation['sensor']} {observation['acquisition_date']}, "
           f"{observation['totals']['flood_km2']} km2 open water, "

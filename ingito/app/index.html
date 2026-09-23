@@ -1,159 +1,247 @@
 <title>Ingito · ইঙ্গিত</title>
 
 <!--
-  INGITO · ইঙ্গিত - a satellite instrument brought down to human scale.
+  INGITO · ইঙ্গিত - a satellite intelligence system brought down to human scale.
 
-  THE COMPOSITION IS THE IDENTITY. Read top to bottom, the screen is the flag of Bangladesh and
-  the two points of view the instrument connects:
+  THE MAP IS THE PRODUCT. Everything else is placed on top of the geography or directly under it:
+  a thin brand bar, the Earth, one insight card, four ways in. On a wide screen the card and the
+  panels move into a column beside the map; the map never becomes one box among many.
 
-    ORBIT   The green band. What the satellite saw, said the way a satellite would say it: a key to
-            the radar layer, and the pass itself as telemetry - platform, band, time.
-    EARTH   The map. The real piece of Bangladesh - a Sentinel-2 photograph of Feni, its rivers,
-            villages, roads and shelters - with the radar's flood water laid on it, hatched,
-            because it is a measurement and not a painting.
-    GROUND  The red bar. What the person standing there records. Human, immediate, and the largest
-            things on the screen to touch.
+  FOUR LAYERS OF INFORMATION, and each one looks different on the map without a legend:
+    EARTH    the real ground - a Sentinel-2 photograph of the district, rivers, roads, villages,
+             shelters, upazila lines. Cream roads, pale-teal rivers, green shelter squares.
+    SIGNAL   what the satellite measured - water seen by Sentinel-1 radar. Bright teal, HATCHED,
+             because it is a measurement and not a painting.
+    INSIGHT  what the signal means - roads that cross that water. RED DASHES.
+    ACTION   what people do and record - "water here", "road cut". RED CIRCLE / TRIANGLE.
 
-  Two languages, both native. English and বাংলা are written separately, not translated word for
-  word; the switch is always on screen. Bangla uses Bangla numerals and Bangladeshi usage (পানি).
+  RED MEANS ATTENTION, nothing else: a road through water, a person's report, a widespread-water
+  alert. Everything else is river green, teal and delta cream. Red never carries a meaning alone:
+  every red mark has its own shape, every alert its own word.
 
-  Light and dark change the instrument's surfaces only. The Earth, the radar and the meaning of
-  every mark stay exactly the same in both.
+  Two native languages. English and বাংলা are written separately, not translated word for word;
+  the switch is always on screen. Inter for Latin, Hind Siliguri for Bangla - both stored with the
+  app, both under the Open Font License (fonts/).
 
-  Rules kept from the field design:
-    NO ANIMATION       nothing fades, slides or eases; every action leaves a visible state.
-    ONE SCREEN         panels stop at 45% height, so the reticle and the readout stay visible.
-    CONTRAST           every text pair measured with the WCAG formula: body text 15:1 or better,
-                       dim text 7.6:1+, coloured text 7.3:1+, labels on the flag green 6.6:1,
-                       report buttons 6.7:1 (bold 20 px).
-    REM SIZES          the reader's own text-size setting is respected.
+  Light and dark change the surfaces only. The Earth, the radar and the meaning of every mark stay
+  the same in both. Motion only explains: a sheet rising, the before/after line opening, the map
+  gliding to a place you chose. With reduced motion requested, none of it runs.
 
-  Marks - each meaning carried by shape as well as colour:
-    CYAN hatched area       flood water seen by radar from orbit (the only cyan on the map)
-    RED circle / triangle   the operator's own report: water here / road cut
-    RED ring, white core    the operator's position
-    GREEN square, roof      shelter reference point (unverified)
-    CREAM line, dark edge   road          CYAN dashes on a road   road crossing radar water
-    PALE BLUE line          river, canal  WHITE dashes            upazila boundary
+  Contrast measured with the WCAG formula: body text 12:1 or better in both modes, dim text 6:1+,
+  teal and red text 6.2:1+, report buttons 10.7:1 (light) and 8.2:1 (dark).
 -->
 
 <style>
-  /* Anek Bangla - one family drawn for Bangla and Latin together, so both languages are the same
-     product. Open Font License (fonts/OFL.txt). Stored with the app: it works with no network. */
   @font-face {
-    font-family: "Anek Bangla"; font-style: normal; font-weight: 100 800; font-stretch: 75% 125%;
-    font-display: swap; src: url(fonts/anek-bangla-bengali.woff2) format("woff2");
-    unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8,
-      U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+    font-family: "Inter"; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url(fonts/inter-latin.woff2) format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+      U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
   }
   @font-face {
-    font-family: "Anek Bangla"; font-style: normal; font-weight: 100 800; font-stretch: 75% 125%;
-    font-display: swap; src: url(fonts/anek-bangla-latin-ext.woff2) format("woff2");
+    font-family: "Inter"; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url(fonts/inter-latin-ext.woff2) format("woff2");
     unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
       U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
       U+2C60-2C7F, U+A720-A7FF;
   }
   @font-face {
-    font-family: "Anek Bangla"; font-style: normal; font-weight: 100 800; font-stretch: 75% 125%;
-    font-display: swap; src: url(fonts/anek-bangla-latin.woff2) format("woff2");
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
-      U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    font-family: "Hind Siliguri"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url(fonts/hind-siliguri-bengali-400.woff2) format("woff2");
+    unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8,
+      U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+  }
+  @font-face {
+    font-family: "Hind Siliguri"; font-style: normal; font-weight: 600; font-display: swap;
+    src: url(fonts/hind-siliguri-bengali-600.woff2) format("woff2");
+    unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8,
+      U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+  }
+  @font-face {
+    font-family: "Hind Siliguri"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url(fonts/hind-siliguri-bengali-700.woff2) format("woff2");
+    unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8,
+      U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
   }
 
+  /* ================= tokens ================= */
   :root {
-    /* The flag. These two never change with the theme. */
-    --bd-green: #006a4e;
-    --bd-red: #f42a41;
-    --red-surface: #b80f2a;       /* the flag red, deepened so white labels on it read at 6.7:1 */
-    --orbit: #22c7ee;             /* radar cyan: what was measured from orbit */
+    /* The INGITO palette. Fixed: the same in light and dark. */
+    --river-deep: #0b3d32;        /* primary surfaces, the brand bar, trusted ground */
+    --river-green: #1e7d6b;       /* water as a place, active states */
+    --floodplain: #a7c4b7;        /* land, secondary text on the brand bar */
+    --delta-sand: #eae6d9;        /* reading surfaces, text on the brand bar */
+    --sun-red: #e63946;           /* ATTENTION - marks and indicators only */
+    --red-fill: #c8283a;          /* sun red deepened so white text on it reads at 5.5:1 */
+    --signal: #5ee0cc;            /* what the radar measured: the map's water, its key */
+    --map-ground: #0a2a22;        /* under the photograph, behind every map swatch */
 
-    --paper: #fbfaf6;
-    --paper-2: #f0ede4;
-    --ink: #0e1a15;
-    --dim: #45544c;
-    --line: #d4cfc2;
-    --orbit-ink: #005a78;
-    --green-ink: #00563f;
-    --red-ink: #a3001b;
-    --shadow: 0 1px 2px rgba(10, 20, 15, 0.16), 0 6px 18px rgba(10, 20, 15, 0.14);
+    /* Surfaces and text, light mode: warm, never pure white. */
+    --bg: #efebdf;
+    --surface: #faf8f2;
+    --surface-2: #eae6d9;
+    --ink: #0a2b23;               /* 14.3:1 on surface */
+    --dim: #3d5a51;               /*  7.1:1 */
+    --line: #d6cfbd;
+    --teal-ink: #12685a;          /*  6.3:1 */
+    --red-ink: #b21f2c;           /*  6.3:1 */
+    --action-bg: #0b3d32;
+    --action-ink: #f4f1e6;        /* 10.7:1 */
+    --e1: 0 1px 2px rgba(10, 30, 24, 0.18), 0 4px 14px rgba(10, 30, 24, 0.14);
+    --e2: 0 -6px 22px rgba(4, 20, 16, 0.22);
 
-    --font: "Anek Bangla", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif;
+    /* Rhythm */
+    --s1: 0.25rem; --s2: 0.5rem; --s3: 0.75rem; --s4: 1rem; --s5: 1.5rem;
+    --r-sm: 6px; --r-md: 10px; --r-lg: 16px; --r-pill: 999px;
+    --tap: 2.75rem;               /* 44 px: the smallest thing a thumb is asked to hit */
+
+    --font: "Inter", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif;
     --mono: ui-monospace, "Cascadia Mono", Consolas, "Roboto Mono", monospace;
     color-scheme: light;
   }
   :root[data-theme="dark"] {
-    --paper: #0f1a15;
-    --paper-2: #16241d;
-    --ink: #eef0e8;
-    --dim: #a9b6ae;
-    --line: #2c3d34;
-    --orbit-ink: #6fdcf6;
-    --green-ink: #4cc39a;
-    --red-ink: #ff7a88;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 18px rgba(0, 0, 0, 0.45);
+    --bg: #041a15;
+    --surface: #0a2f27;
+    --surface-2: #0f3d33;
+    --ink: #eeebe0;               /* 12.1:1 on surface */
+    --dim: #a7c4b7;               /*  7.8:1 */
+    --line: #1d4d41;
+    --teal-ink: #6fd6c4;          /*  8.4:1 */
+    --red-ink: #ff8a92;           /*  6.4:1 */
+    --action-bg: #a7c4b7;
+    --action-ink: #062a22;        /*  8.2:1 */
+    --e1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 14px rgba(0, 0, 0, 0.4);
+    --e2: 0 -6px 22px rgba(0, 0, 0, 0.5);
     color-scheme: dark;
   }
 
-  *, *::before, *::after { box-sizing: border-box; transition: none !important; animation: none !important; }
+  /* ================= base ================= */
+  *, *::before, *::after { box-sizing: border-box; }
   [hidden] { display: none !important; }
   html { font-size: 100%; }
   html, body { height: 100%; margin: 0; }
   body {
-    background: var(--paper); color: var(--ink); overflow: hidden;
-    font: 400 1rem/1.35 var(--font);
+    background: var(--bg); color: var(--ink); overflow: hidden;
+    font: 400 1rem/1.4 var(--font); font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
   }
-  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
-  :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  html[lang="bn"] body { line-height: 1.5; }
+  button, input { font: inherit; color: inherit; }
+  button { background: none; border: 0; cursor: pointer; padding: 0; }
+  :focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
   svg.i { width: 1.25rem; height: 1.25rem; flex: none; fill: none; stroke: currentColor;
           stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .mono { font-family: var(--mono); }
-  .nobr { white-space: nowrap; }
-  /* Latin capitals get tracking; Bangla has no capitals, and spacing it apart breaks its joins. */
-  .caps { text-transform: uppercase; letter-spacing: 0.08em; }
-  html[lang="bn"] .caps { letter-spacing: 0; }
-
-  /* minmax(0, 1fr): without it one long unbreakable line (the telemetry) widens the whole screen. */
-  #screen { display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr); height: 100%; }
-
-  /* ================= ORBIT - the green band ================= */
-  #orbit { background: var(--bd-green); color: #fff; padding: 0.35rem 0.7rem 0.4rem; }
-  .bar { display: flex; align-items: center; gap: 0.45rem; }
   .grow { flex: 1 1 auto; }
-  .brand { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
-  .mark { width: 2.3rem; height: 2.3rem; flex: none; }
-  .word { line-height: 1; }
-  .word b { display: block; font-size: 1.3rem; font-weight: 700; }
-  .word small {
-    display: block; margin-top: 0.12rem; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.34em;
-    font-stretch: 115%; opacity: 0.85;
-  }
-  .seg { display: flex; border: 1.5px solid rgba(255, 255, 255, 0.75); border-radius: 999px; overflow: hidden; }
-  .seg button { min-width: 2.9rem; height: 2.75rem; padding: 0 0.55rem; font-weight: 700; font-size: 0.95rem; }
-  .seg button[aria-pressed="true"] { background: #fff; color: var(--bd-green); }
-  .round {
-    width: 2.75rem; height: 2.75rem; border-radius: 999px; display: grid; place-items: center;
-    border: 1.5px solid rgba(255, 255, 255, 0.75);
-  }
-  #key { display: flex; align-items: center; gap: 0.5rem; margin: 0.35rem 0 0; font-size: 0.92rem; font-weight: 600; }
-  /* The key swatch is the map's own flood mark: a hatched cyan area with a bright edge. */
-  .swatch {
-    width: 1.7rem; height: 1.05rem; flex: none; border: 1.5px solid #7fe6ff; border-radius: 2px;
-    background: repeating-linear-gradient(135deg, rgba(150, 236, 255, 0.95) 0 1.5px, rgba(34, 199, 238, 0.35) 1.5px 5px);
-  }
-  .swatch.radar { background: linear-gradient(90deg, #1c2a2e, #d8eef5); border-color: #22c7ee; }
-  #telemetry { display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0 0; min-height: 1.6rem; }
-  #tele { flex: 1 1 auto; min-width: 0; font: 600 0.68rem/1.2 var(--mono); letter-spacing: 0.06em;
-          opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #chip-net {
-    flex: none; font-size: 0.78rem; font-weight: 700; border-radius: 999px; padding: 0.12rem 0.6rem;
-    border: 1.5px solid rgba(255, 255, 255, 0.8); white-space: nowrap;
-  }
-  /* Offline is the instrument's normal working state in the field, so it is shown bright and
-     proud, not as an error. */
-  #chip-net.lit { background: #fff; color: var(--bd-green); }
+  /* Latin capitals get tracking; Bangla has no capitals, and spacing it apart breaks its joins. */
+  .caps { text-transform: uppercase; letter-spacing: 0.1em; }
+  html[lang="bn"] .caps { text-transform: none; letter-spacing: 0; }
+  .dim { color: var(--dim); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-  /* ================= EARTH - the map ================= */
-  #stage { position: relative; overflow: hidden; background: #0d1712; }
+  @keyframes rise { from { transform: translateY(14px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  /* ================= components ================= */
+  .btn {
+    min-height: 3rem; padding: 0 var(--s4); border-radius: var(--r-md); border: 1.5px solid var(--ink);
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+    font-weight: 700; font-size: 0.98rem; text-decoration: none;
+  }
+  .btn.primary { background: var(--action-bg); border-color: var(--action-bg); color: var(--action-ink); }
+  .btn.wide { width: 100%; margin-top: var(--s2); }
+  .btn.danger { border-color: var(--red-ink); color: var(--red-ink); }
+  .btn.danger.armed { background: var(--red-fill); border-color: var(--red-fill); color: #fff; }
+  .btn.far { margin-top: 2rem; }          /* kept well away from Export: a slip must not delete */
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin-top: var(--s3); }
+  .btns .btn { margin: 0; padding: 0 var(--s2); }
+
+  .float { background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--e1); }
+  .chip {
+    display: inline-flex; align-items: center; gap: var(--s2); min-height: var(--tap); padding: 0 var(--s3);
+    border-radius: var(--r-pill); font-size: 0.86rem; font-weight: 600; white-space: nowrap;
+  }
+  .mapbtn { width: var(--tap); height: var(--tap); border-radius: var(--r-md); display: grid; place-items: center; font-size: 1.5rem; }
+  .mapbtn[aria-pressed="true"] { background: var(--action-bg); color: var(--action-ink); border-color: var(--action-bg); }
+
+  /* The map's own marks, reused in the interface so a key never needs explaining twice. */
+  .mk { display: inline-block; flex: none; }
+  .mk.signal {
+    width: 1.5rem; height: 0.95rem; border: 1.5px solid var(--signal); border-radius: 3px; background-color: var(--map-ground);
+    background-image: repeating-linear-gradient(135deg, rgba(200, 252, 242, 0.95) 0 1.4px, rgba(94, 224, 204, 0.3) 1.4px 4.5px);
+  }
+  .mk.signal.radar { background-image: linear-gradient(90deg, #1b2b27, #d8efe9); }
+  .mk.field { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--sun-red); box-shadow: 0 0 0 1.5px #fff, 0 0 0 2.5px var(--line); }
+
+  .sec {
+    margin: var(--s4) 0 var(--s1); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--dim);
+  }
+  html[lang="bn"] .sec { font-size: 0.86rem; letter-spacing: 0; text-transform: none; }
+
+  details { border-top: 1px solid var(--line); }
+  details:last-of-type { border-bottom: 1px solid var(--line); }
+  summary {
+    min-height: 3rem; display: flex; align-items: center; gap: var(--s2); cursor: pointer; list-style: none;
+    font-weight: 700; font-size: 0.95rem;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; margin-left: auto; font-size: 1.3rem; font-weight: 500; color: var(--dim); }
+  details[open] summary::after { content: "\2212"; }
+  details > :not(summary) { margin-top: 0; }
+  details[open] { padding-bottom: var(--s3); }
+
+  dl.meta { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 0.8rem; font-size: 0.9rem; }
+  dl.meta dt { font-weight: 700; color: var(--dim); }
+  dl.meta dd { margin: 0; overflow-wrap: anywhere; }
+  .plain { font-size: 0.92rem; margin: var(--s2) 0; }
+  .limit {
+    border-left: 4px solid var(--signal); background: var(--surface-2); border-radius: var(--r-sm);
+    padding: 0.6rem 0.7rem; margin: var(--s3) 0; font-size: 0.92rem;
+  }
+
+  /* ================= layout ================= */
+  /* One column on a phone: brand bar, the Earth, the insight card, four ways in. */
+  #screen {
+    display: grid; height: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "bar" "map" "sheet" "nav";
+  }
+
+  /* ================= the brand bar ================= */
+  #bar { grid-area: bar; background: var(--river-deep); color: var(--delta-sand); padding: 0.4rem 0.75rem 0.45rem; }
+  #bar .top { display: flex; align-items: center; gap: var(--s2); }
+  .brand { display: flex; align-items: center; gap: 0.55rem; min-width: 0; }
+  .logo { width: 2.3rem; height: 2.3rem; flex: none; }
+  .word { display: grid; line-height: 1.1; }
+  .word b { font-size: 0.9rem; font-weight: 700; letter-spacing: 0.32em; }
+  .word span { font-size: 0.98rem; font-weight: 600; }
+  .seg { display: flex; border: 1.5px solid rgba(234, 230, 217, 0.7); border-radius: var(--r-pill); overflow: hidden; }
+  .seg button { min-width: 2.9rem; height: var(--tap); padding: 0 0.6rem; font-weight: 700; font-size: 0.92rem; }
+  .seg button[aria-pressed="true"] { background: var(--delta-sand); color: var(--river-deep); }
+  .round {
+    width: var(--tap); height: var(--tap); border-radius: var(--r-pill); display: grid; place-items: center;
+    border: 1.5px solid rgba(234, 230, 217, 0.7);
+  }
+  #status { display: flex; align-items: center; gap: var(--s2); margin: 0.3rem 0 0; min-height: 1.5rem; }
+  #status svg.i { width: 1rem; height: 1rem; color: var(--signal); }
+  #status:has(#tele:empty) svg.i { visibility: hidden; }     /* no pass to describe before a pack */
+  #tele {
+    flex: 1 1 auto; min-width: 0; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.07em; color: var(--floodplain);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  html[lang="bn"] #tele { font-size: 0.8rem; letter-spacing: 0; }
+  #chip-net {
+    flex: none; font-size: 0.74rem; font-weight: 700; border-radius: var(--r-pill); padding: 0.1rem 0.55rem;
+    border: 1.5px solid rgba(234, 230, 217, 0.75); white-space: nowrap;
+  }
+  /* Offline is the instrument's normal working state in the field: shown bright, not as an error. */
+  #chip-net.lit { background: var(--delta-sand); color: var(--river-deep); }
+
+  /* ================= the Earth ================= */
+  #stage { grid-area: map; position: relative; overflow: hidden; background: var(--map-ground); min-height: 0; }
   #map { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
 
   /* The reticle: four white ticks around an open centre, so what is under it stays visible. */
@@ -165,190 +253,250 @@
   #reticle i:nth-child(4) { top: 22px; right: 0; width: 14px; height: 2px; }
   #reticle i:nth-child(5) { left: 21px; top: 21px; width: 4px; height: 4px; border-radius: 50%; }
 
-  #hud { position: absolute; left: 0.5rem; right: 0.5rem; top: 0.5rem; }
-  #readout {
-    background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
-    box-shadow: var(--shadow); padding: 0.3rem 0.65rem;
-  }
-  .slot { display: grid; grid-template-columns: 5.6rem 1fr; column-gap: 0.5rem; align-items: baseline; padding: 0.18rem 0; }
-  .slot + .slot { border-top: 1px solid var(--line); }
-  .slot .k { display: flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; color: var(--dim); align-self: center; }
-  html[lang="bn"] .slot .k { font-size: 0.86rem; }
-  .slot .k svg { width: 1rem; height: 1rem; }
-  .slot .v { font-size: 1rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  html[lang="bn"] .slot .v { font-size: 1.05rem; }
-  /* Never cut off: the water answer, and the shelter line's "unverified" warning. */
-  .slot .v.persp, #r-shelter { white-space: normal; }
-  .slot .sub { grid-column: 2; font-size: 0.84rem; color: var(--dim); }
-  #r-water.hit { color: var(--orbit-ink); font-weight: 700; }
-  #r-ground.near { color: var(--red-ink); font-weight: 600; }
-  /* The two tags that name the two points of view: ORBIT in the radar's colour, GROUND in the
-     field's. Outlined, not filled: they label a line, they are not buttons. */
-  .tag {
-    display: inline-block; margin-right: 0.4rem; padding: 0 0.32rem; border: 1.2px solid currentColor;
-    border-radius: 4px; font: 700 0.6rem/1.45 var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
-    vertical-align: 0.12em;
-  }
-  html[lang="bn"] .tag { font: 600 0.72rem/1.4 var(--font); letter-spacing: 0; vertical-align: 0.05em; }
-  .tag.orbit { color: var(--orbit-ink); }
-  .tag.ground { color: var(--red-ink); }
+  #top { position: absolute; z-index: 2; top: var(--s2); left: var(--s2); right: var(--s2); display: grid; gap: 0.4rem; pointer-events: none; }
+  #top > * { pointer-events: auto; }
+  .line { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+  .line.split { justify-content: space-between; pointer-events: none; }
+  .line.split > * { pointer-events: auto; }
+  #search { flex: 1 1 auto; display: flex; align-items: center; gap: var(--s2); height: var(--tap); padding: 0 var(--s3); border-radius: var(--r-pill); min-width: 0; }
+  #search svg.i { color: var(--dim); }
+  #q { flex: 1 1 auto; min-width: 0; border: 0; background: none; outline: none; font-size: 1rem; }   /* 16 px: phones do not zoom in */
+  #q::placeholder { color: var(--dim); opacity: 1; }
+  #search:focus-within { outline: 3px solid var(--signal); outline-offset: 1px; }
+  #results { list-style: none; margin: 0; padding: var(--s1); border-radius: var(--r-md); max-height: 50vh; overflow-y: auto; }
+  #results button { display: flex; align-items: baseline; gap: var(--s2); width: 100%; min-height: var(--tap); padding: 0.3rem var(--s3); text-align: left; border-radius: var(--r-sm); }
+  #results button:hover, #results button:focus-visible { background: var(--surface-2); }
+  #results b { font-weight: 600; }
+  #results small { margin-left: auto; font-size: 0.78rem; color: var(--dim); white-space: nowrap; }
+  #results .none { padding: var(--s3); font-size: 0.9rem; color: var(--dim); }
+  #key { min-height: 2.3rem; font-size: 0.8rem; }
+  html[lang="bn"] #key { font-size: 0.9rem; }
+  /* The before/after comparison is a core interaction: named in words, never behind a menu. */
+  #lens { min-height: 2.3rem; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
+  html[lang="bn"] #lens { font-size: 0.92rem; }
+  #lens[aria-pressed="true"] { background: var(--river-deep); color: var(--signal); border-color: var(--signal); }
 
-  #controls { position: absolute; right: 0.5rem; bottom: 0.5rem; display: grid; gap: 0.45rem; }
-  .mapbtn {
-    width: 3.2rem; height: 3.2rem; border-radius: 12px; display: grid; place-items: center;
-    background: var(--paper); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow);
-    font-size: 1.7rem; font-weight: 500;
-  }
-  #lens { height: auto; padding: 0.45rem 0 0.35rem; gap: 0.12rem; font-size: 0.66rem; font-weight: 700; }
-  html[lang="bn"] #lens { font-size: 0.78rem; }
-  /* Radar view on: the button takes the orbit's colours, the same in light and dark. */
-  #lens[aria-pressed="true"] { background: #0b2a33; color: #7fe6ff; border-color: #22c7ee; }
-
+  #controls { position: absolute; right: var(--s2); bottom: 1.3rem; display: grid; gap: 0.4rem; }
   #scale {
-    position: absolute; left: 0.5rem; bottom: 0.5rem; display: grid; gap: 0.1rem; padding: 0.25rem 0.5rem 0.3rem;
-    background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
-    box-shadow: var(--shadow); font: 700 0.72rem var(--mono);
+    position: absolute; left: var(--s2); bottom: 1.3rem; display: grid; gap: 0.1rem; padding: 0.2rem 0.5rem 0.3rem;
+    border-radius: var(--r-sm); font-size: 0.72rem; font-weight: 700;
   }
   #scale-bar { height: 5px; border: 2px solid var(--ink); border-top: 0; }
 
   #compare { position: absolute; inset: 0; pointer-events: none; }
   .pill {
-    position: absolute; bottom: 4.6rem; padding: 0.2rem 0.55rem; border-radius: 999px; white-space: nowrap;
-    font: 700 0.7rem var(--mono); letter-spacing: 0.05em; background: rgba(6, 22, 28, 0.86);
-    color: #d6f4ff; border: 1px solid rgba(127, 230, 255, 0.7);
+    position: absolute; padding: 0.2rem 0.6rem; border-radius: var(--r-pill); white-space: nowrap;
+    font-size: 0.74rem; font-weight: 700; letter-spacing: 0.04em; background: var(--river-deep);
+    color: var(--delta-sand); border: 1px solid var(--signal);
   }
-  html[lang="bn"] .pill { font-family: var(--font); font-size: 0.8rem; letter-spacing: 0; }
+  html[lang="bn"] .pill { font-size: 0.84rem; letter-spacing: 0; }
 
-  /* A one-time invitation to the radar view: static, next to the button it explains. */
+  /* A one-time invitation to the comparison, pointing at the button it explains. */
   #hint {
-    position: absolute; right: 4.2rem; bottom: 7.9rem; max-width: 13.5rem; text-align: left;
-    background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-left: 4px solid var(--orbit);
-    border-radius: 10px; box-shadow: var(--shadow); padding: 0.5rem 0.65rem; font-size: 0.86rem; font-weight: 600;
+    position: absolute; right: var(--s2); top: 6.4rem; max-width: 14rem; text-align: left; border-radius: var(--r-md);
+    border-top: 3px solid var(--signal); padding: 0.5rem 0.65rem; font-size: 0.86rem; font-weight: 600;
   }
 
-  /* Directly above the report buttons: the answer appears where the thumb already is. */
+  /* Right under the insight card's buttons: the answer appears where the thumb already is. */
   #confirm {
-    position: absolute; left: 0.5rem; right: 4.2rem; bottom: 0.5rem;
-    display: flex; align-items: center; gap: 0.6rem; background: var(--paper); color: var(--ink);
-    border: 1px solid var(--line); border-left: 6px solid var(--bd-red); border-radius: 10px;
-    box-shadow: var(--shadow); padding: 0.35rem 0.4rem 0.35rem 0.65rem; font-size: 0.95rem; font-weight: 700;
+    position: absolute; left: var(--s2); right: 3.8rem; bottom: 1.3rem; display: flex; align-items: center; gap: 0.6rem;
+    border-left: 5px solid var(--river-green); border-radius: var(--r-md); padding: 0.35rem 0.4rem 0.35rem 0.65rem;
+    font-size: 0.95rem; font-weight: 700;
   }
   #confirm .text { flex: 1 1 auto; cursor: pointer; }
   #confirm .text small { display: block; font-weight: 500; color: var(--dim); font-size: 0.8rem; }
-  #confirm button {
-    min-width: 5rem; height: 3rem; border-radius: 8px; border: 1.5px solid var(--ink); font-weight: 700;
-    font-size: 0.95rem;
-  }
-  #stage.panelled #confirm, #stage.panelled #hint { display: none; }
+  #confirm button { min-width: 4.8rem; height: 3rem; border-radius: var(--r-sm); border: 1.5px solid var(--ink); font-weight: 700; }
 
-  /* ================= panels: at most 45% high ================= */
+  /* ================= the insight card ================= */
+  /* It overlaps the map by a few pixels: a card placed on the geography, not a box beside it. */
+  #sheet {
+    grid-area: sheet; position: relative; z-index: 3; margin-top: -0.8rem; padding: 0.6rem 0.75rem 0.65rem;
+    background: var(--surface); border-radius: var(--r-lg) var(--r-lg) 0 0; box-shadow: var(--e2);
+  }
+  .earth { display: flex; align-items: flex-start; gap: var(--s2); width: 100%; text-align: left; border-radius: var(--r-sm); }
+  .earth > svg.i { margin-top: 0.15rem; color: var(--dim); }
+  .earth .txt { flex: 1 1 auto; min-width: 0; }
+  #r-place { display: block; font-weight: 700; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #r-coords { display: block; font-size: 0.78rem; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  html[lang="bn"] #r-coords { font-size: 0.85rem; }
+  .earth .go { align-self: center; color: var(--dim); }
+  .persp { display: grid; grid-template-columns: 6.4rem 1fr; align-items: baseline; column-gap: var(--s2); margin-top: 0.35rem; font-size: 0.95rem; }
+  .tag { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+  html[lang="bn"] .tag { font-size: 0.8rem; letter-spacing: 0; text-transform: none; }
+  #r-water { font-weight: 600; }
+  #r-water.hit { color: var(--teal-ink); font-weight: 700; }
+  #r-ground { color: var(--dim); }
+  #r-ground.near { color: var(--red-ink); font-weight: 600; }
+  .shelter { display: flex; align-items: flex-start; gap: var(--s2); margin-top: 0.35rem; font-size: 0.9rem; }
+  .shelter svg.i { width: 1.1rem; height: 1.1rem; color: var(--river-green); margin-top: 0.1rem; }
+  #r-shelter small { display: block; font-size: 0.76rem; color: var(--dim); }
+  html[lang="bn"] #r-shelter small { font-size: 0.84rem; }
+
+  #actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin-top: 0.55rem; }
+  .act {
+    min-height: 3.5rem; padding: 0.35rem 0.75rem; border-radius: var(--r-md); background: var(--action-bg); color: var(--action-ink);
+    display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 0.55rem; text-align: left;
+  }
+  .act svg.i { grid-row: span 2; width: 1.5rem; height: 1.5rem; stroke-width: 2.2; }
+  .act .lbl { font-size: 1.05rem; font-weight: 700; line-height: 1.15; }
+  html[lang="bn"] .act .lbl { font-size: 1.15rem; }
+  .act .n { font-size: 0.76rem; font-weight: 500; opacity: 0.88; }
+
+  /* ================= four ways in ================= */
+  #nav { grid-area: nav; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  #nav button {
+    position: relative; height: 3.4rem; display: grid; place-content: center; justify-items: center; gap: 0.1rem;
+    font-size: 0.72rem; font-weight: 600; color: var(--dim);
+  }
+  html[lang="bn"] #nav button { font-size: 0.86rem; }
+  #nav button[aria-pressed="true"] { color: var(--teal-ink); }
+  #nav button[aria-pressed="true"]::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 3px; border-radius: 0 0 3px 3px; background: var(--river-green); }
+  #nav .badge {
+    position: absolute; top: 0.35rem; left: calc(50% + 0.45rem); min-width: 1.15rem; height: 1.15rem; padding: 0 0.25rem;
+    border-radius: var(--r-pill); background: var(--sun-red); color: #fff; font-size: 0.66rem; font-weight: 700; line-height: 1.15rem; text-align: center;
+  }
+
+  /* ================= sheets ================= */
+  /* A sheet rises over the lower part of the map; the top of the map stays in view. */
   .panel {
-    position: absolute; left: 0; right: 0; bottom: 0; max-height: 45%; overflow-y: auto;
-    background: var(--paper); color: var(--ink); border-top: 1px solid var(--line);
-    border-radius: 16px 16px 0 0; box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25); padding: 0.8rem 0.8rem 1.1rem;
+    grid-area: map; align-self: end; z-index: 4; max-height: 64%; overflow-y: auto; overscroll-behavior: contain;
+    background: var(--surface); color: var(--ink); border-radius: var(--r-lg) var(--r-lg) 0 0; box-shadow: var(--e2);
+    padding: 0 0.9rem 1.2rem; animation: rise 0.18s ease-out;
   }
-  .panel h2 { margin: 0 0 0.6rem; font-size: 1.05rem; font-weight: 700; }
-  .panel h3 { margin: 1.1rem 0 0.3rem; font-size: 0.95rem; font-weight: 700; color: var(--green-ink); }
-  .rows { display: grid; gap: 0.4rem; }
-  .row {
-    display: flex; align-items: center; gap: 0.6rem; width: 100%; min-height: 3.2rem; padding: 0.35rem 0.6rem;
-    text-align: left; font-size: 0.98rem; font-weight: 600; border: 1.5px solid var(--line); border-radius: 10px;
-    background: var(--paper);
+  /* With a sheet open, the insight card keeps only its two buttons, and the map gets the room. */
+  #screen.panelled .insight { display: none; }
+  #screen.panelled #sheet { margin-top: 0; box-shadow: none; border-top: 1px solid var(--line); border-radius: 0; }
+  #screen.panelled #confirm, #screen.panelled #hint { display: none; }
+  .ph { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: var(--s2); padding: 0.7rem 0 0.45rem; background: var(--surface); }
+  .ph h2 { flex: 1 1 auto; margin: 0; font-size: 1.1rem; font-weight: 700; line-height: 1.25; }
+  .x { width: var(--tap); height: var(--tap); border-radius: var(--r-pill); display: grid; place-items: center; margin-right: -0.5rem; }
+  .lead { margin: 0 0 var(--s2); font-size: 0.92rem; color: var(--dim); }
+
+  /* Layers */
+  .group { margin: var(--s4) 0 var(--s2); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+  html[lang="bn"] .group { font-size: 0.86rem; letter-spacing: 0; text-transform: none; }
+  .lrow { display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: 3.4rem; padding: 0.3rem 0; text-align: left; border-bottom: 1px solid var(--line); }
+  .lrow .txt { flex: 1 1 auto; min-width: 0; }
+  .lrow b { display: block; font-size: 0.96rem; font-weight: 600; }
+  .lrow small { display: block; font-size: 0.78rem; color: var(--dim); }
+  html[lang="bn"] .lrow small { font-size: 0.86rem; }
+  .lrow .icon { flex: none; border-radius: var(--r-sm); }
+  .switch { position: relative; flex: none; width: 2.7rem; height: 1.6rem; border-radius: var(--r-pill); background: var(--line); transition: background 0.15s; }
+  .switch::after {
+    content: ""; position: absolute; top: 0.2rem; left: 0.2rem; width: 1.2rem; height: 1.2rem; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); transition: transform 0.15s;
   }
-  .row[aria-pressed="true"] { border-color: var(--ink); }
-  .row[aria-pressed="false"] { border-style: dashed; color: var(--dim); }
-  .row .label { flex: 1 1 auto; }
-  .row .count { font: 600 0.85rem var(--mono); color: var(--dim); }
-  .row .state { min-width: 3.2rem; text-align: center; font-size: 0.8rem; font-weight: 700; border-radius: 999px;
-                border: 1.5px solid currentColor; padding: 0.05rem 0.35rem; }
-  .row .icon { flex: none; border-radius: 6px; }
-  dl.meta { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 0.8rem; font-size: 0.92rem; }
-  dl.meta dt { font-weight: 700; color: var(--dim); }
-  dl.meta dd { margin: 0; }
-  .limit { border-left: 4px solid var(--bd-red); background: var(--paper-2); border-radius: 8px; padding: 0.6rem 0.7rem; margin: 0.75rem 0; font-size: 0.93rem; }
-  .limit b { color: var(--red-ink); }
-  .plain { font-size: 0.93rem; }
-  .dim { color: var(--dim); }
-  .wide {
-    width: 100%; min-height: 3.5rem; margin-top: 0.6rem; border-radius: 10px; border: 1.5px solid var(--ink);
-    font-size: 1rem; font-weight: 700;
-  }
-  .wide.solid { background: var(--bd-green); border-color: var(--bd-green); color: #fff; }
-  .wide.danger { border-color: var(--red-ink); color: var(--red-ink); }
-  .wide.danger.armed { background: var(--red-surface); border-color: var(--red-surface); color: #fff; }
-  .wide.far { margin-top: 2rem; }        /* kept well away from Export: a slip must not delete */
-  textarea {
-    width: 100%; height: 7rem; margin-top: 0.5rem; padding: 0.45rem; border: 1px solid var(--line); border-radius: 8px;
-    font: 0.72rem/1.3 var(--mono); background: var(--paper-2); color: var(--ink);
-  }
+  .lrow[aria-checked="true"] .switch { background: var(--river-green); }
+  .lrow[aria-checked="true"] .switch::after { transform: translateX(1.1rem); }
+  .lrow[aria-checked="false"] b { color: var(--dim); }
+
+  /* Alerts: what happened, where, when, why it matters, what to do. Red marks only the word and
+     the bar of a widespread alert - never a whole card. */
+  .alert { border: 1px solid var(--line); border-radius: var(--r-md); padding: 0.75rem 0.8rem 0.8rem; margin-top: var(--s2); background: var(--surface); }
+  .sev { display: flex; align-items: center; gap: var(--s2); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+  html[lang="bn"] .sev { font-size: 0.84rem; letter-spacing: 0; text-transform: none; }
+  .sev .bar { width: 1.7rem; height: 0.4rem; border-radius: var(--r-pill); background: var(--river-green); }
+  .sev .level { color: var(--teal-ink); }
+  .alert.wide .sev .bar { background: var(--sun-red); }
+  .alert.wide .sev .level { color: var(--red-ink); }
+  .alert.little .sev .bar { background: none; box-shadow: inset 0 0 0 1.5px var(--dim); }
+  .alert.little .sev .level { color: var(--dim); }
+  .alert h3 { margin: 0.35rem 0 0.1rem; font-size: 1.12rem; line-height: 1.25; }
+  .alert .where, .alert .when { margin: 0; font-size: 0.82rem; color: var(--dim); }
+  html[lang="bn"] .alert .where, html[lang="bn"] .alert .when { font-size: 0.9rem; }
+  .alert .why { margin: var(--s2) 0; font-size: 0.95rem; }
+  .basis { display: flex; align-items: center; gap: 0.4rem; margin: 0 0 var(--s2); font-size: 0.78rem; color: var(--dim); }
+  html[lang="bn"] .basis { font-size: 0.86rem; }
+  .alert .btn { min-height: var(--tap); }
+
+  /* The area brief */
+  .overview { margin: var(--s1) 0 var(--s2); font-size: 1.1rem; font-weight: 600; line-height: 1.4; }
+  .thumbs { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin-top: var(--s2); }
+  .thumbs figure { margin: 0; }
+  .thumbs canvas { display: block; width: 100%; border-radius: var(--r-sm); background: var(--map-ground); }
+  .thumbs figcaption { margin-top: 0.2rem; font-size: 0.78rem; font-weight: 600; color: var(--dim); }
+  ul.facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; font-size: 0.92rem; }
+  ul.facts li { display: flex; gap: var(--s2); align-items: flex-start; }
+  ul.facts svg.i { width: 1.05rem; height: 1.05rem; margin-top: 0.15rem; color: var(--dim); }
+
+  /* Reports */
   ul.reports { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
-  ul.reports li {
-    display: flex; gap: 0.6rem; align-items: center; border: 1px solid var(--line); border-radius: 10px;
-    padding: 0.45rem 0.45rem 0.45rem 0.65rem; font-size: 0.93rem;
-  }
-  ul.reports .body { flex: 1 1 auto; }
+  ul.reports li { display: flex; gap: 0.6rem; align-items: center; border: 1px solid var(--line); border-radius: var(--r-md); padding: 0.45rem 0.45rem 0.45rem 0.65rem; font-size: 0.92rem; }
+  ul.reports .body { flex: 1 1 auto; min-width: 0; }
   ul.reports .kind { font-weight: 700; color: var(--red-ink); }
   ul.reports .when { color: var(--dim); font-size: 0.8rem; }
-  ul.reports button { flex: none; min-width: 5rem; height: 3rem; border-radius: 8px; border: 1.5px solid var(--ink); font-weight: 700; font-size: 0.9rem; }
-
-  /* ================= GROUND - the red bar ================= */
-  #ground { background: var(--paper); }
-  #reportbar { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; background: #6d0717; }
-  #reportbar button {
-    height: 4.9rem; display: grid; place-content: center; justify-items: center; gap: 0.15rem;
-    background: var(--red-surface); color: #fff;
-  }
-  #reportbar .top { display: flex; align-items: center; gap: 0.45rem; }
-  #reportbar svg.i { width: 1.5rem; height: 1.5rem; stroke-width: 2.2; }
-  #reportbar .lbl { font-size: 1.2rem; font-weight: 700; }
-  html[lang="bn"] #reportbar .lbl { font-size: 1.35rem; }
-  #reportbar .n { font-size: 0.82rem; font-weight: 500; }
-  #tools { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 0.5rem; border-top: 1px solid var(--line); }
-  #tools button {
-    height: 3.7rem; display: grid; place-content: center; justify-items: center; gap: 0.15rem;
-    font-size: 0.72rem; font-weight: 700; color: var(--ink);
-  }
-  html[lang="bn"] #tools button { font-size: 0.86rem; font-weight: 600; }
-  #tools button[aria-pressed="true"] { color: var(--green-ink); box-shadow: inset 0 3px 0 var(--bd-green); background: var(--paper-2); }
-
-  /* Narrow phones: the slot names become their icons alone (pin, drop, house - the same marks the
-     buttons use), so each answer gets the width to stay on one line. The words stay readable to a
-     screen reader. */
-  @media (max-width: 360px) {
-    .slot { grid-template-columns: 1.3rem 1fr; }
-    .slot .k span {
-      position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
-    }
-    html[lang="bn"] .slot .v { font-size: 0.97rem; }
-    .slot .sub { font-size: 0.8rem; }
-  }
-
-  /* Short phones: the ground bar gives up a little height so the reticle keeps clear of the
-     readout. Every target stays at 48 px or more. */
-  @media (max-height: 640px) {
-    #reportbar button { height: 4.1rem; }
-    #tools button { height: 3.1rem; }
-    #tools { margin-top: 0.35rem; }
-    .mapbtn { width: 3rem; height: 3rem; }
-    #controls { gap: 0.35rem; }
-    .slot { padding: 0.1rem 0; }
+  ul.reports button { flex: none; min-width: 4.8rem; height: 3rem; border-radius: var(--r-sm); border: 1.5px solid var(--ink); font-weight: 700; font-size: 0.9rem; }
+  .sync { display: flex; gap: var(--s2); align-items: flex-start; margin: var(--s3) 0; padding: 0.6rem 0.7rem; border-radius: var(--r-sm); background: var(--surface-2); font-size: 0.9rem; }
+  textarea {
+    width: 100%; height: 7rem; margin-top: var(--s2); padding: 0.45rem; border: 1px solid var(--line); border-radius: var(--r-sm);
+    font: 0.72rem/1.3 var(--mono); background: var(--surface-2); color: var(--ink);
   }
 
   /* ================= first run ================= */
-  #gate { position: absolute; inset: 0; background: var(--paper); color: var(--ink); overflow-y: auto; padding: 1.4rem 1.1rem; }
+  #gate { grid-row: 2 / -1; grid-column: 1 / -1; z-index: 10; overflow-y: auto; padding: 1.8rem 1.1rem; background: var(--river-deep); color: var(--delta-sand); }
   .gate-inner { max-width: 30rem; margin: 0 auto; }
-  .gate-mark { width: 4.2rem; height: 4.2rem; padding: 0.45rem; border-radius: 16px; background: var(--bd-green); }
-  #gate h1 { margin: 0.9rem 0 0.35rem; font-size: 1.65rem; font-weight: 700; line-height: 1.2; }
-  #gate .sub { margin: 0 0 1rem; font-size: 1rem; color: var(--dim); }
-  #gate .card { border: 1px solid var(--line); border-radius: 12px; padding: 0.8rem; background: var(--paper-2); }
-  #gate .line { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.95rem; padding: 0.15rem 0; }
-  #progress { margin-top: 0.6rem; font-size: 1rem; font-weight: 700; min-height: 1.5em; font-variant-numeric: tabular-nums; }
-  #gate label.file { display: block; margin-top: 1rem; font-size: 0.95rem; font-weight: 600; }
+  .gate-logo { width: 5rem; height: 5rem; display: block; }
+  .gate-word { display: grid; margin: var(--s3) 0 0; line-height: 1.15; }
+  .gate-word b { font-size: 1.05rem; letter-spacing: 0.34em; }
+  .gate-word span { font-size: 1.15rem; font-weight: 600; }
+  #gate h1 { margin: var(--s5) 0 0.35rem; font-size: 1.6rem; font-weight: 700; line-height: 1.2; color: #faf8f2; }
+  #gate .sub { margin: 0 0 var(--s4); font-size: 1rem; color: var(--floodplain); }
+  #gate .card { border-radius: var(--r-lg); padding: 0.9rem; background: var(--surface); color: var(--ink); }
+  #gate .row { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.95rem; padding: 0.12rem 0; }
+  #progress { margin-top: 0.6rem; font-size: 1rem; font-weight: 700; min-height: 1.5em; }
+  #gate label.file { display: block; margin-top: var(--s4); font-size: 0.95rem; font-weight: 600; }
   #gate input[type=file] { display: block; margin-top: 0.4rem; font-size: 0.95rem; width: 100%; }
+
+  /* ================= smaller and shorter phones ================= */
+  /* Narrow phones: the card's two labels become their marks alone - the same hatched swatch and red
+     dot the map uses - so every answer gets the width to sit on one line. The words stay readable
+     to a screen reader. */
+  @media (max-width: 360px) {
+    .word b { letter-spacing: 0.24em; }
+    #key .txt { max-width: 9.5rem; overflow: hidden; text-overflow: ellipsis; }
+    .persp { grid-template-columns: 1.7rem 1fr; }
+    .persp .tag > span:not(.mk) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  }
+  /* Short phones: the map keeps the room. The key steps aside (the card's satellite line carries
+     the same mark), Before / After moves right, the map buttons tighten - still 40 px - so the
+     column never meets the row above it or the reticle. */
+  @media (max-height: 680px) {
+    #sheet { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .persp, .shelter { margin-top: 0.2rem; }
+    .act { min-height: 3rem; }
+    #nav button { height: 3.1rem; }
+    #r-shelter small { display: none; }
+    #key { display: none !important; }
+    .line.split { justify-content: flex-end; }
+    #controls { gap: 0.3rem; bottom: 1rem; }
+    #controls .mapbtn { width: 2.5rem; height: 2.5rem; font-size: 1.3rem; }
+    #scale { bottom: 1rem; }
+  }
+
+  /* ================= wide screens: the card and the sheets move beside the map ================= */
+  @media (min-width: 900px) {
+    #screen {
+      grid-template-columns: 26rem minmax(0, 1fr);
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      grid-template-areas: "bar bar" "sheet map" "side map" "nav map";
+    }
+    #sheet, #screen.panelled #sheet { margin-top: 0; border-radius: 0; box-shadow: none; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    #screen.panelled .insight { display: block; }
+    .panel { grid-area: side; align-self: stretch; max-height: none; border-radius: 0; box-shadow: none; border-right: 1px solid var(--line); animation: none; }
+    #nav { border-right: 1px solid var(--line); }
+    #controls, #scale, #confirm { bottom: var(--s2); }
+    #screen.panelled #confirm, #screen.panelled #hint { display: flex; }
+    #top { right: auto; width: min(26rem, calc(100% - 1rem)); }
+  }
 </style>
 
 <!-- The icon set: one stroke weight, round ends, drawn for this instrument. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="logo-g" x1="0" y1="0" x2=".55" y2="1"><stop offset="0" stop-color="#3f917a"/><stop offset="1" stop-color="#15604f"/></linearGradient>
+  </defs>
+  <!-- The INGITO mark: a river running through its delta, the land either side, and the sun. -->
+  <symbol id="logo" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#022a22"/><path d="M51.9 15.5L51.0 15.7L50.0 16.1L48.8 16.6L47.4 17.2L45.9 17.9L44.1 18.8L42.0 19.9L39.8 21.0L37.3 22.4L35.2 23.6L33.3 24.6L31.8 25.5L30.6 26.3L29.5 27.0L28.5 27.7L27.7 28.3L26.9 28.8L26.3 29.4L25.7 29.9L25.2 30.5L24.8 31.0L24.4 31.5L24.1 32.0L23.8 32.4L23.7 32.8L23.5 33.2L23.4 33.5L23.4 33.8L23.4 34.1L23.4 34.3L23.5 34.6L23.5 34.8L23.6 34.9L23.7 35.1L23.8 35.3L23.9 35.4L24.0 35.6L24.2 35.7L24.4 35.9L24.6 36.1L24.9 36.2L25.3 36.4L25.8 36.6L26.4 36.8L27.1 36.9L28.5 37.1L30.4 37.3L32.9 37.5L36.1 37.7L38.8 37.9L41.1 38.1L43.0 38.4L44.4 38.6L45.9 38.9L47.2 39.2L48.5 39.5L49.8 39.9L51.0 40.4L52.3 40.8L53.4 41.3L54.6 41.9L55.5 42.3L56.0 42.5L56.3 42.6L56.3 42.5L56.2 42.3L56.0 42.1L55.7 41.7L55.3 41.3L54.9 40.9L54.6 40.5L54.3 40.1L54.1 39.7L53.9 39.3L53.7 38.8L53.5 38.3L53.3 37.8L53.2 37.3L53.1 36.8L53.1 36.2L53.1 35.7L53.1 35.2L53.2 34.6L53.4 34.0L53.6 33.3L53.8 32.6L54.1 32.0L54.4 31.3L54.8 30.7L55.2 29.9L55.6 29.1L56.0 28.3L56.5 27.3L56.8 26.5L57.1 25.8L57.2 25.3L57.3 24.9L57.4 24.5L57.5 23.9L57.5 23.3L57.5 22.6L57.5 21.9L57.4 21.3L57.3 20.6L57.2 19.9L57.0 19.3L56.7 18.7L56.5 18.0L56.1 17.4L55.8 16.9L55.5 16.4L55.2 16.0L54.9 15.7L54.6 15.4L54.2 15.3L53.9 15.2L53.6 15.2L53.1 15.3L52.6 15.4Z" fill="url(#logo-g)"/><path d="M50.3 54.1L49.6 54.4L49.0 54.7L48.5 55.0L48.1 55.3L47.8 55.6L47.5 55.8L47.3 56.1L47.2 56.3L47.1 56.5L47.1 56.7L47.0 56.9L47.0 57.1L47.0 57.4L47.0 57.6L47.0 57.8L47.1 58.0L47.2 58.1L47.3 58.3L47.4 58.5L47.6 58.7L47.8 58.9L48.1 59.2L48.5 59.5L49.1 59.9L49.7 60.2L50.3 60.6L51.0 60.9L51.6 61.2L52.3 61.4L53.3 61.8L54.6 62.2L56.2 62.7L58.2 63.3L59.9 63.8L61.3 64.2L62.5 64.6L63.4 65.0L64.2 65.3L64.9 65.6L65.4 65.8L65.8 66.0L66.2 66.3L66.6 66.6L67.1 66.9L67.5 67.2L68.0 67.6L68.4 68.1L68.9 68.6L69.3 69.1L69.7 69.7L70.0 70.1L70.3 70.6L70.4 71.0L70.6 71.4L70.8 71.7L70.9 72.1L71.0 72.4L71.0 72.7L71.1 73.0L71.2 73.3L71.2 73.5L71.2 73.9L71.3 74.4L71.3 75.0L71.3 75.7L71.2 76.4L71.1 77.2L70.9 78.1L70.7 79.0L70.4 80.0L70.0 81.0L69.6 82.1L69.0 83.2L68.7 84.0L68.5 84.5L68.5 84.7L68.7 84.7L69.1 84.5L69.8 84.1L70.8 83.5L71.9 82.8L73.0 82.2L73.8 81.6L74.5 81.1L75.1 80.7L75.6 80.2L76.2 79.7L76.7 79.2L77.2 78.7L77.7 78.2L78.2 77.7L78.6 77.2L79.0 76.7L79.4 76.1L79.9 75.5L80.4 74.7L80.9 73.9L81.4 73.1L81.8 72.4L82.1 71.7L82.4 71.2L82.6 70.6L82.8 70.1L83.0 69.6L83.1 69.2L83.2 68.7L83.3 68.1L83.4 67.5L83.4 66.8L83.4 66.2L83.3 65.7L83.2 65.2L83.1 64.8L83.0 64.4L82.8 64.0L82.6 63.5L82.4 63.1L82.1 62.7L81.8 62.3L81.6 62.0L81.2 61.6L80.9 61.3L80.5 61.0L80.1 60.6L79.6 60.3L79.2 60.0L78.8 59.8L78.4 59.5L78.0 59.3L77.6 59.1L77.2 58.9L76.7 58.7L76.2 58.5L75.6 58.2L74.8 58.0L74.0 57.7L72.9 57.3L71.7 57.0L70.1 56.6L68.2 56.2L66.1 55.8L63.8 55.3L61.2 54.9L58.5 54.6L55.6 54.2L53.3 54.0L51.5 53.9Z" fill="url(#logo-g)"/><path d="M23.3 32.4L22.9 32.8L22.5 33.2L22.1 33.6L21.7 34.1L21.4 34.6L21.1 35.0L20.8 35.4L20.6 35.8L20.4 36.2L20.2 36.6L20.0 37.0L19.9 37.4L19.8 37.8L19.7 38.2L19.6 38.6L19.6 39.0L19.6 39.4L19.6 39.8L19.6 40.1L19.7 40.4L19.8 40.6L19.9 40.8L20.0 41.0L20.2 41.3L20.3 41.5L20.6 41.6L20.8 41.8L21.1 42.0L21.4 42.2L21.8 42.3L22.3 42.5L22.8 42.6L23.5 42.8L24.2 42.9L24.9 42.9L25.7 43.0L26.4 43.0L27.6 42.9L29.2 42.7L31.2 42.5L33.6 42.2L35.9 42.0L38.0 41.8L39.9 41.7L41.7 41.7L43.3 41.8L44.7 41.9L46.0 42.0L47.1 42.2L48.1 42.4L48.9 42.5L49.6 42.7L50.2 42.9L50.8 43.1L51.4 43.3L51.9 43.5L52.5 43.8L52.9 44.1L53.4 44.3L53.7 44.6L54.0 44.8L54.3 45.1L54.5 45.3L54.7 45.6L54.8 45.8L54.9 46.0L54.9 46.2L54.9 46.4L54.9 46.6L54.9 46.8L54.9 47.0L54.8 47.1L54.8 47.3L54.7 47.5L54.5 47.6L54.3 47.8L54.1 48.1L53.8 48.3L53.5 48.4L53.3 48.6L52.9 48.8L52.5 48.9L52.0 49.1L51.4 49.3L50.7 49.5L49.7 49.8L48.5 50.0L47.0 50.3L45.3 50.5L43.7 50.8L42.3 51.0L41.0 51.3L39.8 51.5L38.8 51.8L37.8 52.0L36.9 52.2L36.2 52.5L35.4 52.8L34.6 53.1L33.7 53.5L32.8 53.9L32.1 54.3L31.4 54.6L30.9 55.0L30.4 55.3L30.0 55.7L29.6 56.1L29.2 56.5L28.9 56.9L28.5 57.3L28.3 57.8L28.0 58.2L27.9 58.6L27.7 59.1L27.6 59.5L27.6 60.0L27.6 60.4L27.6 60.8L27.7 61.3L27.9 61.8L28.1 62.2L28.3 62.7L28.5 63.1L28.7 63.5L29.0 63.8L29.3 64.1L29.6 64.5L30.0 64.9L30.4 65.4L30.9 65.8L31.3 66.2L31.8 66.6L32.3 66.9L32.9 67.3L33.7 67.7L34.6 68.2L35.6 68.7L36.8 69.3L38.2 69.9L39.8 70.5L41.5 71.2L43.1 71.8L44.6 72.4L45.8 73.0L46.9 73.5L47.8 74.0L48.7 74.5L49.5 74.9L50.2 75.4L50.9 75.9L51.5 76.4L52.2 76.9L52.7 77.4L53.3 78.0L53.8 78.6L54.2 79.2L54.7 79.8L55.0 80.5L55.4 81.2L55.6 81.9L55.9 82.6L56.1 83.4L56.2 84.2L56.3 85.0L56.3 85.9L56.3 86.7L56.2 87.6L56.0 88.5L55.8 89.3L55.7 90.0L55.7 90.4L55.8 90.7L56.0 90.7L56.3 90.6L56.8 90.5L57.4 90.3L58.2 90.0L58.9 89.7L59.8 89.3L60.6 88.9L61.5 88.4L62.2 88.0L62.9 87.6L63.4 87.2L63.8 86.9L64.2 86.6L64.6 86.2L65.1 85.7L65.5 85.2L65.9 84.7L66.3 84.2L66.7 83.7L67.0 83.1L67.2 82.6L67.5 82.0L67.7 81.4L67.9 80.8L68.0 80.2L68.1 79.7L68.2 79.1L68.2 78.5L68.2 78.0L68.1 77.4L68.0 76.8L67.9 76.3L67.8 75.7L67.7 75.2L67.6 74.8L67.4 74.4L67.2 74.0L67.0 73.5L66.7 72.9L66.3 72.2L65.8 71.5L65.3 70.9L64.8 70.2L64.1 69.6L63.6 69.0L63.0 68.6L62.5 68.2L62.0 67.8L61.5 67.5L61.0 67.2L60.5 66.9L60.0 66.7L59.3 66.4L58.5 66.1L57.6 65.7L56.5 65.4L55.2 65.0L53.8 64.6L52.2 64.1L50.5 63.7L48.9 63.3L47.5 62.9L46.3 62.4L45.2 62.0L44.3 61.6L43.6 61.2L43.0 60.8L42.5 60.5L42.1 60.1L41.8 59.7L41.5 59.3L41.3 58.9L41.2 58.6L41.1 58.2L41.0 57.8L41.0 57.5L41.1 57.2L41.2 56.9L41.3 56.6L41.4 56.3L41.6 56.0L41.8 55.7L42.1 55.4L42.3 55.2L42.6 55.0L43.0 54.7L43.5 54.4L44.0 54.1L44.7 53.8L45.5 53.5L46.5 53.2L47.6 52.8L49.0 52.5L50.5 52.1L52.3 51.8L54.2 51.4L55.8 51.0L57.1 50.7L58.0 50.4L58.5 50.2L59.0 49.9L59.4 49.7L59.7 49.5L59.8 49.3L60.0 49.1L60.1 48.9L60.2 48.7L60.3 48.4L60.4 48.2L60.4 47.9L60.4 47.7L60.4 47.4L60.3 47.0L60.2 46.7L60.1 46.4L59.9 46.1L59.7 45.7L59.4 45.4L59.1 45.0L58.7 44.6L58.2 44.2L57.7 43.8L57.1 43.4L56.4 42.9L55.6 42.5L54.8 42.0L53.9 41.6L52.9 41.1L51.9 40.7L50.9 40.3L50.0 40.0L49.2 39.7L48.3 39.5L47.5 39.2L46.7 39.0L45.9 38.9L45.2 38.7L44.3 38.5L43.5 38.4L42.6 38.3L41.2 38.1L39.2 38.0L36.8 37.8L33.8 37.6L31.3 37.5L29.4 37.3L28.0 37.1L27.1 36.9L26.3 36.8L25.7 36.6L25.2 36.4L24.9 36.2L24.6 36.0L24.3 35.8L24.0 35.6L23.8 35.3L23.7 35.0L23.5 34.6L23.5 34.3L23.4 33.9L23.5 33.5L23.5 33.2L23.6 32.8L23.7 32.6L23.8 32.3L23.9 32.2L23.9 32.0L23.9 32.0L23.8 32.0L23.6 32.2Z" fill="#f5f4ed"/><path d="M68.1 35.4L67.5 35.6L67.0 35.8L66.6 36.0L66.2 36.2L65.9 36.4L65.7 36.6L65.4 36.8L65.1 37.1L64.9 37.3L64.7 37.6L64.5 37.9L64.3 38.1L64.2 38.4L64.0 38.7L63.9 39.0L63.7 39.3L63.6 39.7L63.5 40.1L63.4 40.6L63.4 41.0L63.4 41.6L63.4 42.0L63.4 42.5L63.4 42.8L63.5 43.1L63.6 43.4L63.7 43.7L63.8 44.0L63.9 44.3L64.1 44.7L64.2 45.0L64.4 45.3L64.7 45.6L64.9 45.9L65.1 46.1L65.3 46.4L65.6 46.6L65.8 46.8L66.1 47.0L66.5 47.2L66.8 47.4L67.1 47.6L67.4 47.7L67.7 47.8L68.0 47.9L68.3 48.0L68.7 48.0L69.2 48.1L69.8 48.1L70.3 48.1L70.7 48.1L71.1 48.0L71.4 48.0L71.7 47.9L72.1 47.7L72.4 47.6L72.8 47.4L73.2 47.2L73.6 46.9L74.1 46.5L74.5 46.1L74.9 45.7L75.2 45.3L75.5 45.0L75.6 44.7L75.8 44.3L75.9 44.0L76.1 43.7L76.2 43.3L76.2 42.9L76.3 42.5L76.3 41.9L76.3 41.4L76.3 40.9L76.3 40.4L76.2 40.0L76.1 39.7L76.0 39.4L75.9 39.1L75.8 38.8L75.7 38.6L75.4 38.2L75.1 37.9L74.7 37.4L74.3 36.9L73.8 36.5L73.3 36.1L72.8 35.8L72.3 35.6L71.7 35.4L71.2 35.3L70.6 35.2L69.9 35.2L69.3 35.2L68.7 35.3Z" fill="#eb4331"/></symbol>
   <symbol id="i-water" viewBox="0 0 24 24"><path d="M12 3.5c2.6 3.2 4 5.3 4 7a4 4 0 0 1-8 0c0-1.7 1.4-3.8 4-7z"/><path d="M3 18c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 4.5 0 3 1.3 4.5 0"/></symbol>
   <symbol id="i-road" viewBox="0 0 24 24"><path d="M8 3 6 9M16 3l2 6M6 15l-2 6M18 15l2 6"/><path d="M5 12l3-1.6 3 1.6 3-1.6 3 1.6 2-1"/></symbol>
   <symbol id="i-shelter" viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 10v7h12v-7"/><path d="M10 17v-3.5h4V17"/><path d="M2.5 20.5h19"/></symbol>
@@ -360,21 +508,22 @@
   <symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"/></symbol>
-  <!-- The mark: the flag's red disc, crossed by an orbit with its satellite. -->
-  <symbol id="mark" viewBox="0 0 40 40">
-    <ellipse cx="20" cy="20" rx="17" ry="6" transform="rotate(-22 20 20)" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.6"/>
-    <circle cx="18" cy="20" r="10.5" fill="#f42a41"/>
-    <path d="M3 20a17 6 0 0 0 34 0" transform="rotate(-22 20 20)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
-    <circle cx="34.2" cy="17.9" r="2.4" fill="#fff"/>
-  </symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.6 2H4.4z"/><path d="M10 21a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-area" viewBox="0 0 24 24"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5M15 6.5V20"/></symbol>
+  <symbol id="i-change" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 2.5v19"/><path d="m8 10-2 2 2 2M16 10l2 2-2 2"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></symbol>
+  <symbol id="i-sync" viewBox="0 0 24 24"><path d="M5 18.5a8 8 0 0 1 12.5-12.9L19 7"/><path d="M19 3v4h-4"/><path d="M19 5.5a8 8 0 0 1-12.5 12.9L5 17"/><path d="M5 21v-4h4"/></symbol>
 </svg>
 
 <div id="screen">
-  <header id="orbit">
-    <div class="bar">
+  <header id="bar">
+    <div class="top">
       <span class="brand">
-        <svg class="mark" aria-hidden="true"><use href="#mark"/></svg>
-        <span class="word"><b>ইঙ্গিত</b><small>INGITO</small></span>
+        <svg class="logo" role="img" aria-label="INGITO ইঙ্গিত"><use href="#logo"/></svg>
+        <span class="word" aria-hidden="true"><b>INGITO</b><span lang="bn">ইঙ্গিত</span></span>
       </span>
       <span class="grow"></span>
       <div class="seg" id="lang" role="group" aria-label="Language / ভাষা">
@@ -383,72 +532,87 @@
       </div>
       <button class="round" id="theme"><svg class="i" id="theme-icon"><use href="#i-moon"/></svg></button>
     </div>
-    <p id="key" hidden><span class="swatch" id="key-swatch"></span><span id="key-text"></span></p>
-    <p id="telemetry"><span id="tele"></span><span id="chip-net"></span></p>
+    <p id="status"><svg class="i" aria-hidden="true"><use href="#i-orbit"/></svg><span id="tele"></span><span id="chip-net"></span></p>
   </header>
 
   <main id="stage">
     <canvas id="map"></canvas>
     <div id="reticle" hidden><i></i><i></i><i></i><i></i><i></i></div>
     <div id="compare" hidden><span class="pill" id="pill-before"></span><span class="pill" id="pill-during"></span></div>
-    <div id="scale" hidden><span id="scale-text"></span><span id="scale-bar"></span></div>
+
+    <div id="top" hidden>
+      <div class="line">
+        <form id="search" class="float" role="search" autocomplete="off">
+          <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+          <input id="q" type="search" enterkeyhint="search" spellcheck="false">
+        </form>
+        <button class="mapbtn float" id="tool-layers" aria-pressed="false"><svg class="i"><use href="#i-layers"/></svg></button>
+      </div>
+      <ul id="results" class="float" hidden></ul>
+      <div class="line split">
+        <p id="key" class="chip float" hidden><span class="mk signal" id="key-swatch"></span><span class="txt" id="key-text"></span></p>
+        <button id="lens" class="chip float" aria-pressed="false"><svg class="i"><use href="#i-change"/></svg><span id="lens-text"></span></button>
+      </div>
+    </div>
+
+    <div id="scale" class="float" hidden><span id="scale-text"></span><span id="scale-bar"></span></div>
     <div id="controls" hidden>
-      <button class="mapbtn" id="lens" aria-pressed="false"><svg class="i"><use href="#i-orbit"/></svg><span id="lens-text"></span></button>
-      <button class="mapbtn" id="zoom-in">+</button>
-      <button class="mapbtn" id="zoom-out">&minus;</button>
+      <button class="mapbtn float" id="tool-locate"><svg class="i"><use href="#i-locate"/></svg></button>
+      <button class="mapbtn float" id="zoom-in">+</button>
+      <button class="mapbtn float" id="zoom-out">&minus;</button>
     </div>
-    <button id="hint" hidden></button>
+    <button id="hint" class="float" hidden></button>
 
-    <div id="hud">
-      <section id="readout" hidden>
-        <div class="slot"><span class="k"><svg class="i"><use href="#i-pin"/></svg><span class="caps" data-t="where"></span></span>
-          <span class="v" id="r-where"></span></div>
-        <!-- Where the two points of view meet: what orbit saw, and what the ground says. -->
-        <div class="slot"><span class="k"><svg class="i"><use href="#i-water"/></svg><span class="caps" data-t="water"></span></span>
-          <span class="v persp"><span class="tag orbit" data-t="orbitTag"></span><span id="r-water"></span></span>
-          <span class="sub persp"><span class="tag ground" data-t="groundTag"></span><span id="r-ground"></span></span></div>
-        <div class="slot"><span class="k"><svg class="i"><use href="#i-shelter"/></svg><span class="caps" data-t="shelter"></span></span>
-          <span class="v" id="r-shelter"></span></div>
-      </section>
-    </div>
-
-    <div id="confirm" hidden>
+    <div id="confirm" class="float" hidden>
       <span class="text" id="confirm-text"></span>
       <button id="confirm-undo" data-t="undo"></button>
     </div>
-
-    <section class="panel" id="panel-layers" hidden></section>
-    <section class="panel" id="panel-source" hidden></section>
-    <section class="panel" id="panel-reports" hidden></section>
-
-    <section id="gate">
-      <div class="gate-inner">
-        <svg class="gate-mark" aria-hidden="true"><use href="#mark"/></svg>
-        <h1 data-t="gateTitle"></h1>
-        <p class="sub" data-t="gateSub"></p>
-        <div class="card" id="gate-card"><div class="line"><span data-t="looking"></span></div></div>
-        <div id="progress"></div>
-        <label class="file"><span data-t="openFile"></span>
-          <input type="file" id="pack-file" accept=".json,application/json">
-        </label>
-      </div>
-    </section>
   </main>
 
-  <footer id="ground">
-    <div id="reportbar">
-      <button id="btn-water"><span class="top"><svg class="i"><use href="#i-water"/></svg><span class="lbl caps" data-t="waterHere"></span></span>
-        <span class="n" id="n-water"></span></button>
-      <button id="btn-road"><span class="top"><svg class="i"><use href="#i-road"/></svg><span class="lbl caps" data-t="roadCut"></span></span>
-        <span class="n" id="n-road"></span></button>
+  <section class="panel" id="panel-layers" hidden></section>
+  <section class="panel" id="panel-alerts" hidden></section>
+  <section class="panel" id="panel-area" hidden></section>
+  <section class="panel" id="panel-reports" hidden></section>
+  <section class="panel" id="panel-source" hidden></section>
+
+  <!-- EARTH, SIGNAL, INSIGHT for the point under the reticle - then ACTION, one tap away. -->
+  <section id="sheet" hidden>
+    <div class="insight" aria-live="polite">
+      <button class="earth" id="r-earth">
+        <svg class="i" aria-hidden="true"><use href="#i-pin"/></svg>
+        <span class="txt"><span id="r-place"></span><span id="r-coords"></span></span>
+        <svg class="i go" aria-hidden="true"><use href="#i-chevron"/></svg>
+      </button>
+      <div class="persp"><span class="tag"><span class="mk signal"></span><span data-t="satTag"></span></span><span id="r-water"></span></div>
+      <div class="persp"><span class="tag"><span class="mk field"></span><span data-t="groundTag"></span></span><span id="r-ground"></span></div>
+      <div class="shelter"><svg class="i" aria-hidden="true"><use href="#i-shelter"/></svg><span id="r-shelter"></span></div>
     </div>
-    <nav id="tools">
-      <button id="tool-layers" aria-pressed="false"><svg class="i"><use href="#i-layers"/></svg><span class="caps" data-t="layers"></span></button>
-      <button id="tool-source" aria-pressed="false"><svg class="i"><use href="#i-source"/></svg><span class="caps" data-t="source"></span></button>
-      <button id="tool-reports" aria-pressed="false"><svg class="i"><use href="#i-reports"/></svg><span class="caps" data-t="reports"></span></button>
-      <button id="tool-locate"><svg class="i"><use href="#i-locate"/></svg><span class="caps" data-t="locate"></span></button>
-    </nav>
-  </footer>
+    <div id="actions">
+      <button class="act" id="btn-water"><svg class="i" aria-hidden="true"><use href="#i-water"/></svg><span class="lbl" data-t="waterHere"></span><span class="n" id="n-water"></span></button>
+      <button class="act" id="btn-road"><svg class="i" aria-hidden="true"><use href="#i-road"/></svg><span class="lbl" data-t="roadCut"></span><span class="n" id="n-road"></span></button>
+    </div>
+  </section>
+
+  <nav id="nav" hidden>
+    <button id="tool-alerts" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg><span data-t="alerts"></span></button>
+    <button id="tool-area" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-area"/></svg><span data-t="area"></span></button>
+    <button id="tool-reports" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-reports"/></svg><span data-t="reports"></span><span class="badge" id="nav-count" hidden></span></button>
+    <button id="tool-source" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-source"/></svg><span data-t="source"></span></button>
+  </nav>
+
+  <section id="gate">
+    <div class="gate-inner">
+      <svg class="gate-logo" aria-hidden="true"><use href="#logo"/></svg>
+      <p class="gate-word"><b>INGITO</b><span lang="bn">ইঙ্গিত</span></p>
+      <h1 data-t="gateTitle"></h1>
+      <p class="sub" data-t="gateSub"></p>
+      <div class="card" id="gate-card"><div class="row"><span data-t="looking"></span></div></div>
+      <div id="progress"></div>
+      <label class="file"><span data-t="openFile"></span>
+        <input type="file" id="pack-file" accept=".json,application/json">
+      </label>
+    </div>
+  </section>
 </div>
 
 <!-- Only present in a published build: the pack inlined so the page needs no packs folder.

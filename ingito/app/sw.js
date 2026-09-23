@@ -12,12 +12,13 @@
 
 // Bump on every change to the shell files: the browser only re-installs this worker when this
 // file's bytes change, so without a bump a phone keeps serving the old page from its cache.
-const SHELL = "ingito-shell-v6";
+const SHELL = "ingito-shell-v7";
 // Marks replies this worker invents while offline, so the page's connectivity check can tell them
 // apart from real answers that came over the network.
 const OFFLINE_HEADER = { "Content-Type": "text/plain", "X-Ingito-Offline": "1" };
-const FILES = ["./", "index.html", "app.js", "sw.js", "fonts/anek-bangla-bengali.woff2",
-               "fonts/anek-bangla-latin.woff2", "fonts/anek-bangla-latin-ext.woff2",
+const FILES = ["./", "index.html", "app.js", "sw.js",
+               "fonts/inter-latin.woff2", "fonts/inter-latin-ext.woff2", "fonts/hind-siliguri-bengali-400.woff2",
+               "fonts/hind-siliguri-bengali-600.woff2", "fonts/hind-siliguri-bengali-700.woff2",
                "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (event) => {
