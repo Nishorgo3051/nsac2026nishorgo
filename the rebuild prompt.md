@@ -2,6 +2,10 @@
 > similar) opened in an empty folder. Give it the locked logo image, a computer with Python 3.12,
 > Node.js and internet (the satellite data steps take about 15 minutes), and have a Bangla reader
 > check the Bangla text at the end. This prompt describes the project; it contains no code from it.
+>
+> This is the **48-hour event build**. Everything planned for after the hackathon (Flutter apps,
+> GeoPackage, a pack builder for any area, phone-to-phone transfer, photo reports) is in
+> `the vision.md`, and is deliberately left out here.
 
 ---
 
@@ -18,7 +22,14 @@ and tell me what you chose. After each build step, run it and show proof before 
   no other hazards, no second mode.
 - Truly offline after one download: no map library, no CDN, no map tiles, no network fonts, no
   external services inside the app.
-- No API keys or logins anywhere in the data pipeline; every source below is open and anonymous.
+- No API keys or logins anywhere in the Sentinel-1 pipeline; every source below is open and
+  anonymous. (Only the optional NISAR path in 3.1 needs a free NASA Earthdata login, kept in the
+  user's own credentials file, never in the code or the repo.)
+- The field app is a LOCAL application that works against a pack file, not a networked app with
+  caching added afterwards. Only two things ever come from the network: the pack list and the pack
+  download. Keep "from the network" and "from the pack" separate and obvious in the code.
+- No demonstration place is hard-coded. The area, dates and sensor come from one config file per
+  area (section 3.0); Feni is simply the first config.
 - The name is "Ingito" in Latin script and "ইঙ্গিত" in Bangla, always spelled exactly ইঙ্গিত.
 - Honesty about the radar's limits is part of the product (section 7).
 - LF line endings. On Windows, write text files from Python with `newline="\n"`.
@@ -26,6 +37,11 @@ and tell me what you chose. After each build step, run it and show proof before 
 ## 1. The product
 Pitch: satellite radar shows where the water is; Ingito gets that map to the teams who need it, in
 places where the network has already died. "Ingito" is Bangla for "a sign".
+
+Ingito is an offline, satellite-derived geographic intelligence instrument for people entering
+places where the routes and flood conditions are not known and the network cannot be relied on. It
+is deliberately narrower than a disaster-management platform. This build is flood-first; the same
+pack and field view are meant to carry other hazards later (erosion, cyclones, landslides).
 
 Three functions, no fourth:
 1. **FLOOD LAYER:** real Sentinel-1 radar turned into a flood layer that carries its own sensor,
@@ -51,13 +67,19 @@ Local server: Node.js, built-in modules only.
 App: plain HTML/CSS/JS, classic scripts, no framework, no build step.
 
 ```
+areas/
+  feni-2024-08.json            one config per area: outlines, names, sensor, dates (section 3.0)
 sar-flood/
   aoi/feni.geojson             district outline
   aoi/feni_upazilas.geojson    6 upazilas; properties adm3_name, area_sqkm
-  s1_flood.py                  Sentinel-1 flood layer + provenance
+  ingest_s1.py                 Sentinel-1: scenes → the grid, in dB (sensor-specific)
+  detect.py                    masks, speckle, ratio, threshold, clean, polygons (shared)
+  s1_flood.py                  runs ingest_s1 + detect for one area config
+  METHODOLOGY.md               the method and the validation record for each event
   requirements.txt
   out/                         outputs (gitignored)
 ingito/
+  PACK_FORMAT.md               every key of the pack, its version and the compatibility rules
   pipeline/fetch_context.py    OpenStreetMap + GeoNames context
   pipeline/fetch_imagery.py    Sentinel-2 photo + radar pictures
   pipeline/build_pack.py       assembles the one pack file + packs/index.json
@@ -77,7 +99,28 @@ Parashuram, Sonagazi.
 Run order: `s1_flood.py` → `fetch_context.py` → `fetch_imagery.py` → `build_pack.py`
 (→ `embed_pack.py` only for a published single page).
 
+### 3.0 One config per area
+Every pipeline script takes `--area areas/<id>.json` and reads nothing place-specific from its own
+code. The Feni config holds: id `feni-2024-08`; name "Feni district flood" / "ফেনী জেলার বন্যা";
+the outline and upazila files; the admin block (district, division, both languages); the upazila
+Bangla names and the fixed list of known name spellings (3.4); the sensor (`sentinel-1`); baseline
+and flood dates, track and direction (3.1); the Sentinel-2 scene (3.3); and the event facts
+(section 1). A new area is a new config file, not a code change.
+
 ### 3.1 s1_flood.py: the flood layer (UN-SPIDER recommended practice, computed locally)
+Split the work in two so the sensor is a replaceable part:
+- `ingest_s1.py` (sensor-specific): finds and reads the scenes onto the grid, in dB.
+- `detect.py` (shared): masks, speckle, ratio, threshold, cleaning, polygons, per-upazila figures.
+
+A later sensor then only needs a new ingest step.
+
+OPTIONAL, only if time allows and only after a cross-check: NISAR (NASA-ISRO L-band) is the
+preferred NASA sensor. A NISAR ingest reads L2 GCOV granules (HH, gamma-0 linear power → dB) from
+ASF, reading only the area's chunks, and needs a free NASA Earthdata login. Tested target: south
+Chattogram (Satkania, Lohagara, Chandanaish, Banshkhali), track 69 ascending, baseline 30 Jun 2026,
+flood 12 Jul 2026. Before a NISAR pack is shown to anyone, run the Sentinel-1 path on the same area
+and dates and write down where they agree and disagree. Label a layer "NISAR" only when it is NISAR
+data. Never produce a synthetic "NISAR-like" result.
 Source: Microsoft Planetary Computer STAC, collection `sentinel-1-rtc` (RTC gamma-0, 10 m, already
 in UTM). POST `https://planetarycomputer.microsoft.com/api/stac/v1/search` with the district bbox and
 a one-day datetime range. Sign each asset URL anonymously just before reading it:
@@ -225,7 +268,7 @@ layer.
   or false. Record `roads_crossing_water` (51 in the reference build) and `roads_note`: a flag does
   not mean impassable; an unflagged road is not confirmed open; radar cannot see water under trees or
   between buildings and knows nothing about depth or current.
-- **Fill a missing spelling ONLY from this fixed list:**
+- **Fill a missing spelling ONLY from the fixed list in the area config.** For Feni:
   Feni ফেনী, Daganbhuiyan দাগনভূঁইয়া, Parshuram পরশুরাম, Chhagalnaiya ছাগলনাইয়া, Fulgazi ফুলগাজী,
   Sonagazi সোনাগাজী, Basurhat বসুরহাট, Mirsarai মীরসরাই, Chauddagram চৌদ্দগ্রাম,
   Muhuriganj মুহুরীগঞ্জ, Baraiyarhat বারৈয়ারহাট, Muhuri River মুহুরী নদী,
@@ -258,8 +301,22 @@ Pack format (compact JSON, about 6.7 MB). Top-level keys:
 - `areas`: `[{name, name_bn, km2, rings}]`
 - `usage`: a sentence saying the pack needs no network once it is on the device
 
+Two more top-level keys make the pack a documented, lasting file rather than a disposable cache:
+- `datasets`: one entry per layer (flood, optical, radar, terrain, roads, waterways, places,
+  shelters, areas), with `{id, role: "required"|"optional", title, title_bn, source, licence, date}`.
+  Record each licence as the source itself publishes it; check it at the source, never guess.
+- `processing`: `{pipeline_version, area_config, run_on}`.
+
+Compatibility: the app opens format `ingito.pack/1`. A pack with a higher major version shows "This
+pack was made by a newer version of Ingito" and is not opened. When the format changes, older
+versions are migrated in code, never thrown away. Document every key in `ingito/PACK_FORMAT.md`.
+
+Integrity: after writing the pack, compute the SHA-256 of the file's bytes. Record it in the index,
+with a short fingerprint made of the first 8 hex characters grouped 4-4 (e.g. `3F9A-12C4`).
+
 Also write `packs/index.json` (pretty-printed, LF):
-`{packs: [{file, pack_id, name, hazard, sensor, acquisition_date, area_km2, size_mb}]}`.
+`{packs: [{file, pack_id, name, hazard, sensor, acquisition_date, area_km2, size_mb, sha256,
+fingerprint}]}`.
 
 The hazard is data, not identity. Nothing in the format or the app is flood-specific beyond the
 pack's own content.
@@ -307,7 +364,24 @@ locally), then `app.js`.
   - The download streams with a byte counter, "downloading 1.4 of 6.7 MB (21%)", then shows
     "storing the pack on this device…".
   - "Or open a pack file handed to you by another team" (file input, .json).
-  - Opening a pack checks that `format` starts with `ingito.pack/`. Errors are shown in words.
+  - Every pack, downloaded or imported, is untrusted input. Validate it COMPLETELY before storing
+    it, and store it only if every check passes:
+    - size limit: refuse files over 100 MB
+    - it parses as JSON; `format` is `ingito.pack/<major>` and the major version is supported
+    - required keys exist with the right types: flood features are `{km2: number, rings: [[lon,
+      lat], ...]}`, and every coordinate is a finite number inside the coverage bbox plus a small
+      margin
+    - every image is a `data:image/jpeg;base64,` or `data:image/png;base64,` URI, nothing else
+    - a downloaded pack's SHA-256 equals the `sha256` in the index
+    - an imported file's fingerprint is computed and shown ("Pack fingerprint 3F9A-12C4"), so two
+      people can compare it with the sender's Source screen. SHA-256 needs `crypto.subtle`, which
+      browsers allow only on https or localhost; where it is missing, say "fingerprint not
+      available in this browser" instead of skipping the check silently.
+
+    A failed check shows in words what was wrong, and the pack already on the device stays exactly
+    as it was. A bad file must never replace a good pack.
+  - After storing a pack, call `navigator.storage.persist()`, and show in Source whether the browser
+    granted persistent storage.
 - Record where the pack came from and show it in Source:
   - "this device (offline store)"
   - "embedded in this page[, stored on this device]"
@@ -400,7 +474,13 @@ locally), then `app.js`.
   `#eae6d9` core (radius 4), plus a faint accuracy circle. Never red and never solid, so it can't be
   mistaken for a report.
 - Reticle: a CSS overlay (46 px) with four white ticks around an open centre and a tiny dot.
-- Scale bar: bottom-left; the largest of 100 m … 50 km that fits in 120 px.
+- Scale bar: bottom-left; the largest of 100 m … 50 km that fits in 120 px. Beside it, a small
+  north arrow marked "N" (the map is always north-up and never rotates).
+- Flood opacity: the Layers row "Water seen by radar" has a slider (20–100%, default 100%). It
+  changes only how strongly the layer is drawn, never what it contains.
+- IF TIME, tap to inspect: a tap (not a drag) glides the reticle to that point. If a shelter,
+  report, road or river lies within 20 px of the tap, the card's first line names it (e.g.
+  "Road N1", "School · shelter point, unverified").
 - Before / After (the "lens"):
   - Replaces the photo with the radar pair: the flood-day picture everywhere, the baseline picture
     clipped to the left of the divider, both multiplied with tint `#d3efe8`.
@@ -433,7 +513,9 @@ locally), then `app.js`.
      - "<Upazila> upazila · near <village within 4 km>", or "Outside the pack area"
      - second line: "You (GPS ±12 m) · 23.0123, 91.4567" or "Crosshair (no GPS) · ..."
   2. SATELLITE (tag with the hatched swatch): "Radar saw water here" (teal, bold) or
-     "Radar saw no water here".
+     "Radar saw no water here". This line is a button that opens the Source sheet (sensor, time,
+     the observation's age, method, limits). The flood layer's information lives here, one tap
+     away, never in a separate "mode".
   3. GROUND (tag with a red dot):
      - "N of your reports within 300 m" (red)
      - on water with no reports: "Nothing recorded here yet"
@@ -513,15 +595,19 @@ locally), then `app.js`.
     method); The event and our sanity check (text in section 7); Satellite photo (reference; "not a
     picture of the flood"); The two radar pictures; Terrain; Roads, rivers, places, shelters
     (attribution + shelter note + roads note)
-  - an OPEN "This device" section: pack id and name, build date, where it was loaded from, the
-    network state in words, and either "Everything in this pack works with no network." or
-    "Not stored on this phone: opening it again will need a network."
+  - an OPEN "This device" section: pack id and name, format version, fingerprint, build date,
+    where it was loaded from, whether the browser granted persistent storage, the network state in
+    words, and either "Everything in this pack works with no network." or "Not stored on this
+    phone: opening it again will need a network."
 
 ### 5.7 Field reports
 - Tapping "Water here" or "Road cut" places a report at the GPS fix if there is one, else at the
   crosshair. Shape:
   `{id, type: "water_here"|"road_cut", lon, lat (6 decimals), at (ISO time), accuracy_m or null,
-  placed: "gps"|"crosshair", area: <upazila>, pack_id, hazard, source: "field observation"}`.
+  placed: "gps"|"crosshair", area: <upazila>, pack_id, hazard, source: "field observation",
+  satellite: {sensor, observation_date, radar_saw_water: true|false}, note: "", exported_at: null}`.
+  The `satellite` block records what the radar said at that exact point when the report was made,
+  so a later reader can tell what the satellite saw apart from what the person saw.
   It is saved to localStorage, the phone vibrates 70 ms where supported, and any open sheet closes on
   a phone.
 - Confirmation: a persistent box above the buttons, not a toast; it never times out. It goes away
@@ -531,13 +617,22 @@ locally), then `app.js`.
   - an UNDO button; undoing shows "WATER HERE removed · N reports left on this device"
 
   The box is stored as its meaning, so switching language rewrites it.
+- IF TIME, an optional note: the confirmation box offers "Add note", which opens one text field
+  (up to 200 characters) saved into the report. It is never required before saving.
+- Export state: exporting sets `exported_at` on every report included. The Reports list shows
+  "exported <time>" or "not exported yet". The red nav badge counts only reports not yet exported.
+  Never say "synced" or "sent": nothing leaves the phone except a file the operator saves or hands
+  over.
 - Export GeoJSON: a FeatureCollection with:
   - generator "Ingito field instrument", exported_at, pack_id
   - note "Human field observations. NOT satellite-derived. Each feature carries its own time and
     position."
   - Point features with properties `{id, observation, source: "field observation", recorded_at,
-    accuracy_m, placed_by, area, hazard, pack_id}`
+    accuracy_m, placed_by, area, hazard, pack_id, satellite, note, exported_at}`
 - GPS: `watchPosition` (high accuracy, maximumAge 10 s, timeout 20 s); it works in airplane mode.
+  Ask for location permission only when the operator taps Locate, never at startup. Until then the
+  card's second line ends "tap ◎ to use GPS". If permission was granted before (Permissions API),
+  start watching as soon as the pack opens.
 - Locate glides to the fix. With no fix, it shows "No GPS fix yet" + why (still searching,
   permission refused, unavailable, or no GPS) + "Until there is one, the card and every report use
   the crosshair."
@@ -632,6 +727,13 @@ before it goes into the page. Never eval anything from a pack.
    opens straight onto the map; Source says "this device (offline store)"; reports persist; the chip
    shows Offline or No link.
 6. The contrast ratios are measured and listed.
+7. Opening a file that is not a pack, is cut short, or has been altered is refused with a clear
+   reason, and the pack already on the device still opens afterwards.
+8. On a real phone: airplane mode on, app opened from the home screen, map shown, a report made and
+   exported.
+9. On an ordinary low-end Android phone (2–3 GB RAM): note the time from tapping the icon to the map
+   appearing, whether pan and zoom stay smooth, and any crash. Write the numbers down; do not tune
+   only on a laptop.
 
 ## 7. Honesty rules (this wording must appear in the app)
 - Radar detects OPEN WATER only. Water among rice, trees and houses bounces the signal twice (double
@@ -651,16 +753,30 @@ before it goes into the page. Never eval anything from a pack.
 - The optical photo is from the dry season (17 Dec 2023), not from the flood.
 - The severity words describe the measurement, not a forecast, and the thresholds are stated on
   screen.
+- Words: never call the layer "flood extent". It is "water seen by radar" or "new open water"
+  (OBSERVED). Roads crossing it are "worked out from the radar layer" (INFERRED). Keep that
+  distinction in every label.
+- No invented confidence or accuracy percentages. Uncertainty is told through real properties: the
+  sensor, the observation's date and age, the method and its known blind spots.
+- Every threshold in the code carries a comment saying why that value (for example, "UN-SPIDER
+  default, used because Otsu fell outside 1.1–2.0"), so nobody mistakes a heuristic for a law.
+- No telemetry and no automatic upload of anything: reports, positions or files.
 - Known limitation (keep it, or fix it only if asked): a road that crosses water is drawn red along
   its whole length, not just the wet stretch.
 
 ## 8. Build order
-1. Boundary files + `s1_flood.py`; check the numbers.
+1. The area config, boundary files, `ingest_s1.py` + `detect.py`; check the numbers.
 2. `fetch_context.py` and `fetch_imagery.py`.
-3. `build_pack.py` and `index.json`.
-4. `serve.mjs`, the gate, pack loading, and the canvas map (Earth and Signal).
-5. The insight card, reports and export.
-6. The sheets: Alerts, Area, Layers, Source, Reports.
-7. Search, Before/After, GPS.
-8. Bangla, dark mode, responsive layout, service worker, manifest and icons.
+3. `build_pack.py` (with datasets, processing and the fingerprint) and `index.json`;
+   `PACK_FORMAT.md`.
+4. `serve.mjs`, the gate, pack validation and loading, and the canvas map (Earth and Signal).
+5. The insight card, reports (with the satellite block and export state) and export.
+6. The sheets: Source, Alerts, Reports, Layers (with the opacity slider), Area.
+7. Search, Before/After, GPS (permission on Locate), the north arrow.
+8. Bangla, responsive layout, service worker, manifest and icons, dark mode.
 9. The acceptance checks, with results.
+
+The cut line: this has to be rebuilt in 48 hours. If time runs short, drop these in this order and
+say what was dropped: tap to inspect, report notes, the NISAR path, the Area thumbnails, dark mode,
+terrain relief, search. Never drop: the real flood layer, the one-file pack and its validation,
+offline opening, the insight card, the two report buttons, export, the Source sheet, or Bangla.
