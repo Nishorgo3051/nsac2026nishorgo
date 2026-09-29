@@ -231,7 +231,7 @@ Visible UI changes also make the app recordings in the videos out of date. Tell 
 | `brag-output-2026-09-28-005210/` | **Video 1, FROZEN.** `ingito-240-seconds-720p.mp4`, 235 s | Upload by 1 Oct. **Never modify, re-render or delete.** Check it with `sha256sum -c ../ingito-video-v3/FROZEN_1OCT.sha256`, run from inside that folder (135 files). |
 | `ingito-video-v3/` | Draft for local judging, 238.2 s | Blocked: 3 empty footage slots (see `FOOTAGE_BRIEF.md`) plus the trigger question. `tools/build_timeline.py final` refuses to render until they are filled. Read its `HANDOFF.md`. |
 | `ingito-video-v3/Ingito-v3-Voiceover-Script.docx` | Script for the voice artist | Sent. When the recordings arrive, swap them in and re-time. Credit the artist by name only with their consent. |
-| `ingito-film/` | A cinematic 3:40 film, real material only, no slots | Done: `ingito-film-720p.mp4`, a 1080p master, and `ingito-film-poster.jpg` (YouTube thumbnail). Music: "Eternal Hope", Kevin MacLeod, CC BY 4.0. Read its `HANDOFF.md`. |
+| `ingito-film/` | A cinematic film, real material only, no slots. Revised 30 Sep to 3:50 (230.5 s): new Sentinel-2 credit wording, "relief teams" wording, and a distribution slide with step 1 marked planned | Done: `ingito-film-720p.mp4`, a 1080p master, and `ingito-film-poster.jpg` (YouTube thumbnail). The 29 Sep version is in `previous-220s/`. Music: "Eternal Hope", Kevin MacLeod, CC BY 4.0. Read its `HANDOFF.md`. |
 | `brag-output-2026-09-26-213447/` | The earlier 3:31 film | Fallback only. |
 | `Ingito-Onboarding-Brief.docx` | 16-page brief for the new hire | Done. |
 
