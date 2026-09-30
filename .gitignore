@@ -30,9 +30,3 @@ brag-output-*/composition/assets/
 # Raw GeoNames country file: fetch_context.py downloads it again when it is missing.
 ingito/context/geonames/
 
-# Internal team notes: kept on this computer, not on GitHub (user, 30 Sep 2026)
-/HANDOVER.md
-/CLAUDE.md
-/README.md
-/the rebuild prompt.md
-/the vision.md
