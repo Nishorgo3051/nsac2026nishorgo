@@ -106,4 +106,6 @@ The place, dates and names come from one config file per area in `areas/`; each 
 
 **Method:** the UN-SPIDER Recommended Practice for SAR flood mapping.
 
-**AI use:** code and documentation were written with Claude (Anthropic) for the team.
+**AI use:** code and documentation were written with Claude (Anthropic) for the team. Every AI tool and what it did is listed in [`docs/AI_USE.md`](docs/AI_USE.md).
+
+**Licence:** Apache 2.0, see [`LICENSE`](LICENSE).

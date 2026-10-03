@@ -108,20 +108,13 @@ How it differs from the Sentinel-1 path:
 
 | | |
 |---|---|
-| New open water | **128.4 km² in 2,186 patches**, 11.7% of the 1,099 km² area |
+| New open water | **Withheld until checked.** The area figures stay unpublished until the Sentinel-1 cross-check (check 2 below) has been run. |
 | Largest patch | 9.7 km² |
 | Threshold | **1.175**, chosen by Otsu — not the borrowed 1.25 fallback |
 | Data | 4 granules, 19.9 GB of files, of which about 460 MB was actually transferred |
 | Masked out | 2.4% permanent water, 17.8% steeper than 5° |
 
-By upazila (flood polygons intersected with the admin boundaries):
-
-| Upazila | New open water | Share of the upazila |
-|---|---|---|
-| Satkania | 56.4 km² | 20.4% |
-| Chandanaish | 27.0 km² | 13.5% |
-| Banshkhali | 36.1 km² | 10.0% |
-| Lohagara | 8.9 km² | 3.4% |
+By upazila: withheld for the same reason, since the per-upazila areas add up to the total.
 
 Against the four checks above:
 1. **Met.** All four upazilas show new open water. Whether the ranking matches the damage reports has *not* been checked: no per-upazila published figures for this event have been found.
