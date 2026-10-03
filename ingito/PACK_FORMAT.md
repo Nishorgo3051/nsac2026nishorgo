@@ -55,8 +55,10 @@ Added by the builder:
 ## `context`
 
 - `aoi_name`, `fetched_on`, `attribution`, `note` (shelters are reference points, not a registry)
-- `roads`: `[{kind, coords, name?, name_bn?, ref?, wet}]`. `wet` is set by the builder: the road
-  crosses detected open water
+- `roads`: `[{kind, coords, name?, name_bn?, ref?, wet, wet_parts?}]`. `wet` is set by the builder:
+  the road crosses detected open water. `wet_parts` (wet roads only) holds the stretches of the road
+  that lie inside that water, as lists of `[lon, lat]`; the app draws only these in red. A pack
+  without `wet_parts` (built before 3 Oct 2026) gets the whole road marked
 - `waterways`: `[{kind, coords, name?, name_bn?}]`
 - `shelters`: `[{kind, lon, lat, name?, name_bn?}]`, kind one of `school`, `mosque`, `hospital`,
   `clinic`

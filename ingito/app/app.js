@@ -974,8 +974,12 @@ function draw() {
     for (const road of pack.context.roads || []) {
       if (!road.wet) continue;
       const width = (ROAD_WIDTH[road.kind] || 1.2) * lineScale * ratio;
-      strokeLine(road.coords, width + 4 * ratio, MAP.wetCasing);
-      strokeLine(road.coords, Math.max(1.6 * ratio, width), MAP.wetDash, [5 * ratio, 4 * ratio]);
+      // Only the stretch inside radar water. A pack built before wet_parts existed marks the
+      // whole road, as it always did.
+      for (const part of road.wet_parts || [road.coords]) {
+        strokeLine(part, width + 4 * ratio, MAP.wetCasing);
+        strokeLine(part, Math.max(1.6 * ratio, width), MAP.wetDash, [5 * ratio, 4 * ratio]);
+      }
     }
   }
 
@@ -1944,6 +1948,13 @@ function addReport(type) {
     pack_id: state.pack.pack_id,
     hazard: state.pack.hazard.type,
     source: "field observation",
+    // What the radar said at this exact point, so a later reader can tell what the satellite saw
+    // apart from what the person saw.
+    satellite: {
+      sensor: state.pack.observation.sensor,
+      observation_date: state.pack.observation.acquisition_date,
+      radar_saw_water: state.stats.inWater(point[0], point[1]),
+    },
   };
   state.reports.push(report);
   state.lastId = report.id;
@@ -2002,6 +2013,7 @@ function exportReports() {
         area: report.area,
         hazard: report.hazard,
         pack_id: report.pack_id,
+        satellite: report.satellite || null,      // null for reports made before this was recorded
       },
     })),
   };

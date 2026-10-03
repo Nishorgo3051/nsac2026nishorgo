@@ -216,9 +216,21 @@ def mark_wet_roads(context, geojson_path):
         geometry=[LineString(road["coords"]) for road in context["roads"]], crs=4326)
     hit = gpd.sjoin(lines, flood[["geometry"]], how="inner", predicate="intersects")
     wet_rows = set(hit.index)
+    water = flood.geometry.union_all()
     for index, road in enumerate(context["roads"]):
         road["wet"] = index in wet_rows
+        if road["wet"]:
+            # Only the stretch inside the water, so a 10 km road with 50 m under water is not
+            # drawn as if all 10 km were. A road that only touches a patch's edge gets no parts.
+            road["wet_parts"] = line_parts(lines.geometry[index].intersection(water))
     return len(wet_rows)
+
+
+def line_parts(geometry):
+    """The line pieces of an intersection, as rounded coordinate lists (points are dropped)."""
+    parts = geometry.geoms if hasattr(geometry, "geoms") else [geometry]
+    return [[[round(x, PLACES), round(y, PLACES)] for x, y in part.coords]
+            for part in parts if part.geom_type == "LineString" and part.length > 0]
 
 
 def complete_names(items):
