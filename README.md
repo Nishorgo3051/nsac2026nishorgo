@@ -84,9 +84,12 @@ python ingito/pipeline/build_pack.py      # one pack file + the pack index
 
 Python 3.12 with the packages in `sar-flood/requirements.txt`, plus Node.js.
 
+The place, dates and names come from one config file per area in `areas/`; each script takes `--area areas/<id>.json`, which can be left out while there is only one. A new flood is a new config file, not a code change.
+
 ## Repository
 
-- `ingito/`: the product, meaning the pack pipeline, the packs and the field app. Full details are in [`ingito/README.md`](ingito/README.md).
+- `areas/`: one config per area. `feni-2024-08.json` is the first.
+- `ingito/`: the product, meaning the pack pipeline, the packs and the field app. Full details are in [`ingito/README.md`](ingito/README.md); every key of a pack is in [`ingito/PACK_FORMAT.md`](ingito/PACK_FORMAT.md).
 - `sar-flood/`: the radar pipelines (`s1_flood.py` for Sentinel-1, `nisar_flood.py` for NISAR) and [`METHODOLOGY.md`](sar-flood/METHODOLOGY.md).
 - Other folders hold earlier experiments.
 

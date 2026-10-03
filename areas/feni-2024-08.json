@@ -1,0 +1,33 @@
+{
+  "id": "feni-2024-08",
+  "aoi_name": "Feni",
+  "name": "Feni district flood",
+  "name_bn": "ফেনী জেলার বন্যা",
+  "outline": "sar-flood/aoi/feni.geojson",
+  "parts": "sar-flood/aoi/feni_upazilas.geojson",
+  "admin": {"district": "Feni", "district_bn": "ফেনী", "division": "Chattogram", "division_bn": "চট্টগ্রাম"},
+  "parts_bn": {"Feni Sadar": "ফেনী সদর", "Fulgazi": "ফুলগাজী", "Parashuram": "পরশুরাম",
+               "Chhagalnaiya": "ছাগলনাইয়া", "Sonagazi": "সোনাগাজী", "Daganbhuiyan": "দাগনভূঞা"},
+  "known_names": [["Feni", "ফেনী"], ["Daganbhuiyan", "দাগনভূঁইয়া"], ["Parshuram", "পরশুরাম"],
+                  ["Chhagalnaiya", "ছাগলনাইয়া"], ["Fulgazi", "ফুলগাজী"], ["Sonagazi", "সোনাগাজী"],
+                  ["Basurhat", "বসুরহাট"], ["Mirsarai", "মীরসরাই"], ["Chauddagram", "চৌদ্দগ্রাম"],
+                  ["Muhuriganj", "মুহুরীগঞ্জ"], ["Baraiyarhat", "বারৈয়ারহাট"],
+                  ["Muhuri River", "মুহুরী নদী"], ["Selonia River", "সিলোনিয়া নদী"],
+                  ["Kahua River", "কহুয়া নদী"], ["Dakatia River", "ডাকাতিয়া নদী"],
+                  ["Feni River", "ফেনী নদী"]],
+  "sensor": "sentinel-1",
+  "baseline_date": "2024-08-09",
+  "flood_date": "2024-08-21",
+  "track": 114,
+  "direction": "ascending",
+  "optical": {"scene": "S2A_MSIL2A_20231217T043151_R133_T46QCL_20231220T054932", "date": "2023-12-17"},
+  "event": {
+    "name": "August 2024 Bangladesh floods, Feni district",
+    "rain_began": "2024-08-19",
+    "flood_arrived": "2024-08-21",
+    "river_peak": "Gumti at 8.58 m on 2024-08-23, 53 cm above danger level",
+    "deaths_in_district": 28,
+    "reported_flooded_km2": 201,
+    "reported_source": "press reporting of the August 2024 Feni floods; its date and method are not stated"
+  }
+}

@@ -25,10 +25,12 @@ ATTRIBUTION
   is displayed by the instrument.
 
 HOW TO RUN
-  python fetch_context.py           (no account needed)
+  python fetch_context.py --area ../../areas/<id>.json      (no account needed)
+  --area may be left out while areas/ holds one config.
   Writes ../context/<aoi>_context.json
 """
 
+import argparse
 import json
 import re
 import time
@@ -40,11 +42,21 @@ import geopandas as gpd
 
 HERE = Path(__file__).resolve().parent
 INGITO = HERE.parent
-SAR = INGITO.parent / "sar-flood"
 OUT_DIR = INGITO / "context"
 
-AOI_FILE = SAR / "aoi" / "feni.geojson"
-AOI_NAME = "feni"
+
+def load_area():
+    """One config per area (areas/<id>.json): a new flood is a new file, not a code change."""
+    configs = sorted((INGITO.parent / "areas").glob("*.json"))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--area", type=Path, required=len(configs) != 1,
+                        default=configs[0] if len(configs) == 1 else None)
+    return json.loads(parser.parse_known_args()[0].area.read_text(encoding="utf-8"))
+
+
+AREA = load_area()
+AOI_FILE = INGITO.parent / AREA["outline"]
+AOI_NAME = AREA["aoi_name"].lower()
 
 OVERPASS = "https://overpass-api.de/api/interpreter"
 # Overpass rejects anonymous scripts with HTTP 406, so identify the project honestly.

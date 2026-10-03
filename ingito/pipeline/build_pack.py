@@ -30,11 +30,14 @@ HOW TO RUN
   1. python ../../sar-flood/s1_flood.py        produces the flood layer and its provenance
   2. python fetch_context.py                   produces the roads, waterways and shelters
   3. python build_pack.py                      writes ../packs/<pack-id>.pack.json
+  Every step takes --area ../../areas/<id>.json; it may be left out while areas/ holds one config.
 
 Dependencies: geopandas, rasterio, numpy, Pillow (see ../../sar-flood/requirements.txt).
 """
 
+import argparse
 import base64
+import hashlib
 import io
 import json
 from datetime import date, datetime
@@ -51,36 +54,34 @@ HERE = Path(__file__).resolve().parent
 INGITO = HERE.parent
 NSAC = INGITO.parent
 SAR_OUT = NSAC / "sar-flood" / "out"
-AOI_DIR = NSAC / "sar-flood" / "aoi"
 PACKS = INGITO / "packs"
 
+
+def load_area():
+    """
+    The area this run is for. Everything place-specific - outlines, names, admin, dates - lives in
+    one config per area (areas/<id>.json), so a new flood is a new file, not a code change.
+    """
+    configs = sorted((NSAC / "areas").glob("*.json"))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--area", type=Path, required=len(configs) != 1,
+                        default=configs[0] if len(configs) == 1 else None)
+    return json.loads(parser.parse_known_args()[0].area.read_text(encoding="utf-8"))
+
+
+AREA = load_area()
 # Which observation to package. The glob keeps this honest: if the pipeline has not been run there
 # is nothing to package, and the script says so instead of inventing a layer.
-HAZARD_GLOB = "Feni_s1_flood_*.geojson"
-CONTEXT_FILE = INGITO / "context" / "feni_context.json"
-PARTS_FILE = AOI_DIR / "feni_upazilas.geojson"
-AOI_FILE = AOI_DIR / "feni.geojson"
-
-PACK_NAME = "Feni district flood"
-PACK_NAME_BN = "ফেনী জেলার বন্যা"
-# Where the pack sits in Bangladesh's administration, so a place can be named the way people say
-# it: upazila, district, division.
-ADMIN = {"district": "Feni", "district_bn": "ফেনী", "division": "Chattogram", "division_bn": "চট্টগ্রাম"}
+HAZARD_GLOB = f"{AREA['aoi_name']}_s1_flood_*.geojson"
+CONTEXT_FILE = INGITO / "context" / f"{AREA['aoi_name'].lower()}_context.json"
+PARTS_FILE = NSAC / AREA["parts"]
+AOI_FILE = NSAC / AREA["outline"]
 IMAGERY_DIR = INGITO / "context" / "imagery"
 
-# The pack is bilingual, so the places it names need both spellings. These are the official
-# upazila names as the Bangladesh government writes them, and the standard names of the district's
-# rivers and towns. Only names we are sure of are listed: anything else keeps the one spelling the
+# The pack is bilingual, so the places it names need both spellings. The area config lists the
+# official upazila names (parts_bn) and the standard names of the area's rivers and towns
+# (known_names). Only names we are sure of are listed: anything else keeps the one spelling the
 # map gives it, rather than an invented one.
-AREA_BN = {"Feni Sadar": "ফেনী সদর", "Fulgazi": "ফুলগাজী", "Parashuram": "পরশুরাম",
-           "Chhagalnaiya": "ছাগলনাইয়া", "Sonagazi": "সোনাগাজী", "Daganbhuiyan": "দাগনভূঞা"}
-KNOWN_NAMES = [("Feni", "ফেনী"), ("Daganbhuiyan", "দাগনভূঁইয়া"), ("Parshuram", "পরশুরাম"),
-               ("Chhagalnaiya", "ছাগলনাইয়া"), ("Fulgazi", "ফুলগাজী"), ("Sonagazi", "সোনাগাজী"),
-               ("Basurhat", "বসুরহাট"), ("Mirsarai", "মীরসরাই"), ("Chauddagram", "চৌদ্দগ্রাম"),
-               ("Muhuriganj", "মুহুরীগঞ্জ"), ("Baraiyarhat", "বারৈয়ারহাট"),
-               ("Muhuri River", "মুহুরী নদী"), ("Selonia River", "সিলোনিয়া নদী"),
-               ("Kahua River", "কহুয়া নদী"), ("Dakatia River", "ডাকাতিয়া নদী"),
-               ("Feni River", "ফেনী নদী")]
 HAZARD_TYPE = "flood"
 HAZARD_LABEL = "Flood - open water seen by radar"
 
@@ -222,8 +223,8 @@ def mark_wet_roads(context, geojson_path):
 
 def complete_names(items):
     """Fill in the missing spelling of a place when it is one of the names we are sure of."""
-    to_bn = dict(KNOWN_NAMES)
-    to_en = {bn: en for en, bn in KNOWN_NAMES}
+    to_bn = dict(AREA["known_names"])
+    to_en = {bn: en for en, bn in AREA["known_names"]}
     for item in items:
         if item.get("name") and not item.get("name_bn") and item["name"] in to_bn:
             item["name_bn"] = to_bn[item["name"]]
@@ -334,16 +335,18 @@ def main():
     print("Packing the satellite pictures...")
     imagery = imagery_block()
 
-    areas = [{"name": name, "name_bn": AREA_BN.get(name, ""), "km2": round(float(km2), 1),
+    areas = [{"name": name, "name_bn": AREA["parts_bn"].get(name, ""), "km2": round(float(km2), 1),
               "rings": rings_of(geometry)}
              for name, km2, geometry in zip(parts.adm3_name, parts.area_sqkm, parts.geometry)]
 
     pack = {
         "format": "ingito.pack/1",
-        "pack_id": f"feni-{observation['acquisition_date']}",
-        "name": PACK_NAME,
-        "name_bn": PACK_NAME_BN,
-        "admin": ADMIN,
+        "pack_id": f"{AREA['aoi_name'].lower()}-{observation['acquisition_date']}",
+        "name": AREA["name"],
+        "name_bn": AREA["name_bn"],
+        # Where the pack sits in Bangladesh's administration, so a place can be named the way
+        # people say it: upazila, district, division.
+        "admin": AREA["admin"],
         "hazard": {"type": HAZARD_TYPE, "label": HAZARD_LABEL},
         "built_on": date.today().isoformat(),
         # To the second, so an instrument can tell two builds from the same day apart.
@@ -367,17 +370,26 @@ def main():
     # A tiny index so the instrument can list what is available on the preparation machine. In the
     # field nothing reads this: the pack is already on the device, or it arrives as a file from
     # another responder.
+    #
+    # Each entry carries the SHA-256 of the pack's exact bytes, and a short fingerprint (the first
+    # 8 hex characters, 3F9A-12C4) that two people can read aloud to each other. A pack handed over
+    # on a memory card can then be checked: cut short or altered by one byte, the hash no longer
+    # matches the one the preparation machine published.
     index = []
     for existing in sorted(PACKS.glob("*.pack.json")):
-        head = json.loads(existing.read_text(encoding="utf-8"))
+        raw = existing.read_bytes()
+        head = json.loads(raw)
+        digest = hashlib.sha256(raw).hexdigest()
         index.append({"file": existing.name, "pack_id": head["pack_id"], "name": head["name"],
                       "hazard": head["hazard"]["type"], "sensor": head["observation"]["sensor"],
                       "acquisition_date": head["observation"]["acquisition_date"],
                       "area_km2": head["coverage"]["area_km2"],
-                      "size_mb": round(existing.stat().st_size / 1024 / 1024, 1)})
+                      "size_mb": round(len(raw) / 1024 / 1024, 1),
+                      "sha256": digest, "fingerprint": f"{digest[:4]}-{digest[4:8]}".upper()})
     # newline="\n": on Windows write_text would otherwise turn every line ending into CRLF.
     (PACKS / "index.json").write_text(json.dumps({"packs": index}, indent=2), encoding="utf-8", newline="\n")
-    print(f"\nPack written: packs/{path.name}  ({size_mb:.1f} MB, one file)")
+    fingerprint = next(entry["fingerprint"] for entry in index if entry["file"] == path.name)
+    print(f"\nPack written: packs/{path.name}  ({size_mb:.1f} MB, one file, fingerprint {fingerprint})")
     print(f"  hazard      {observation['sensor']} {observation['acquisition_date']}, "
           f"{observation['totals']['flood_km2']} km2 open water, "
           f"{observation['feature_count']} patches")

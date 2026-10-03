@@ -8,7 +8,9 @@
       "sensor": "Sentinel-1",
       "acquisition_date": "2024-08-21",
       "area_km2": 929.5,
-      "size_mb": 6.7
+      "size_mb": 6.7,
+      "sha256": "fe970b8a1f94ccb6ac3678f4e76a7381791c57378e23b5c08b12bf4e21b1e9b4",
+      "fingerprint": "FE97-0B8A"
     }
   ]
 }

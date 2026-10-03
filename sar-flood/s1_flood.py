@@ -28,7 +28,9 @@ SENSOR IS METADATA, NOT IDENTITY
 
 HOW TO RUN
   1. pip install -r requirements.txt
-  2. python s1_flood.py          (no login, no keys, no account)
+  2. python s1_flood.py --area ../areas/<id>.json      (no login, no keys, no account)
+     The area config holds the outline, dates and track; --area may be left out while areas/
+     holds one config. The event below is the first config, areas/feni-2024-08.json.
 
   Outputs into out/:
     Feni_s1_flood_<date>.geojson   the flood polygons the pack carries
@@ -45,10 +47,12 @@ THE EVENT
   both on relative orbit 114, ascending - same track, same geometry, twelve days apart.
 """
 
+import argparse
 import json
 import urllib.parse
 import urllib.request
 from datetime import date as _date
+from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
@@ -65,13 +69,26 @@ import flood_extent as fe
 import nisar_flood as nf
 
 # ---------------------------------------------------------------------------
-# SETTINGS. Everything that decides WHAT gets processed lives here.
+# SETTINGS. WHAT gets processed - the place, the dates, the track - comes from the area config.
 # The method settings shared with the other sensors (speckle radius, mask thresholds, patch size,
 # pixel size) stay in flood_extent.py so the three paths cannot disagree about the method.
 # ---------------------------------------------------------------------------
-AOI_PATH = fe.HERE / "aoi" / "feni.geojson"
-PARTS_PATH = fe.HERE / "aoi" / "feni_upazilas.geojson"
-AOI_NAME = "Feni"
+NSAC = Path(__file__).resolve().parent.parent
+
+
+def load_area():
+    """One config per area (areas/<id>.json): a new flood is a new file, not a code change."""
+    configs = sorted((NSAC / "areas").glob("*.json"))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--area", type=Path, required=len(configs) != 1,
+                        default=configs[0] if len(configs) == 1 else None)
+    return json.loads(parser.parse_known_args()[0].area.read_text(encoding="utf-8"))
+
+
+AREA = load_area()
+AOI_PATH = NSAC / AREA["outline"]
+PARTS_PATH = NSAC / AREA["parts"]
+AOI_NAME = AREA["aoi_name"]
 HAZARD = "flood"
 
 SENSOR = "Sentinel-1"
@@ -80,10 +97,10 @@ PRODUCT = "Sentinel-1 RTC (radiometrically terrain corrected), 10 m"
 SOURCE = ("ESA Copernicus Sentinel-1, RTC product read from the Microsoft Planetary Computer "
           "STAC catalogue (open catalogue, anonymous signing, no account required)")
 
-BEFORE = "2024-08-09"       # baseline pass: before the rain started on 19 Aug
-DURING = "2024-08-21"       # flood pass: the day the flood reached Feni
-TRACK = 114                 # relative orbit. The same track means the same viewing geometry.
-DIRECTION = "ascending"
+BEFORE = AREA["baseline_date"]      # baseline pass: before the rain started
+DURING = AREA["flood_date"]         # flood pass
+TRACK = AREA["track"]               # relative orbit. The same track means the same viewing geometry.
+DIRECTION = AREA["direction"]
 POLARIZATION = "vh"         # VH is the usual choice for open water: smooth water returns very little
 
 COLLECTION = "sentinel-1-rtc"
@@ -97,8 +114,8 @@ PLAUSIBLE = (1.1, 2.0)      # a threshold outside this is not believable for C-b
 # The sanity-check reference. This is a REPORTED figure from coverage of the event, not ground
 # truth: its own observation date and method are not stated. It is here to answer "is our result
 # the right order of magnitude", and nothing more. It must never become an accuracy score.
-REPORTED_KM2 = fe.REPORTED_KM2          # 201
-REPORTED_SOURCE = "press reporting of the August 2024 Feni floods; its date and method are not stated"
+REPORTED_KM2 = AREA["event"]["reported_flooded_km2"]
+REPORTED_SOURCE = AREA["event"]["reported_source"]
 
 
 def search_items(day):
@@ -127,8 +144,8 @@ def search_items(day):
     if not keep:
         raise SystemExit(
             f"No Sentinel-1 RTC scene over {AOI_NAME} on {day} for track {TRACK} {DIRECTION}. "
-            "Check the date, or set TRACK = None to accept any track (and accept that the viewing "
-            "geometry then differs between the two dates).")
+            "Check the date, or set \"track\": null in the area config to accept any track (and "
+            "accept that the viewing geometry then differs between the two dates).")
     return keep
 
 
@@ -280,6 +297,8 @@ def per_upazila(polygons):
 
 
 def main():
+    if AREA["sensor"] != "sentinel-1":
+        raise SystemExit(f"{AREA['id']} is a {AREA['sensor']} area; this script reads Sentinel-1 only.")
     fe.OUT_DIR.mkdir(exist_ok=True)
     # Shapely only: the Earth Engine half of fe.load_aoi() is not needed here and would want a login.
     area = gpd.read_file(AOI_PATH).to_crs(4326).union_all()
@@ -347,12 +366,7 @@ def main():
                         "therefore a lower bound, and it under-counts exactly where people live."),
         "not_ground_truth": ("A satellite observation, not ground truth. No validated flood map "
                              "exists for this event, so no accuracy figure is claimed."),
-        "event": {"name": "August 2024 Bangladesh floods, Feni district",
-                  "rain_began": "2024-08-19", "flood_arrived": "2024-08-21",
-                  "river_peak": "Gumti at 8.58 m on 2024-08-23, 53 cm above danger level",
-                  "deaths_in_district": 28,
-                  "reported_flooded_km2": REPORTED_KM2,
-                  "reported_source": REPORTED_SOURCE},
+        "event": AREA["event"],
         "totals": {"flood_km2": round(float(polygons.area_km2.sum()), 1),
                    "patches": int(len(polygons)),
                    "aoi_km2": round(fe.km2(area), 1),

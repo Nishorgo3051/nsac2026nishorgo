@@ -26,10 +26,12 @@ NO ACCOUNT NEEDED
   Microsoft Planetary Computer's open catalogue, with anonymous signing, same as s1_flood.py.
 
 HOW TO RUN
-  python fetch_imagery.py        after s1_flood.py (it reuses that run's radar pictures)
+  python fetch_imagery.py --area ../../areas/<id>.json      after s1_flood.py (it reuses that
+  run's radar pictures). --area may be left out while areas/ holds one config.
   Writes ../context/imagery/
 """
 
+import argparse
 import json
 import urllib.request
 from pathlib import Path
@@ -46,12 +48,25 @@ HERE = Path(__file__).resolve().parent
 INGITO = HERE.parent
 SAR = INGITO.parent / "sar-flood"
 OUT = INGITO / "context" / "imagery"
-AOI_FILE = SAR / "aoi" / "feni.geojson"
 
-OPTICAL_ID = "S2A_MSIL2A_20231217T043151_R133_T46QCL_20231220T054932"
-OPTICAL_DATE = "2023-12-17"
-RADAR = {"before": ("2024-08-09", SAR / "out" / "Feni_s1_flood_2024-08-21_before.tif"),
-         "during": ("2024-08-21", SAR / "out" / "Feni_s1_flood_2024-08-21_during.tif")}
+
+def load_area():
+    """One config per area (areas/<id>.json): a new flood is a new file, not a code change."""
+    configs = sorted((INGITO.parent / "areas").glob("*.json"))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--area", type=Path, required=len(configs) != 1,
+                        default=configs[0] if len(configs) == 1 else None)
+    return json.loads(parser.parse_known_args()[0].area.read_text(encoding="utf-8"))
+
+
+AREA = load_area()
+AOI_FILE = INGITO.parent / AREA["outline"]
+
+OPTICAL_ID = AREA["optical"]["scene"]
+OPTICAL_DATE = AREA["optical"]["date"]
+_RUN = SAR / "out" / f"{AREA['aoi_name']}_s1_flood_{AREA['flood_date']}"
+RADAR = {"before": (AREA["baseline_date"], Path(f"{_RUN}_before.tif")),
+         "during": (AREA["flood_date"], Path(f"{_RUN}_during.tif"))}
 
 STAC_ITEM = "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/"
 SIGN_URL = "https://planetarycomputer.microsoft.com/api/sas/v1/sign?href="
