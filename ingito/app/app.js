@@ -120,6 +120,7 @@ const STRINGS = {
     hint: "See the flood arrive: compare the radar from before and after",
     satTag: "Satellite", groundTag: "Ground",
     whoGps: (acc) => `You (GPS ±${acc} m)`, whoCross: "Crosshair (no GPS)",
+    whoFar: "Crosshair (GPS outside this pack)",
     outside: "Outside the pack area",
     upazila: (name) => `${name} upazila`,
     nearPlace: (name) => `near ${name}`,
@@ -138,12 +139,13 @@ const STRINGS = {
                  hospital: "Hospital", clinic: "Clinic" },
     km: (v) => `${v} km`, m: (v) => `${v} m`,
     noteSaved: (type, n, stored, gps) =>
-      `${type.toUpperCase()} #${n} ${stored ? "saved" : "NOT SAVED"}<small>` +
-      `${stored ? "" : "this browser refused storage · "}${gps ? "at your GPS position" : "at the crosshair (no GPS)"}</small>`,
+      `${type.toUpperCase()} #${n} ${stored ? "saved on this phone" : "NOT SAVED"}<small>` +
+      `${stored ? "" : "this browser refused storage · "}${gps ? "at your GPS position" : "at the crosshair"}</small>`,
     noteRemoved: (type, left) =>
       `${type.toUpperCase()} removed<small>${left} report${left === "1" ? "" : "s"} left on this device</small>`,
     noteNoFix: (problem) =>
       `No GPS fix yet<small>${problem} Until there is one, the card and every report use the crosshair.</small>`,
+    noteFar: "Your GPS position is outside this pack<small>The card and every report use the crosshair.</small>",
     gps: {
       searching: "The GPS is still searching.",
       refused: "Location permission was refused in this browser.",
@@ -201,6 +203,7 @@ const STRINGS = {
     exportNone: "Nothing to export yet.",
     deleteAll: "Delete all reports", deleteAllArmed: (n) => `Tap again to delete all ${n}`,
     downloadPack: "Download this pack",
+    mapArea: (km2) => `map area ${km2} km²`,
     noPacks: "No pack on this device, and no pack list reachable.",
     noPacksHelp: "Open a pack file below, or connect and reload.",
     starting: "starting the download…",
@@ -249,6 +252,7 @@ const STRINGS = {
     hint: "বন্যা কীভাবে এলো দেখুন — রাডারের আগের আর পরের ছবি মিলিয়ে",
     satTag: "স্যাটেলাইট", groundTag: "মাঠ",
     whoGps: (acc) => `আপনি (জিপিএস ±${acc} মি)`, whoCross: "নিশানা (জিপিএস নেই)",
+    whoFar: "নিশানা (জিপিএস প্যাকের এলাকার বাইরে)",
     outside: "প্যাকের এলাকার বাইরে",
     upazila: (name) => `${name} উপজেলা`,
     nearPlace: (name) => `কাছেই ${name}`,
@@ -266,11 +270,12 @@ const STRINGS = {
                  river: "নদী", canal: "খাল", mosque: "মসজিদ", school: "স্কুল", hospital: "হাসপাতাল", clinic: "ক্লিনিক" },
     km: (v) => `${v} কিমি`, m: (v) => `${v} মিটার`,
     noteSaved: (type, n, stored, gps) =>
-      `${type} #${n} — ${stored ? "জমা হলো" : "জমা হয়নি"}<small>` +
-      `${stored ? "" : "এই ব্রাউজার জমা রাখতে দিচ্ছে না · "}${gps ? "আপনার জিপিএস অবস্থানে" : "নিশানার জায়গায় (জিপিএস নেই)"}</small>`,
+      `${type} #${n} — ${stored ? "এই ফোনে জমা হলো" : "জমা হয়নি"}<small>` +
+      `${stored ? "" : "এই ব্রাউজার জমা রাখতে দিচ্ছে না · "}${gps ? "আপনার জিপিএস অবস্থানে" : "নিশানার জায়গায়"}</small>`,
     noteRemoved: (type, left) => `${type} — বাতিল হলো<small>এই ফোনে আর ${left}টি রিপোর্ট আছে</small>`,
     noteNoFix: (problem) =>
       `এখনো জিপিএস পাওয়া যায়নি<small>${problem} ততক্ষণ কার্ডের তথ্য আর সব রিপোর্ট নিশানার জায়গা ধরে হবে।</small>`,
+    noteFar: "আপনার জিপিএস অবস্থান এই প্যাকের এলাকার বাইরে<small>কার্ডের তথ্য আর সব রিপোর্ট নিশানার জায়গা ধরে হবে।</small>",
     gps: {
       searching: "জিপিএস এখনো খুঁজছে।",
       refused: "এই ব্রাউজারে লোকেশনের অনুমতি দেওয়া হয়নি।",
@@ -328,6 +333,7 @@ const STRINGS = {
     exportNone: "এক্সপোর্ট করার মতো কিছু এখনো নেই।",
     deleteAll: "সব রিপোর্ট মুছুন", deleteAllArmed: (n) => `সব ${n}টি মুছতে আবার চাপুন`,
     downloadPack: "প্যাকটি নামিয়ে রাখুন",
+    mapArea: (km2) => `মানচিত্রের এলাকা ${km2} বর্গকিমি`,
     noPacks: "এই ফোনে কোনো প্যাক নেই, প্যাকের তালিকাও পাওয়া যাচ্ছে না।",
     noPacksHelp: "নিচে প্যাক ফাইল খুলুন, অথবা নেট চালু করে আবার লোড করুন।",
     starting: "নামানো শুরু হচ্ছে…",
@@ -709,9 +715,16 @@ function nearestArea(point) {
 
 const areaLabel = (area) => nameIn({ name: area.name, name_bn: area.name_bn });
 
+/* A GPS fix counts only inside the pack's box. A phone far from the district - a team still on its
+   way, a demonstration in Dhaka - would otherwise answer every question about a place the pack
+   knows nothing of, and drop every report there. Then the reticle is the point, and the card says so. */
+function gpsHere() {
+  return Boolean(state.fix && state.pack && inBox(state.pack.coverage.bbox, state.fix.lon, state.fix.lat));
+}
+
 /* The point everything answers about: the operator's GPS position, or the reticle. */
 function aim() {
-  return state.fix ? [state.fix.lon, state.fix.lat] : unproject(canvas.width / 2, canvas.height / 2);
+  return gpsHere() ? [state.fix.lon, state.fix.lat] : unproject(canvas.width / 2, canvas.height / 2);
 }
 
 /* ------------------------------------------------------------------ motion */
@@ -1382,7 +1395,8 @@ function updateReadout() {
     ? `${text.upazila(areaLabel(area))}${place ? ` · ${text.nearPlace(nameIn(place.candidate))}` : ""}`
     : text.outside;
   // Whose position this is comes first: without a fix it is the crosshair, not the operator.
-  const who = state.fix ? text.whoGps(num(Math.round(state.fix.accuracy || 0))) : text.whoCross;
+  const who = gpsHere() ? text.whoGps(num(Math.round(state.fix.accuracy || 0)))
+    : state.fix ? text.whoFar : text.whoCross;
   el("r-coords").textContent = `${who} · ${point[1].toFixed(4)}, ${point[0].toFixed(4)}`;
 
   const onWater = state.stats.inWater(point[0], point[1]);
@@ -1921,6 +1935,7 @@ function renderNote() {
   el("confirm-text").innerHTML =
     kind === "saved" ? text.noteSaved(typeName(args.type), num(args.n), args.stored, args.gps)
     : kind === "removed" ? text.noteRemoved(typeName(args.type), num(args.left))
+    : kind === "far" ? text.noteFar
     : text.noteNoFix(text.gps[state.gpsProblem]);
   el("confirm-undo").hidden = !undo;
   el("confirm").hidden = false;
@@ -1935,6 +1950,7 @@ function addReport(type) {
   if (!state.pack) return;
   if (state.panel && !wide()) closePanel();         // so the confirmation can be seen
   const point = aim();
+  const gps = gpsHere();
   updateReadout();                                   // so state.here names this exact point
   const report = {
     id: `r${Date.now().toString(36)}${state.reports.length}`,
@@ -1942,8 +1958,8 @@ function addReport(type) {
     lon: Number(point[0].toFixed(6)),
     lat: Number(point[1].toFixed(6)),
     at: new Date().toISOString(),
-    accuracy_m: state.fix ? state.fix.accuracy : null,
-    placed: state.fix ? "gps" : "crosshair",
+    accuracy_m: gps ? state.fix.accuracy : null,
+    placed: gps ? "gps" : "crosshair",
     area: state.here || "",
     pack_id: state.pack.pack_id,
     hazard: state.pack.hazard.type,
@@ -1961,7 +1977,7 @@ function addReport(type) {
   const stored = saveReports();
   buzz();
   afterReportsChanged();
-  showNote("saved", { type, n: state.reports.length, stored, gps: Boolean(state.fix) }, true);
+  showNote("saved", { type, n: state.reports.length, stored, gps }, true);
 }
 
 function deleteReport(id) {
@@ -2148,13 +2164,23 @@ function picture(src) {
 }
 
 function openPack(text, source) {
-  const pack = JSON.parse(text);
-  if (!pack.format || !pack.format.startsWith("ingito.pack/")) {
+  let pack;
+  try {
+    pack = JSON.parse(text);
+  } catch (error) {
+    throw new Error("the file is damaged or cut short");
+  }
+  if (!pack?.format || !String(pack.format).startsWith("ingito.pack/")) {
     throw new Error("that file is not an Ingito pack");
   }
+  // The instrument reads these without checking, so a pack missing one is refused here, before
+  // anything on screen changes, rather than half-opening and breaking the map.
+  const missing = ["observation", "context", "coverage", "terrain", "hazard"].filter((key) => !pack[key]);
+  if (missing.length) throw new Error(`the pack has no ${missing.join(", ")}`);
+  const stats = computeStats(pack);
   state.pack = pack;
   state.source = source;
-  state.stats = computeStats(pack);
+  state.stats = stats;
   state.index = buildIndex(pack);
   state.images = {
     terrain: picture(pack.terrain?.image),
@@ -2231,7 +2257,7 @@ function renderGate() {
   card.innerHTML = found.list.map((entry) => `
     <div class="row"><span><b>${esc(entry.name)}</b></span><span>${num(esc(entry.size_mb))} MB</span></div>
     <div class="row dim"><span>${esc(entry.hazard)} &middot; ${esc(entry.sensor)} ${fmtDate(entry.acquisition_date)}</span>
-      <span>${num(esc(entry.area_km2))} km²</span></div>
+      <span>${text.mapArea(num(esc(entry.area_km2)))}</span></div>
     <button class="btn wide primary" data-pack="${esc(found.base + entry.file)}"
       data-bytes="${Math.round(entry.size_mb * 1048576)}">${text.downloadPack}</button>`).join("");
   card.querySelectorAll("[data-pack]").forEach((button) => {
@@ -2470,8 +2496,10 @@ function bind() {
   });
   el("tool-locate").addEventListener("click", () => {
     if (!state.watching) startWatching();
-    if (state.fix) {
+    if (gpsHere()) {
       flyTo({ lon: state.fix.lon, lat: state.fix.lat, ppd: Math.max(state.view.ppd, 6000) });
+    } else if (state.fix) {
+      showNote("far", {}, false);          // flying there would show an empty screen
     } else {
       // A tap that changes nothing looks like a broken button. Say what is happening instead.
       showNote("nofix", {}, false);

@@ -100,8 +100,9 @@ fingerprint}]}`
 - Spec, **not yet built**: the app refuses a higher major version with "This pack was made by a
   newer version of Ingito"; older versions are migrated in code, never thrown away; an imported
   file's fingerprint is computed and shown, and a cut-short or altered file is refused.
-- **Today** the app checks only that `format` starts with `ingito.pack/` (`app/app.js`,
-  `openPack`).
+- **Today** the app checks only that the file is readable JSON, that `format` starts with
+  `ingito.pack/`, and that `observation`, `context`, `coverage`, `terrain` and `hazard` are present
+  (`app/app.js`, `openPack`). It does not compute or show the fingerprint.
 
 ## Not in the format yet
 
