@@ -1,0 +1,82 @@
+{
+  "hazard": "flood",
+  "aoi_name": "Feni",
+  "sensor": "Sentinel-1",
+  "sensor_detail": "Sentinel-1 C-band VH, RTC gamma-0",
+  "product": "Sentinel-1 RTC (radiometrically terrain corrected), 10 m",
+  "source": "ESA Copernicus Sentinel-1, RTC product read from the Microsoft Planetary Computer STAC catalogue (open catalogue, anonymous signing, no account required)",
+  "scene_ids": {
+    "baseline": [
+      "S1A_IW_GRDH_1SDV_20240809T120441_20240809T120506_055136_06B817_rtc"
+    ],
+    "flood": [
+      "S1A_IW_GRDH_1SDV_20240821T120442_20240821T120507_055311_06BE75_rtc"
+    ]
+  },
+  "baseline_date": "2024-08-09",
+  "acquisition_date": "2024-08-21",
+  "track": 114,
+  "direction": "ascending",
+  "polarization": "VH",
+  "grid_m": 20,
+  "threshold": 1.25,
+  "threshold_method": "Otsu gave 1.05, outside the plausible 1.1-2.0 range, so the UN-SPIDER default of 1.25 was used instead",
+  "processed_on": "2026-09-22",
+  "detects": "open_water_only",
+  "method": "Speckle filtered with a 50 m median, ratio of the two dates in dB, threshold by Otsu's method, permanent water (JRC Global Surface Water v1.4, over 50% occurrence) and slopes of 5 degrees or more excluded, patches under 8 pixels dropped. Follows the UN-SPIDER recommended practice for SAR flood mapping.",
+  "limitations": "Detects open water only. Flooded vegetation, flooded cropland and flooded buildings can return MORE radar energy than dry ground (double bounce), so this method misses them rather than flagging them. The flooded area is therefore a lower bound, and it under-counts exactly where people live.",
+  "not_ground_truth": "A satellite observation, not ground truth. No validated flood map exists for this event, so no accuracy figure is claimed.",
+  "event": {
+    "name": "August 2024 Bangladesh floods, Feni district",
+    "rain_began": "2024-08-19",
+    "flood_arrived": "2024-08-21",
+    "river_peak": "Gumti at 8.58 m on 2024-08-23, 53 cm above danger level",
+    "deaths_in_district": 28,
+    "reported_flooded_km2": 201,
+    "reported_source": "press reporting of the August 2024 Feni floods; its date and method are not stated"
+  },
+  "totals": {
+    "flood_km2": 21.7,
+    "patches": 1159,
+    "aoi_km2": 929.3,
+    "data_coverage_pct": 100.0
+  },
+  "by_upazila": [
+    {
+      "name": "Fulgazi",
+      "flood_km2": 5.1,
+      "upazila_km2": 103.0,
+      "share_pct": 4.9
+    },
+    {
+      "name": "Parashuram",
+      "flood_km2": 4.4,
+      "upazila_km2": 101.5,
+      "share_pct": 4.4
+    },
+    {
+      "name": "Chhagalnaiya",
+      "flood_km2": 5.1,
+      "upazila_km2": 135.1,
+      "share_pct": 3.8
+    },
+    {
+      "name": "Feni Sadar",
+      "flood_km2": 4.1,
+      "upazila_km2": 214.3,
+      "share_pct": 1.9
+    },
+    {
+      "name": "Sonagazi",
+      "flood_km2": 2.5,
+      "upazila_km2": 234.6,
+      "share_pct": 1.1
+    },
+    {
+      "name": "Daganbhuiyan",
+      "flood_km2": 0.5,
+      "upazila_km2": 141.1,
+      "share_pct": 0.4
+    }
+  ]
+}
