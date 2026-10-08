@@ -446,6 +446,14 @@
   #progress { margin-top: 0.6rem; font-size: 1rem; font-weight: 700; min-height: 1.5em; }
   #gate label.file { display: block; margin-top: var(--s4); font-size: 0.95rem; font-weight: 600; }
   #gate input[type=file] { display: block; margin-top: 0.4rem; font-size: 0.95rem; width: 100%; }
+  /* The map's label. Red only for the one line that needs attention: a map older than it should be. */
+  #label h1 { margin-top: 0; }                /* the brand is already in the bar above */
+  #label dl.meta { gap: 0.55rem 0.9rem; font-size: 0.95rem; }
+  #label dd small { display: block; font-size: 0.82rem; color: var(--dim); }
+  #label .warn { display: block; color: var(--red-ink); font-weight: 700; }
+  #label .code { font-family: var(--mono); font-size: 1.15rem; letter-spacing: 0.08em; }
+  /* Pinned to the bottom of the screen while the label scrolls, so a small phone never hides it. */
+  #label .btn { margin-top: var(--s4); position: sticky; bottom: 0.5rem; box-shadow: var(--e1); }
 
   /* ================= smaller and shorter phones ================= */
   /* Narrow phones: the card's two labels become their marks alone - the same hatched swatch and red
@@ -601,7 +609,7 @@
   </nav>
 
   <section id="gate">
-    <div class="gate-inner">
+    <div class="gate-inner" id="gate-packs">
       <svg class="gate-logo" aria-hidden="true"><use href="#logo"/></svg>
       <p class="gate-word"><b>INGITO</b><span lang="bn">ইঙ্গিত</span></p>
       <h1 data-t="gateTitle"></h1>
@@ -611,6 +619,15 @@
       <label class="file"><span data-t="openFile"></span>
         <input type="file" id="pack-file" accept=".json,application/json">
       </label>
+    </div>
+    <!-- The map's label: every time a pack opens, what it is - before anyone relies on it. -->
+    <div class="gate-inner" id="label" hidden>
+      <h1 id="label-title"></h1>
+      <p class="sub" data-t="labelSub"></p>
+      <div class="card">
+        <dl class="meta" id="label-rows"></dl>
+        <button class="btn wide primary" id="label-open" data-t="openMap"></button>
+      </div>
     </div>
   </section>
 </div>

@@ -98,11 +98,16 @@ fingerprint}]}`
 - Adding a key is not a format change. Removing a key or changing what one means is, and raises
   the major version (`ingito.pack/2`).
 - Spec, **not yet built**: the app refuses a higher major version with "This pack was made by a
-  newer version of Ingito"; older versions are migrated in code, never thrown away; an imported
-  file's fingerprint is computed and shown, and a cut-short or altered file is refused.
-- **Today** the app checks only that the file is readable JSON, that `format` starts with
+  newer version of Ingito"; older versions are migrated in code, never thrown away; a cut-short or
+  altered file is refused.
+- **Today** the app checks that the file is readable JSON, that `format` starts with
   `ingito.pack/`, and that `observation`, `context`, `coverage`, `terrain` and `hazard` are present
-  (`app/app.js`, `openPack`). It does not compute or show the fingerprint.
+  (`app/app.js`, `openPack`). It works out the fingerprint from the pack text it holds and shows it
+  on the map's label (shown every time a pack opens) and in Source › This device. It compares the
+  code with nothing: two phones are checked by people reading their codes aloud. Where the browser
+  has no `crypto.subtle` (a page opened from a local file), no code is shown.
+- A published build embeds the pack file's exact text (`window.INGITO_PACK_TEXT`, written by
+  `pipeline/embed_pack.py`), so it shows the same code as `packs/index.json`.
 
 ## Not in the format yet
 

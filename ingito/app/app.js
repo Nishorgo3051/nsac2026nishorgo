@@ -40,8 +40,10 @@ const FLY_MS = 520;                   // gliding to a place the operator picked
 const REVEAL_MS = 700;                // the before/after line opening
 const PANELS = ["layers", "alerts", "area", "reports", "source"];
 /* A published build (an artifact page, or a single HTML file sent to somebody) has no packs folder
-   to fetch from, so the pack can be embedded in the page instead. */
-const EMBEDDED = globalThis.INGITO_PACK || null;
+   to fetch from, so the pack can be embedded in the page instead - as the pack file's exact text,
+   so the fingerprint worked out from it matches the one recorded when the pack was built. */
+const EMBEDDED_TEXT = typeof globalThis.INGITO_PACK_TEXT === "string" ? globalThis.INGITO_PACK_TEXT : null;
+const FRESH_DAYS = 3;                 // older than this, the map's label warns the water may have moved
 const FONT = '"Inter", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif';
 
 /*
@@ -204,6 +206,16 @@ const STRINGS = {
     deleteAll: "Delete all reports", deleteAllArmed: (n) => `Tap again to delete all ${n}`,
     downloadPack: "Download this pack",
     mapArea: (km2) => `map area ${km2} km²`,
+    labelSub: "A satellite flood map that works with no signal. Check what it shows before you rely on it.",
+    labelRows: { seen: "Radar saw this", age: "Age", covers: "Covers", shows: "Shows", code: "File code" },
+    labelSeen: (date, time, platform) => `${date}${time ? `, ${time}` : ""} · ${platform}`,
+    ageLine: (days, n) => (days < 1 ? "Seen today" : days === 1 ? "1 day old" : `${n} days old`),
+    oldWarn: (n) => `Older than ${n} days: the water may have moved since.`,
+    coversLine: (km2, n) => `${km2} km² · ${n} upazilas`,
+    showsLine: "Open water seen by radar only. It misses water under trees and between houses.",
+    codeNote: "Read it aloud: a phone holding the same map shows the same code.",
+    codeWorking: "working it out…",
+    openMap: "Open the map",
     noPacks: "No pack on this device, and no pack list reachable.",
     noPacksHelp: "Open a pack file below, or connect and reload.",
     starting: "starting the download…",
@@ -334,6 +346,16 @@ const STRINGS = {
     deleteAll: "সব রিপোর্ট মুছুন", deleteAllArmed: (n) => `সব ${n}টি মুছতে আবার চাপুন`,
     downloadPack: "প্যাকটি নামিয়ে রাখুন",
     mapArea: (km2) => `মানচিত্রের এলাকা ${km2} বর্গকিমি`,
+    labelSub: "নেটওয়ার্ক ছাড়াই চলে এমন স্যাটেলাইট বন্যা-মানচিত্র। ভরসা করার আগে দেখে নিন এতে কী আছে।",
+    labelRows: { seen: "রাডারে দেখা", age: "কত পুরোনো", covers: "এলাকা", shows: "যা দেখায়", code: "ফাইল কোড" },
+    labelSeen: (date, time, platform) => `${date}${time ? `, ${time}` : ""} · ${platform}`,
+    ageLine: (days, n) => (days < 1 ? "আজকের" : `${n} দিন আগের`),
+    oldWarn: (n) => `${n} দিনের বেশি পুরোনো: এর মধ্যে পানি বেড়ে বা সরে যেতে পারে।`,
+    coversLine: (km2, n) => `${km2} বর্গকিমি · ${n}টি উপজেলা`,
+    showsLine: "শুধু রাডারে দেখা খোলা পানি। গাছপালার নিচে বা ঘরবাড়ির ফাঁকে জমা পানি রাডারে ধরা পড়ে না।",
+    codeNote: "জোরে পড়ে শোনান: একই মানচিত্র থাকলে অন্য ফোনেও এই কোডই দেখাবে।",
+    codeWorking: "হিসাব হচ্ছে…",
+    openMap: "মানচিত্র খুলুন",
     noPacks: "এই ফোনে কোনো প্যাক নেই, প্যাকের তালিকাও পাওয়া যাচ্ছে না।",
     noPacksHelp: "নিচে প্যাক ফাইল খুলুন, অথবা নেট চালু করে আবার লোড করুন।",
     starting: "নামানো শুরু হচ্ছে…",
@@ -369,6 +391,7 @@ const state = {
   hits: [],                                // the search results on screen
   images: {},                              // optical, before, during, terrain
   source: null,                            // {key, file, kept}: where the pack was loaded from
+  fingerprint: undefined,                  // "CF29-FDAD"; undefined while worked out, null if it cannot be
   found: undefined,                        // the pack list, kept so the gate can re-render
   view: { lon: 0, lat: 0, ppd: 1 },        // ppd = device pixels per degree of latitude
   fix: null,                               // {lon, lat, accuracy} from the device GPS
@@ -485,6 +508,21 @@ async function cachePack(text) {
     return true;
   } catch (error) {
     return false;
+  }
+}
+
+/* The pack's fingerprint, as packs/index.json records it: the first 8 hex characters of the SHA-256
+   of the file's exact bytes, grouped 4-4 (e.g. CF29-FDAD). Short enough to read aloud, so two teams
+   can check they hold the same map. The text's UTF-8 bytes are the file's bytes (packs are plain
+   ASCII). Where the browser has no crypto.subtle - a page opened from a local file - there is no
+   code at all, rather than one this phone did not work out. */
+async function fingerprintOf(text) {
+  try {
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    const hex = [...new Uint8Array(digest, 0, 4)].map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+    return `${hex.slice(0, 4)}-${hex.slice(4)}`;
+  } catch (error) {
+    return null;
   }
 }
 
@@ -1743,10 +1781,38 @@ function renderSource() {
         <dt>${L.pack}</dt><dd>${esc(pack.pack_id)} &mdash; ${esc(bn ? pack.name_bn || pack.name : pack.name)}</dd>
         <dt>${L.built}</dt><dd>${fmtDate(pack.built_on)}</dd>
         <dt>${L.loaded}</dt><dd>${esc(sourceText())}</dd>
+        ${state.fingerprint ? `<dt>${text.labelRows.code}</dt><dd>${state.fingerprint}</dd>` : ""}
         <dt>${L.network}</dt><dd>${text.linkWords[state.link]}</dd>
       </dl>
       <p class="plain">${kept ? text.offlineReady : text.offlineNot}</p>
     </details>`;
+}
+
+/*
+  The map's label: what this pack is, read before the map is trusted. It opens with every pack,
+  because a pack can be a file passed from phone to phone, and an old map in a new flood misleads.
+  Everything on it comes from the pack itself, or is worked out from it on this phone.
+*/
+function renderLabel() {
+  const pack = state.pack;
+  const o = pack.observation;
+  const text = S();
+  const days = ageInDays(o.acquisition_date);
+  const rows = [
+    [text.labelRows.seen, esc(text.labelSeen(fmtDate(o.acquisition_date), passClock(o.acquisition_time_utc),
+                                             o.platform || o.sensor))],
+    [text.labelRows.age, days === null ? "&mdash;" : esc(text.ageLine(days, count(days))) +
+      (days > FRESH_DAYS ? `<b class="warn">${esc(text.oldWarn(num(FRESH_DAYS)))}</b>` : "")],
+    [text.labelRows.covers, esc(text.coversLine(num(pack.coverage.area_km2), num((pack.areas || []).length)))],
+    [text.labelRows.shows, esc(text.showsLine)],
+  ];
+  // Where this phone cannot work the code out, there is no code line at all - never one it did not check.
+  if (state.fingerprint !== null) {
+    rows.push([text.labelRows.code, state.fingerprint
+      ? `<b class="code">${state.fingerprint}</b><small>${esc(text.codeNote)}</small>` : esc(text.codeWorking)]);
+  }
+  el("label-title").textContent = state.lang === "bn" ? pack.name_bn || pack.name : pack.name;
+  el("label-rows").innerHTML = rows.map(([term, value]) => `<dt>${term}</dt><dd>${value}</dd>`).join("");
 }
 
 function sourceText() {
@@ -2130,6 +2196,7 @@ function applyLang() {
   renderNote();
   if (!el("results").hidden) renderResults();
   if (state.found !== undefined && !el("gate").hidden) renderGate();
+  if (state.pack && !el("label").hidden) renderLabel();
   draw();
   if (document.fonts?.ready) document.fonts.ready.then(draw);   // map labels in the new script
 }
@@ -2181,6 +2248,13 @@ function openPack(text, source) {
   state.pack = pack;
   state.source = source;
   state.stats = stats;
+  state.fingerprint = undefined;
+  fingerprintOf(text).then((code) => {
+    if (state.pack !== pack) return;               // another pack was opened meanwhile
+    state.fingerprint = code;
+    if (!el("label").hidden) renderLabel();
+    if (state.panel === "source") renderSource();
+  });
   state.index = buildIndex(pack);
   state.images = {
     terrain: picture(pack.terrain?.image),
@@ -2189,7 +2263,10 @@ function openPack(text, source) {
     during: picture(pack.imagery?.radar?.during?.image),
   };
 
-  el("gate").hidden = true;
+  // The label first, over the map: what this pack is, before anyone relies on it.
+  el("gate-packs").hidden = true;
+  el("label").hidden = false;
+  el("gate").hidden = false;
   el("reticle").hidden = false;
   el("top").hidden = false;
   el("controls").hidden = false;
@@ -2202,6 +2279,7 @@ function openPack(text, source) {
   // standing empty.
   if (wide() && !state.panel) togglePanel("alerts");
   applyLang();
+  el("label-open").focus({ preventScroll: true });
 }
 
 async function listPacks() {
@@ -2309,14 +2387,17 @@ async function boot() {
   }
 
   // A published page carries its own pack. If this device holds an OLDER copy of that same pack,
-  // the page's copy wins - otherwise an updated page would keep showing last week's pack. A
-  // different pack the operator opened by hand is never replaced.
+  // the page's copy wins - otherwise an updated page would keep showing last week's pack. So does
+  // the same build stored as re-written text by an earlier version of the page, whose fingerprint
+  // would not match. A different pack the operator opened by hand is never replaced.
   const superseded = (text) => {
+    if (!EMBEDDED_TEXT || text === EMBEDDED_TEXT) return false;
     try {
       const head = JSON.parse(text);
+      const page = JSON.parse(EMBEDDED_TEXT);
       // built_at is to the second; older packs only carry the day, which still sorts earlier.
-      return Boolean(EMBEDDED) && head.pack_id === EMBEDDED.pack_id &&
-        String(head.built_at || head.built_on) < String(EMBEDDED.built_at || EMBEDDED.built_on);
+      return head.pack_id === page.pack_id &&
+        String(head.built_at || head.built_on) <= String(page.built_at || page.built_on);
     } catch (error) {
       return false;
     }
@@ -2333,11 +2414,10 @@ async function boot() {
   }
 
   const found = await listPacks();
-  if ((!found || !found.list.length) && EMBEDDED) {
+  if ((!found || !found.list.length) && EMBEDDED_TEXT) {
     try {
-      const text = JSON.stringify(EMBEDDED);
-      const kept = await cachePack(text);
-      openPack(text, { key: kept ? "embeddedKept" : "embedded" });
+      const kept = await cachePack(EMBEDDED_TEXT);
+      openPack(EMBEDDED_TEXT, { key: kept ? "embeddedKept" : "embedded" });
       startWatching();
       return;
     } catch (error) {
@@ -2447,6 +2527,7 @@ function bind() {
   el("btn-water").addEventListener("click", () => addReport("water_here"));
   el("btn-road").addEventListener("click", () => addReport("road_cut"));
   el("confirm-undo").addEventListener("click", undoLast);
+  el("label-open").addEventListener("click", () => { el("gate").hidden = true; });
   el("confirm-text").addEventListener("click", hideNote);
   for (const key of ["layers", "alerts", "reports", "source"]) {
     el(`tool-${key}`).addEventListener("click", () => togglePanel(key));
