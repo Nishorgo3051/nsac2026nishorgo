@@ -343,7 +343,7 @@
   .act .n { font-size: 0.76rem; font-weight: 500; opacity: 0.88; }
 
   /* ================= four ways in ================= */
-  #nav { grid-area: nav; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  #nav { grid-area: nav; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
   #nav button {
     position: relative; height: 3.4rem; display: grid; place-content: center; justify-items: center; gap: 0.1rem;
     font-size: 0.72rem; font-weight: 600; color: var(--dim);
@@ -446,6 +446,18 @@
   #progress { margin-top: 0.6rem; font-size: 1rem; font-weight: 700; min-height: 1.5em; }
   #gate label.file { display: block; margin-top: var(--s4); font-size: 0.95rem; font-weight: 600; }
   #gate input[type=file] { display: block; margin-top: 0.4rem; font-size: 0.95rem; width: 100%; }
+  /* Packs: the area as one row of choices, and the exact size pinned to the bottom of the sheet. */
+  .pills { display: flex; flex-wrap: wrap; gap: var(--s2); }
+  .pills button { min-height: var(--tap); padding: 0 var(--s3); border-radius: var(--r-pill); border: 1.5px solid var(--line); font-weight: 600; font-size: 0.9rem; }
+  .pills button[aria-pressed="true"] { background: var(--action-bg); border-color: var(--action-bg); color: var(--action-ink); }
+  .lrow[aria-disabled="true"] { cursor: default; }
+  .cutbar {
+    position: sticky; bottom: -1.2rem; display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+    margin: var(--s4) -0.9rem -1.2rem; padding: 0.6rem 0.9rem; background: var(--surface); border-top: 1px solid var(--line); font-weight: 700;
+  }
+  .cutbar span { white-space: nowrap; }
+  .cutbar .btn { flex: 1 1 auto; }
+
   /* The map's label. Red only for the one line that needs attention: a map older than it should be. */
   #label h1 { margin-top: 0; }                /* the brand is already in the bar above */
   #label dl.meta { gap: 0.55rem 0.9rem; font-size: 0.95rem; }
@@ -582,6 +594,7 @@
   <section class="panel" id="panel-area" hidden></section>
   <section class="panel" id="panel-reports" hidden></section>
   <section class="panel" id="panel-source" hidden></section>
+  <section class="panel" id="panel-packs" hidden></section>
 
   <!-- EARTH, SIGNAL, INSIGHT for the point under the reticle - then ACTION, one tap away. -->
   <section id="sheet" hidden>
@@ -606,6 +619,7 @@
     <button id="tool-area" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-area"/></svg><span data-t="area"></span></button>
     <button id="tool-reports" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-reports"/></svg><span data-t="reports"></span><span class="badge" id="nav-count" hidden></span></button>
     <button id="tool-source" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-source"/></svg><span data-t="source"></span></button>
+    <button id="tool-packs" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg><span data-t="packs"></span></button>
   </nav>
 
   <section id="gate">

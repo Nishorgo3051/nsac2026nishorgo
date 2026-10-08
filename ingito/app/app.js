@@ -38,7 +38,7 @@ const GROUND_NEAR_M = 300;            // field reports this close count as "here
 const NEAR_PLACE_M = 4000;            // a village this close names where the reticle is
 const FLY_MS = 520;                   // gliding to a place the operator picked
 const REVEAL_MS = 700;                // the before/after line opening
-const PANELS = ["layers", "alerts", "area", "reports", "source"];
+const PANELS = ["layers", "alerts", "area", "reports", "source", "packs"];
 /* A published build (an artifact page, or a single HTML file sent to somebody) has no packs folder
    to fetch from, so the pack can be embedded in the page instead - as the pack file's exact text,
    so the fingerprint worked out from it matches the one recorded when the pack was built. */
@@ -211,11 +211,26 @@ const STRINGS = {
     labelSeen: (date, time, platform) => `${date}${time ? `, ${time}` : ""} · ${platform}`,
     ageLine: (days, n) => (days < 1 ? "Seen today" : days === 1 ? "1 day old" : `${n} days old`),
     oldWarn: (n) => `Older than ${n} days: the water may have moved since.`,
-    coversLine: (km2, n) => `${km2} km² · ${n} upazilas`,
+    coversLine: (km2, n, one) => `${km2} km² · ${n} upazila${one ? "" : "s"}`,
     showsLine: "Open water seen by radar only. It misses water under trees and between houses.",
     codeNote: "Read it aloud: a phone holding the same map shows the same code.",
     codeWorking: "working it out…",
     openMap: "Open the map",
+    cutFrom: "Cut from",
+    packs: "Packs", packsHere: "On this phone",
+    packLine: (mb, code) => `${mb} MB${code ? ` · file code ${code}` : ""}`,
+    savePack: "Save as a file", openOther: "Open another pack", backToFull: "Reopen the full pack",
+    packsNote: "Pass a saved pack to another phone with Quick Share or Bluetooth, and open it there with Open another pack. Opening a pack replaces the one on this phone; your reports stay.",
+    cutTitle: "Make a smaller pack",
+    cutWhen: (date) => `Radar observation: ${date}, the only one in this pack.`,
+    cutArea: "Area", wholeDistrict: "Whole district", cutInfo: "Information",
+    cutRows: { flood: "Water seen by radar", pictures: "Satellite pictures", roads: "Roads",
+               reference: "Rivers, places and terrain", shelters: "Shelter points (unverified)" },
+    cutSubs: { flood: "Always included: without it the card would say radar saw no water",
+               pictures: "The photo and the before / after radar", roads: "With the stretches through radar water",
+               reference: "For finding your way", shelters: "Mosques, schools, clinics" },
+    cutSize: (mb, of) => `${mb} MB of ${of} MB`,
+    saveCut: "Save the smaller pack",
     noPacks: "No pack on this device, and no pack list reachable.",
     noPacksHelp: "Open a pack file below, or connect and reload.",
     starting: "starting the download…",
@@ -356,6 +371,21 @@ const STRINGS = {
     codeNote: "জোরে পড়ে শোনান: একই মানচিত্র থাকলে অন্য ফোনেও এই কোডই দেখাবে।",
     codeWorking: "হিসাব হচ্ছে…",
     openMap: "মানচিত্র খুলুন",
+    cutFrom: "যে প্যাক থেকে কাটা",
+    packs: "প্যাক", packsHere: "এই ফোনে",
+    packLine: (mb, code) => `${mb} MB${code ? ` · ফাইল কোড ${code}` : ""}`,
+    savePack: "ফাইল হিসেবে সেভ করুন", openOther: "অন্য প্যাক খুলুন", backToFull: "পুরো প্যাক আবার খুলুন",
+    packsNote: "সেভ করা প্যাক Quick Share বা ব্লুটুথে অন্য ফোনে পাঠান, সেখানে ‘অন্য প্যাক খুলুন’ দিয়ে খুলুন। নতুন প্যাক খুললে এই ফোনের আগের প্যাকটি সরে যায়; আপনার রিপোর্ট থেকে যায়।",
+    cutTitle: "ছোট প্যাক বানান",
+    cutWhen: (date) => `রাডারের পর্যবেক্ষণ: ${date}, এই প্যাকে এটিই একমাত্র।`,
+    cutArea: "এলাকা", wholeDistrict: "পুরো জেলা", cutInfo: "তথ্য",
+    cutRows: { flood: "রাডারে দেখা পানি", pictures: "স্যাটেলাইট ছবি", roads: "রাস্তা",
+               reference: "নদী, জায়গার নাম ও ভূমির উঁচু-নিচু", shelters: "আশ্রয়ের জায়গা (যাচাই হয়নি)" },
+    cutSubs: { flood: "সব সময় থাকে: এটি না থাকলে কার্ড বলবে রাডারে পানি ধরা পড়েনি",
+               pictures: "ছবি আর রাডারের আগে / পরে", roads: "রাডারে দেখা পানির ওপর দিয়ে যাওয়া অংশসহ",
+               reference: "পথ চেনার জন্য", shelters: "মসজিদ, স্কুল, ক্লিনিক" },
+    cutSize: (mb, of) => `${of} MB-এর মধ্যে ${mb} MB`,
+    saveCut: "ছোট প্যাকটি সেভ করুন",
     noPacks: "এই ফোনে কোনো প্যাক নেই, প্যাকের তালিকাও পাওয়া যাচ্ছে না।",
     noPacksHelp: "নিচে প্যাক ফাইল খুলুন, অথবা নেট চালু করে আবার লোড করুন।",
     starting: "নামানো শুরু হচ্ছে…",
@@ -392,6 +422,8 @@ const state = {
   images: {},                              // optical, before, during, terrain
   source: null,                            // {key, file, kept}: where the pack was loaded from
   fingerprint: undefined,                  // "CF29-FDAD"; undefined while worked out, null if it cannot be
+  packText: "",                            // the open pack's exact text
+  cut: null,                               // {area, keep}: the choices in Packs > Make a smaller pack
   found: undefined,                        // the pack list, kept so the gate can re-render
   view: { lon: 0, lat: 0, ppd: 1 },        // ppd = device pixels per degree of latitude
   fix: null,                               // {lon, lat, accuracy} from the device GPS
@@ -607,23 +639,27 @@ function viewAt(lon, lat, metres) {
 const OPEN_SPAN_M = 6000;           // across the shorter side of the map
 
 function openOnWater(pack) {
-  const features = pack.observation.features || [];
-  if (!features.length) {
-    state.view = viewFor(pack.coverage.bbox, 0.94);
-    return;
-  }
-  const ring = features.reduce((a, b) => (b.km2 > a.km2 ? b : a)).rings[0];
-  const [west, south, east, north] = boxOf([ring]);
-  let best = null;
-  for (let i = 1; i < 20; i++) {
-    for (let j = 1; j < 20; j++) {
-      const lon = west + ((east - west) * i) / 20;
-      const lat = south + ((north - south) * j) / 20;
-      const off = (i - 10) ** 2 + (j - 10) ** 2;
-      if ((!best || off < best.off) && inRing(ring, lon, lat)) best = { lon, lat, off };
+  // Biggest first, and only water inside the pack's own upazilas: a pack cut to one upazila also
+  // holds patches just over its edge, and must not open on one of those.
+  const features = [...(pack.observation.features || [])].sort((a, b) => b.km2 - a.km2);
+  for (const feature of features) {
+    const ring = feature.rings[0];
+    const [west, south, east, north] = boxOf([ring]);
+    let best = null;
+    for (let i = 1; i < 20; i++) {
+      for (let j = 1; j < 20; j++) {
+        const lon = west + ((east - west) * i) / 20;
+        const lat = south + ((north - south) * j) / 20;
+        const off = (i - 10) ** 2 + (j - 10) ** 2;
+        if ((!best || off < best.off) && inRing(ring, lon, lat)) best = { lon, lat, off };
+      }
+    }
+    if (best && areaAt([best.lon, best.lat])) {
+      state.view = viewAt(best.lon, best.lat, OPEN_SPAN_M);
+      return;
     }
   }
-  state.view = best ? viewAt(best.lon, best.lat, OPEN_SPAN_M) : viewFor(pack.coverage.bbox, 0.94);
+  state.view = viewFor(pack.coverage.bbox, 0.94);       // no flood, or none inside: the whole pack
 }
 
 /* Zoom about a point on screen (device pixels), so the ground under a pinch or cursor stays put. */
@@ -1502,6 +1538,7 @@ function refreshPanel() {
   if (state.panel === "area") renderArea();
   if (state.panel === "source") renderSource();
   if (state.panel === "reports") renderReports();
+  if (state.panel === "packs") renderPacks();
 }
 
 function sheetHead(title) {
@@ -1537,7 +1574,8 @@ function renderLayers() {
     shelters: (pack.context.shelters || []).length, admin: (pack.areas || []).length, reports: state.reports.length,
   };
   const groups = [
-    ["earth", [...(pack.imagery ? ["photo"] : []), "terrain", "waterways", "roads", "places", "shelters", "admin"]],
+    ["earth", [...(pack.imagery ? ["photo"] : []), ...(pack.terrain.image ? ["terrain"] : []),
+               "waterways", "roads", "places", "shelters", "admin"]],
     ["signal", ["flood"]],
     ["insight", ["wet"]],
     ["field", ["reports"]],
@@ -1589,14 +1627,16 @@ function renderAlerts() {
     </article>`;
   }).join("");
   el("panel-alerts").innerHTML = sheetHead(text.alertsTitle) +
-    `<p class="lead">${text.alertsLead(fmtDate(o.acquisition_date))}</p>
-     <article class="alert">
+    `<p class="lead">${text.alertsLead(fmtDate(o.acquisition_date))}</p>` +
+    // A pack cut to one upazila holds only part of the district's water and roads, so the district's
+    // totals would not describe it: only the upazila's own card is shown.
+    (pack.subset_of?.area ? "" : `<article class="alert">
        <p class="sev"><span class="bar" aria-hidden="true"></span><span class="level">${text.newWater}</span></p>
        <h3>${esc(text.districtTitle(admin.district))}</h3>
        <p class="when">${when}</p>
        <p class="why">${text.districtWhy(num(totals.flood_km2), count(totals.patches))}${text.roadsCross(num(state.stats.wetRoads), state.stats.wetRoads)}</p>
        <p class="basis"><span class="mk signal" aria-hidden="true"></span>${text.basis}</p>
-     </article>` + cards + `<p class="plain dim">${text.sevNote}</p>`;
+     </article>`) + cards + `<p class="plain dim">${text.sevNote}</p>`;
   el("panel-alerts").querySelectorAll("[data-area]").forEach((button) => {
     button.addEventListener("click", () => showArea(button.dataset.area));
   });
@@ -1803,9 +1843,14 @@ function renderLabel() {
                                              o.platform || o.sensor))],
     [text.labelRows.age, days === null ? "&mdash;" : esc(text.ageLine(days, count(days))) +
       (days > FRESH_DAYS ? `<b class="warn">${esc(text.oldWarn(num(FRESH_DAYS)))}</b>` : "")],
-    [text.labelRows.covers, esc(text.coversLine(num(pack.coverage.area_km2), num((pack.areas || []).length)))],
+    [text.labelRows.covers, esc(text.coversLine(num(pack.coverage.area_km2), num((pack.areas || []).length),
+                                                (pack.areas || []).length === 1))],
     [text.labelRows.shows, esc(text.showsLine)],
   ];
+  // A smaller pack always says which pack it was cut from, so its code can be traced back.
+  if (pack.subset_of) {
+    rows.push([text.cutFrom, esc([pack.subset_of.pack_id, pack.subset_of.fingerprint].filter(Boolean).join(" · "))]);
+  }
   // Where this phone cannot work the code out, there is no code line at all - never one it did not check.
   if (state.fingerprint !== null) {
     rows.push([text.labelRows.code, state.fingerprint
@@ -1813,6 +1858,143 @@ function renderLabel() {
   }
   el("label-title").textContent = state.lang === "bn" ? pack.name_bn || pack.name : pack.name;
   el("label-rows").innerHTML = rows.map(([term, value]) => `<dt>${term}</dt><dd>${value}</dd>`).join("");
+}
+
+/* The part of a pack picture inside a box, re-encoded as JPEG, with the bounds it now covers. Null
+   when the picture is not loaded or misses the box. */
+function cropPicture(image, [w0, s0, e0, n0], box) {
+  const [w, s, e, n] = [Math.max(box[0], w0), Math.max(box[1], s0), Math.min(box[2], e0), Math.min(box[3], n0)];
+  if (!image?.naturalWidth || w >= e || s >= n) return null;
+  const kx = image.naturalWidth / (e0 - w0);
+  const ky = image.naturalHeight / (n0 - s0);
+  const tile = document.createElement("canvas");
+  tile.width = Math.max(1, Math.round((e - w) * kx));
+  tile.height = Math.max(1, Math.round((n - s) * ky));
+  tile.getContext("2d").drawImage(image, (w - w0) * kx, (n0 - n) * ky, (e - w) * kx, (n - s) * ky,
+                                  0, 0, tile.width, tile.height);
+  return { image: tile.toDataURL("image/jpeg", 0.9), bounds: [w, s, e, n] };
+}
+
+/*
+  A smaller pack, cut on this phone from the pack it holds: one upazila or the whole district, and
+  only the information chosen. Nothing is re-measured or added: layers are left out, lines and
+  points outside the area are dropped (a line crossing the edge is kept whole) and pictures are
+  cropped to it. The radar's water is always kept - without it the card would answer "radar saw
+  no water" everywhere. The figures in `observation` stay the district's, as measured.
+*/
+function cutPack(pack, areaName, keep) {
+  const area = (pack.areas || []).find((candidate) => candidate.name === areaName);
+  const box = area ? boxOf(area.rings) : pack.coverage.bbox;
+  const meets = (coords) => coords.length > 0 && boxesMeet(boxOf([coords]), box);
+  const inside = (point) => inBox(box, point.lon, point.lat);
+  const root = pack.subset_of || { pack_id: pack.pack_id, fingerprint: state.fingerprint || null };
+  const o = pack.observation;
+  const c = pack.context;
+  let imagery;
+  if (keep.pictures && pack.imagery) {
+    const img = pack.imagery;
+    const [optical, before, during] = area
+      ? [state.images.optical, state.images.before, state.images.during].map((image) => cropPicture(image, img.bounds, box))
+      : [];
+    if (!area) imagery = img;
+    else if (optical && before && during) {
+      imagery = { ...img, bounds: optical.bounds, optical: { ...img.optical, image: optical.image },
+                  radar: { ...img.radar, before: { ...img.radar.before, image: before.image },
+                           during: { ...img.radar.during, image: during.image } } };
+    }
+  }
+  const terrain = keep.reference
+    ? (area ? cropPicture(state.images.terrain, pack.terrain.bounds, box) : pack.terrain) : null;
+  const features = (o.features || []).filter((feature) => boxesMeet(boxOf(feature.rings), box));
+  return {
+    ...pack,
+    pack_id: `${root.pack_id}-${area ? area.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "district"}`,
+    name: area ? `${pack.name} · ${area.name}` : pack.name,
+    name_bn: area ? `${pack.name_bn || pack.name} · ${area.name_bn || area.name}` : pack.name_bn,
+    subset_of: { pack_id: root.pack_id, fingerprint: root.fingerprint, area: area ? area.name : null },
+    coverage: area ? { bbox: box, area_km2: area.km2, places: [area.name] } : pack.coverage,
+    areas: area ? [area] : pack.areas,
+    observation: { ...o, features, feature_count: features.length },
+    context: { ...c,
+               roads: keep.roads ? (c.roads || []).filter((road) => meets(road.coords)) : [],
+               waterways: keep.reference ? (c.waterways || []).filter((way) => meets(way.coords)) : [],
+               places: keep.reference ? (c.places || []).filter(inside) : [],
+               shelters: keep.shelters ? (c.shelters || []).filter(inside) : [] },
+    terrain: { ...pack.terrain, bounds: terrain?.bounds || pack.terrain.bounds, image: terrain?.image },
+    imagery,
+  };
+}
+
+/* Hands a file to the phone as a download; from there its share menu can send it on. */
+function saveFile(text, name) {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 60000);
+}
+
+/*
+  Packs: the pack on this phone - save it to pass on, or open another - and a smaller pack cut from
+  it. The size shown is the exact size of the file that would be saved, not an estimate.
+*/
+function renderPacks() {
+  const pack = state.pack;
+  const text = S();
+  const areas = pack.areas || [];
+  const mb = (words) => num((new Blob([words]).size / 1048576).toFixed(1));
+  if (!state.cut) state.cut = { area: state.here, keep: { pictures: true, roads: true, reference: true, shelters: true } };
+  if (!areas.some((area) => area.name === state.cut.area)) state.cut.area = "";
+  const { area, keep } = state.cut;
+  const cut = cutPack(pack, area, keep);
+  state.cutText = JSON.stringify(cut);
+  const pill = (name, label) => `<button aria-pressed="${area === name}" data-cut-area="${esc(name)}">${esc(label)}</button>`;
+  const row = (key, mark) => `<button class="lrow" role="switch" aria-checked="${key === "flood" || keep[key]}"
+      ${key === "flood" ? 'aria-disabled="true"' : `data-cut-keep="${key}"`}>${icon(mark)}
+      <span class="txt"><b>${text.cutRows[key]}</b><small>${text.cutSubs[key]}</small></span>
+      <span class="switch" aria-hidden="true"></span></button>`;
+  el("panel-packs").innerHTML = sheetHead(text.packs) + `
+    <p class="sec">${text.packsHere}</p>
+    <p class="plain"><b>${esc(state.lang === "bn" ? pack.name_bn || pack.name : pack.name)}</b><br>
+      ${esc(text.packLine(mb(state.packText), state.fingerprint))}</p>
+    <div class="btns">
+      <button class="btn primary" id="pack-save">${text.savePack}</button>
+      <button class="btn" id="pack-other-btn">${text.openOther}</button>
+    </div>
+    <input type="file" id="pack-other" accept=".json,application/json" hidden>
+    ${EMBEDDED_TEXT && state.packText !== EMBEDDED_TEXT ? `<button class="btn wide" id="pack-full">${text.backToFull}</button>` : ""}
+    <p class="plain" id="packs-say" role="status"></p>
+    <p class="plain dim">${text.packsNote}</p>
+    <p class="sec">${text.cutTitle}</p>
+    <p class="plain dim">${text.cutWhen(fmtDate(pack.observation.acquisition_date))}</p>
+    <p class="group">${text.cutArea}</p>
+    <div class="pills">${pill("", text.wholeDistrict)}${areas.map((one) => pill(one.name, areaLabel(one))).join("")}</div>
+    <p class="group">${text.cutInfo}</p>
+    ${row("flood", "flood")}${pack.imagery ? row("pictures", "photo") : ""}${row("roads", "roads")}${row("reference", "waterways")}${row("shelters", "shelters")}
+    <div class="cutbar"><span>${text.cutSize(mb(state.cutText), mb(state.packText))}</span>
+      <button class="btn primary" id="cut-save">${text.saveCut}</button></div>`;
+
+  const panel = el("panel-packs");
+  el("pack-save").addEventListener("click", () => saveFile(state.packText, `${pack.pack_id}.pack.json`));
+  el("pack-other-btn").addEventListener("click", () => el("pack-other").click());
+  el("pack-other").addEventListener("change", (event) =>
+    openPackFile(event.target.files[0], (words) => { if (el("packs-say")) el("packs-say").textContent = words; }));
+  el("pack-full")?.addEventListener("click", async () => {
+    openPack(EMBEDDED_TEXT, { key: "embedded" });
+    if (await cachePack(EMBEDDED_TEXT)) state.source.key = "embeddedKept";
+  });
+  el("cut-save").addEventListener("click", () => saveFile(state.cutText, `${cut.pack_id}.pack.json`));
+  // Each choice redraws the sheet with the new exact size, and puts the focus back where it was.
+  panel.querySelectorAll("[data-cut-area]").forEach((button) => button.addEventListener("click", () => {
+    state.cut.area = button.dataset.cutArea;
+    renderPacks();
+    panel.querySelector(`[data-cut-area="${CSS.escape(state.cut.area)}"]`)?.focus();
+  }));
+  panel.querySelectorAll("[data-cut-keep]").forEach((button) => button.addEventListener("click", () => {
+    keep[button.dataset.cutKeep] = !keep[button.dataset.cutKeep];
+    renderPacks();
+    panel.querySelector(`[data-cut-keep="${button.dataset.cutKeep}"]`)?.focus();
+  }));
 }
 
 function sourceText() {
@@ -2248,6 +2430,7 @@ function openPack(text, source) {
   state.pack = pack;
   state.source = source;
   state.stats = stats;
+  state.packText = text;                           // saved as a file byte for byte, so its code holds
   state.fingerprint = undefined;
   fingerprintOf(text).then((code) => {
     if (state.pack !== pack) return;               // another pack was opened meanwhile
@@ -2427,20 +2610,24 @@ async function boot() {
 
   state.found = found;
   renderGate();
-  el("pack-file").addEventListener("change", async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    el("progress").textContent = S().reading(file.name);
-    try {
-      const text = await file.text();
-      const kept = await cachePack(text);
-      openPack(text, { key: "file", file: file.name, kept });
-      startWatching();
-      el("progress").textContent = "";
-    } catch (error) {
-      el("progress").textContent = S().notPack(error.message);
-    }
-  });
+  el("pack-file").addEventListener("change", (event) =>
+    openPackFile(event.target.files[0], (words) => { el("progress").textContent = words; }));
+}
+
+/* A pack file chosen on this phone. It is opened - and so checked - BEFORE it is stored, so a bad
+   file never replaces a good pack already on the device. */
+async function openPackFile(file, say) {
+  if (!file) return;
+  say(S().reading(file.name));
+  try {
+    const text = await file.text();
+    openPack(text, { key: "file", file: file.name, kept: false });
+    state.source.kept = await cachePack(text);
+    if (!state.watching) startWatching();
+    say("");
+  } catch (error) {
+    say(S().notPack(error.message));
+  }
 }
 
 /* ------------------------------------------------------------------ input */
@@ -2529,7 +2716,7 @@ function bind() {
   el("confirm-undo").addEventListener("click", undoLast);
   el("label-open").addEventListener("click", () => { el("gate").hidden = true; });
   el("confirm-text").addEventListener("click", hideNote);
-  for (const key of ["layers", "alerts", "reports", "source"]) {
+  for (const key of ["layers", "alerts", "reports", "source", "packs"]) {
     el(`tool-${key}`).addEventListener("click", () => togglePanel(key));
   }
   // The Area sheet is about wherever the reticle is - or the nearest upazila, from outside them.

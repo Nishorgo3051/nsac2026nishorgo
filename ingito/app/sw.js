@@ -12,7 +12,7 @@
 
 // Bump on every change to the shell files: the browser only re-installs this worker when this
 // file's bytes change, so without a bump a phone keeps serving the old page from its cache.
-const SHELL = "ingito-shell-v10";
+const SHELL = "ingito-shell-v11";
 // Marks replies this worker invents while offline, so the page's connectivity check can tell them
 // apart from real answers that came over the network.
 const OFFLINE_HEADER = { "Content-Type": "text/plain", "X-Ingito-Offline": "1" };

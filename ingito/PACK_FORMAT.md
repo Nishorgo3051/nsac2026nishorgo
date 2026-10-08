@@ -25,6 +25,7 @@ reference pack is 6.7 MB.
 | `imagery` | object? | Optical and radar pictures (below). Without it the app draws the map on a plain ground |
 | `areas` | list | `[{name, name_bn, km2, rings}]`: the parts (upazilas). `name_bn` is `""` when the config does not list it |
 | `usage` | string | One sentence: the pack needs no network once it is on the device |
+| `subset_of` | object? | Only in a smaller pack cut on a phone (Packs > Make a smaller pack): `{pack_id, fingerprint, area}` of the pack it was cut from; `area` is the upazila or `null` for the whole district. Its `observation` figures stay the original district's; its layers, `areas`, `coverage` and cropped pictures cover only what was kept |
 
 `rings` everywhere is a list of outer rings, each `[[lon, lat], ...]`. Holes are dropped; every
 area figure was measured on the full geometry before that.
