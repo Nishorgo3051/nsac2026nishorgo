@@ -43,7 +43,7 @@ const PANELS = ["layers", "alerts", "area", "reports", "source", "packs"];
    to fetch from, so the pack can be embedded in the page instead - as the pack file's exact text,
    so the fingerprint worked out from it matches the one recorded when the pack was built. */
 const EMBEDDED_TEXT = typeof globalThis.INGITO_PACK_TEXT === "string" ? globalThis.INGITO_PACK_TEXT : null;
-const FRESH_DAYS = 3;                 // older than this, the map's label warns the water may have moved
+const FRESH_DAYS = 3;                 // past this age the label adds its caution: a display choice, not a validity limit
 const FONT = '"Inter", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif';
 
 /*
@@ -210,7 +210,7 @@ const STRINGS = {
     labelRows: { seen: "Radar saw this", age: "Age", covers: "Covers", shows: "Shows", code: "File code" },
     labelSeen: (date, time, platform) => `${date}${time ? `, ${time}` : ""} · ${platform}`,
     ageLine: (days, n) => (days < 1 ? "Seen today" : days === 1 ? "1 day old" : `${n} days old`),
-    oldWarn: (n) => `Older than ${n} days: the water may have moved since.`,
+    oldWarn: "Conditions may have changed since this observation.",
     coversLine: (km2, n, one) => `${km2} km² · ${n} upazila${one ? "" : "s"}`,
     showsLine: "Open water seen by radar only. It misses water under trees and between houses.",
     codeNote: "Read it aloud: a phone holding the same map shows the same code.",
@@ -365,7 +365,7 @@ const STRINGS = {
     labelRows: { seen: "রাডারে দেখা", age: "কত পুরোনো", covers: "এলাকা", shows: "যা দেখায়", code: "ফাইল কোড" },
     labelSeen: (date, time, platform) => `${date}${time ? `, ${time}` : ""} · ${platform}`,
     ageLine: (days, n) => (days < 1 ? "আজকের" : `${n} দিন আগের`),
-    oldWarn: (n) => `${n} দিনের বেশি পুরোনো: এর মধ্যে পানি বেড়ে বা সরে যেতে পারে।`,
+    oldWarn: "এই পর্যবেক্ষণের পর পরিস্থিতি বদলে থাকতে পারে।",
     coversLine: (km2, n) => `${km2} বর্গকিমি · ${n}টি উপজেলা`,
     showsLine: "শুধু রাডারে দেখা খোলা পানি। গাছপালার নিচে বা ঘরবাড়ির ফাঁকে জমা পানি রাডারে ধরা পড়ে না।",
     codeNote: "জোরে পড়ে শোনান: একই মানচিত্র থাকলে অন্য ফোনেও এই কোডই দেখাবে।",
@@ -1842,7 +1842,7 @@ function renderLabel() {
     [text.labelRows.seen, esc(text.labelSeen(fmtDate(o.acquisition_date), passClock(o.acquisition_time_utc),
                                              o.platform || o.sensor))],
     [text.labelRows.age, days === null ? "&mdash;" : esc(text.ageLine(days, count(days))) +
-      (days > FRESH_DAYS ? `<b class="warn">${esc(text.oldWarn(num(FRESH_DAYS)))}</b>` : "")],
+      (days > FRESH_DAYS ? `<b class="warn">${esc(text.oldWarn)}</b>` : "")],
     [text.labelRows.covers, esc(text.coversLine(num(pack.coverage.area_km2), num((pack.areas || []).length),
                                                 (pack.areas || []).length === 1))],
     [text.labelRows.shows, esc(text.showsLine)],
