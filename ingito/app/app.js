@@ -30,6 +30,10 @@ const THEME_KEY = "ingito.theme.v2";          // v2: light/dark (v1 stored day/n
 const LANG_KEY = "ingito.lang.v1";
 const HINT_KEY = "ingito.hint.radar.v1";
 const INDEX_URLS = ["../packs/index.json", "packs/index.json"];
+/* Inside another site's frame (the claude.ai preview link) the browser silently blocks printing,
+   downloads and opening other apps. There, a tap on those buttons says so instead of doing nothing. */
+const FRAMED = (() => { try { return window.top !== window.self; } catch (error) { return true; } })();
+const OWN_ADDRESS = "https://nishorgo3051.github.io/nsac2026nishorgo/ingito/app/";
 const PROBE_EVERY_MS = 20000;
 const PROBE_TIMEOUT_MS = 4000;
 const DELETE_ALL_PAUSE_MS = 800;      // "tap again" must be a second decision, not a double tap
@@ -203,6 +207,22 @@ const STRINGS = {
     exportBtn: "Export for handover", saveFile: "Save the file",
     exportCopy: (n) => `${n} observations as GeoJSON. Copy this if the file cannot be saved:`,
     exportNone: "Nothing to export yet.",
+    smsSend: "Text my reports (SMS)",
+    smsNote: "Opens your messages app with your reports written in, or copy the message and paste it there yourself. Send it to the coordinator. Needs a little phone signal, not internet.",
+    smsCopy: "Copy the message",
+    smsCopied: "Copied. Open your messages app, paste it and send it to the coordinator.",
+    smsCopyHand: "Copy this by hand:",
+    framedNote: (url) => `This preview link blocks printing, saving files and opening other apps. They all work at Ingito's own address: ${url}`,
+    smsInTitle: "Reports someone texted you",
+    smsInHint: "Paste the whole message. Only Ingito report lines are read.",
+    smsAdd: "Add to the map",
+    smsAdded: (n, known) => `${n} report${n === "1" ? "" : "s"} added${known ? `, ${known} already here` : ""}.`,
+    smsNone: "No Ingito report lines in that text.",
+    smsNothingNew: (known) => `Nothing new: ${known === "1" ? "it is" : `all ${known} are`} already here.`,
+    bySms: "by text message",
+    printBtn: "Print this map",
+    printNote: "Prints what the screen shows now, with its date and file code. With no printer, choose Save as PDF.",
+    printFoot: (when) => `Printed ${when} from Ingito. North is up. Red marks are field reports, what people saw; they are not satellite data.`,
     deleteAll: "Delete all reports", deleteAllArmed: (n) => `Tap again to delete all ${n}`,
     downloadPack: "Download this pack",
     mapArea: (km2) => `map area ${km2} km²`,
@@ -358,6 +378,22 @@ const STRINGS = {
     exportBtn: "হস্তান্তরের ফাইল তৈরি করুন", saveFile: "ফাইলটি সেভ করুন",
     exportCopy: (n) => `${n}টি পর্যবেক্ষণ, GeoJSON ফরম্যাটে। ফাইল সেভ না হলে এটুকু কপি করে নিন:`,
     exportNone: "এক্সপোর্ট করার মতো কিছু এখনো নেই।",
+    smsSend: "রিপোর্টগুলো এসএমএসে পাঠান",
+    smsNote: "মেসেজ অ্যাপ খুলবে, রিপোর্টগুলো লেখা থাকবে; অথবা মেসেজটি কপি করে নিজেই সেখানে পেস্ট করুন। সমন্বয়কারীকে পাঠিয়ে দিন। ইন্টারনেট লাগে না, তবে মোবাইলে একটু নেটওয়ার্ক লাগে।",
+    smsCopy: "মেসেজটি কপি করুন",
+    smsCopied: "কপি হয়েছে। মেসেজ অ্যাপ খুলে পেস্ট করুন, তারপর সমন্বয়কারীকে পাঠান।",
+    smsCopyHand: "হাতে কপি করে নিন:",
+    framedNote: (url) => `এই প্রিভিউ লিংকে প্রিন্ট, ফাইল সেভ আর অন্য অ্যাপ খোলা বন্ধ থাকে। ইঙ্গিতের নিজের ঠিকানায় সবই কাজ করে: ${url}`,
+    smsInTitle: "এসএমএসে পাওয়া রিপোর্ট",
+    smsInHint: "পুরো মেসেজটি এখানে পেস্ট করুন। শুধু ইঙ্গিতের রিপোর্ট-লাইনগুলো পড়া হবে।",
+    smsAdd: "মানচিত্রে যোগ করুন",
+    smsAdded: (n, known) => `${n}টি রিপোর্ট যোগ হলো${known ? `, ${known}টি আগে থেকেই ছিল` : ""}।`,
+    smsNone: "এই লেখায় ইঙ্গিতের কোনো রিপোর্ট-লাইন নেই।",
+    smsNothingNew: (known) => `নতুন কিছু নেই: ${known}টিই আগে থেকে আছে।`,
+    bySms: "এসএমএসে পাওয়া",
+    printBtn: "মানচিত্রটি প্রিন্ট করুন",
+    printNote: "এখন পর্দায় যা আছে, তারিখ ও ফাইল কোডসহ প্রিন্ট হবে। প্রিন্টার না থাকলে Save as PDF বেছে নিন।",
+    printFoot: (when) => `${when}-এ ইঙ্গিত থেকে প্রিন্ট করা। মানচিত্রের উপরের দিক উত্তর। লাল চিহ্নগুলো মাঠের রিপোর্ট, মানুষের চোখে দেখা; স্যাটেলাইটের তথ্য নয়।`,
     deleteAll: "সব রিপোর্ট মুছুন", deleteAllArmed: (n) => `সব ${n}টি মুছতে আবার চাপুন`,
     downloadPack: "প্যাকটি নামিয়ে রাখুন",
     mapArea: (km2) => `মানচিত্রের এলাকা ${km2} বর্গকিমি`,
@@ -1128,10 +1164,12 @@ function drawReport(report, ratio) {
     ctx.lineTo(x - s * 1.15, y + s * 0.8);
     ctx.closePath();
   }
-  ctx.fillStyle = MAP.report;
+  // A report received by text message is drawn hollow: same shape, but plainly not this phone's own.
+  const received = report.via === "sms";
+  ctx.fillStyle = received ? MAP.reportEdge : MAP.report;
   ctx.fill();
   ctx.lineWidth = 2.4 * ratio;
-  ctx.strokeStyle = MAP.reportEdge;
+  ctx.strokeStyle = received ? MAP.report : MAP.reportEdge;
   ctx.stroke();
   ctx.beginPath();                         // the glyph: a wave, or a broken road
   if (report.type === "water_here") {
@@ -1145,7 +1183,7 @@ function drawReport(report, ratio) {
     ctx.lineTo(x + s * 0.6, y + s * 0.2);
   }
   ctx.lineWidth = 1.9 * ratio;
-  ctx.strokeStyle = "#ffffff";
+  ctx.strokeStyle = received ? MAP.report : "#ffffff";
   ctx.stroke();
 }
 
@@ -1383,11 +1421,15 @@ function drawLabels(ratio, mpp, lens) {
   }
 }
 
-function drawScale(ratio) {
+/* The largest round distance that fits in 120 px, so the bar never runs under the map buttons. */
+function scaleStep(ratio) {
   const metres = ((120 * ratio) / state.view.ppd) * 110540;
   const steps = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
-  // The largest step that fits in 120 px, so the bar never runs under the map buttons.
-  const pick = steps.filter((step) => step <= metres).pop() || steps[0];
+  return steps.filter((step) => step <= metres).pop() || steps[0];
+}
+
+function drawScale(ratio) {
+  const pick = scaleStep(ratio);
   el("scale").hidden = false;
   el("scale-text").textContent = kmText(pick);
   el("scale-bar").style.width = `${Math.round(((pick / 110540) * state.view.ppd) / ratio)}px`;
@@ -1591,7 +1633,11 @@ function renderLayers() {
       keys.map((key) => `<button class="lrow" role="switch" aria-checked="${state.layers[key]}" data-layer="${key}">
           ${icon(key)}<span class="txt"><b>${text.layerNames[key]}</b><small>${esc(sub(key))}</small></span>
           <span class="switch" aria-hidden="true"></span></button>`).join("")).join("") +
-    `<p class="plain dim">${text.layersNote}</p><p class="plain dim">${esc(pack.context.attribution)}.</p>`;
+    `<p class="plain dim">${text.layersNote}</p><p class="plain dim">${esc(pack.context.attribution)}.</p>` +
+    `<button class="btn wide" id="print-map">${text.printBtn}</button><p class="plain" id="print-say" role="status"></p>` +
+    `<p class="plain dim">${text.printNote}</p>`;
+  el("print-map").addEventListener("click", (event) =>
+    framedStop(event, (words) => { el("print-say").textContent = words; }) || printMap());
   el("panel-layers").querySelectorAll("[data-layer]").forEach((button) => {
     button.addEventListener("click", () => {
       state.layers[button.dataset.layer] = !state.layers[button.dataset.layer];
@@ -1833,7 +1879,7 @@ function renderSource() {
   because a pack can be a file passed from phone to phone, and an old map in a new flood misleads.
   Everything on it comes from the pack itself, or is worked out from it on this phone.
 */
-function renderLabel() {
+function labelRows() {
   const pack = state.pack;
   const o = pack.observation;
   const text = S();
@@ -1856,8 +1902,53 @@ function renderLabel() {
     rows.push([text.labelRows.code, state.fingerprint
       ? `<b class="code">${state.fingerprint}</b><small>${esc(text.codeNote)}</small>` : esc(text.codeWorking)]);
   }
+  return rows.map(([term, value]) => `<dt>${term}</dt><dd>${value}</dd>`).join("");
+}
+
+function renderLabel() {
+  const pack = state.pack;
   el("label-title").textContent = state.lang === "bn" ? pack.name_bn || pack.name : pack.name;
-  el("label-rows").innerHTML = rows.map(([term, value]) => `<dt>${term}</dt><dd>${value}</dd>`).join("");
+  el("label-rows").innerHTML = labelRows();
+}
+
+/* The map picture for paper. The screen's scale bar is a page element, not part of the picture, so
+   the printout gets its own, drawn into the image where it cannot drift out of proportion. */
+function paperMap() {
+  const ratio = globalThis.devicePixelRatio || 1;
+  const sheet = document.createElement("canvas");
+  sheet.width = canvas.width;
+  sheet.height = canvas.height;
+  const pen = sheet.getContext("2d");
+  pen.drawImage(canvas, 0, 0);
+  const pick = scaleStep(ratio);
+  const bar = (pick / 110540) * state.view.ppd;
+  const [x, y] = [14 * ratio, sheet.height - 16 * ratio];
+  pen.fillStyle = "#ffffff";
+  pen.fillRect(x - 8 * ratio, y - 30 * ratio, bar + 16 * ratio, 38 * ratio);
+  pen.fillStyle = "#000000";
+  pen.fillRect(x, y - 5 * ratio, bar, 5 * ratio);
+  pen.font = `700 ${13 * ratio}px sans-serif`;
+  pen.fillText(kmText(pick), x, y - 12 * ratio);
+  return sheet.toDataURL("image/png");
+}
+
+/* A paper copy of what the screen shows, for when the phone's battery is the next thing to go. The
+   browser's own print dialog does the rest: a printer if there is one, otherwise Save as PDF. The
+   sheet carries the same label as the screen, so a printout is never an undated map. */
+function printMap() {
+  const pack = state.pack;
+  const text = S();
+  draw();
+  const key = ["flood", "wet", "shelters", "reports"].filter((layer) => state.layers[layer])
+    .map((layer) => `<li>${icon(layer)}<span>${text.layerNames[layer]}</span></li>`).join("");
+  el("print-sheet").innerHTML = `
+    <h1>${esc(state.lang === "bn" ? pack.name_bn || pack.name : pack.name)}</h1>
+    <dl class="p-meta">${labelRows()}</dl>
+    <img src="${paperMap()}" alt="">
+    <ul class="p-key">${key}</ul>
+    <p>${esc(text.printFoot(new Date().toLocaleString(state.lang === "bn" ? "bn-BD" : "en-GB")))}</p>
+    <p class="p-small">${esc(pack.observation.source)}. ${esc(pack.context.attribution)}.</p>`;
+  print();
 }
 
 /* The part of a pack picture inside a box, re-encoded as JPEG, with the bounds it now covers. Null
@@ -1975,15 +2066,23 @@ function renderPacks() {
       <button class="btn primary" id="cut-save">${text.saveCut}</button></div>`;
 
   const panel = el("panel-packs");
-  el("pack-save").addEventListener("click", () => saveFile(state.packText, `${pack.pack_id}.pack.json`));
+  const packsSay = (words) => {
+    const say = el("packs-say");
+    if (!say) return;
+    say.textContent = words;
+    if (words) say.scrollIntoView({ block: "nearest" });   // "Save the smaller pack" sits far below it
+  };
+  el("pack-save").addEventListener("click", (event) =>
+    framedStop(event, packsSay) || saveFile(state.packText, `${pack.pack_id}.pack.json`));
   el("pack-other-btn").addEventListener("click", () => el("pack-other").click());
   el("pack-other").addEventListener("change", (event) =>
-    openPackFile(event.target.files[0], (words) => { if (el("packs-say")) el("packs-say").textContent = words; }));
+    openPackFile(event.target.files[0], packsSay));
   el("pack-full")?.addEventListener("click", async () => {
     openPack(EMBEDDED_TEXT, { key: "embedded" });
     if (await cachePack(EMBEDDED_TEXT)) state.source.key = "embeddedKept";
   });
-  el("cut-save").addEventListener("click", () => saveFile(state.cutText, `${cut.pack_id}.pack.json`));
+  el("cut-save").addEventListener("click", (event) =>
+    framedStop(event, packsSay) || saveFile(state.cutText, `${cut.pack_id}.pack.json`));
   // Each choice redraws the sheet with the new exact size, and puts the focus back where it was.
   panel.querySelectorAll("[data-cut-area]").forEach((button) => button.addEventListener("click", () => {
     state.cut.area = button.dataset.cutArea;
@@ -2015,7 +2114,8 @@ function renderReports() {
           &middot; #${num(index + 1)} &middot; ${report.lat.toFixed(4)}, ${report.lon.toFixed(4)}
           ${report.area ? "&middot; " + esc(areaName(report.area)) : ""}
           <div class="when">${new Date(report.at).toLocaleString(locale)} &middot;
-            ${report.accuracy_m ? text.gpsAcc(num(Math.round(report.accuracy_m))) : text.atCrosshair}</div></div>
+            ${report.accuracy_m ? text.gpsAcc(num(Math.round(report.accuracy_m))) : text.atCrosshair}
+            ${report.via === "sms" ? `&middot; ${text.bySms}` : ""}</div></div>
           <button data-delete="${esc(report.id)}" aria-label="${text.deleteAria(num(index + 1))}">${text.delete}</button></li>`).join("")
       + `</ul>`
     : `<p class="plain">${text.reportsEmpty}</p>`;
@@ -2025,11 +2125,34 @@ function renderReports() {
     <p class="sync"><svg class="i" aria-hidden="true"><use href="#i-sync"/></svg><span>${text.syncLine}</span></p>
     <button class="btn wide primary" id="export-file"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>${text.exportBtn}</button>
     <div id="export-out"></div>
+    ${state.reports.some((report) => report.via !== "sms")
+      ? `<div class="btns"><a class="btn" id="sms-send" href="sms:?&body=${encodeURIComponent(smsBody())}">${text.smsSend}</a>` +
+        `<button class="btn" id="sms-copy">${text.smsCopy}</button></div><p class="plain" id="sms-out" role="status"></p>` +
+        `<p class="plain dim">${text.smsNote}</p>` : ""}
+    <p class="sec">${text.smsInTitle}</p>
+    <textarea id="sms-in" aria-label="${text.smsInTitle}" placeholder="${text.smsInHint}"></textarea>
+    <button class="btn wide" id="sms-add">${text.smsAdd}</button>
+    <p class="plain" id="sms-say" role="status">${smsSaid(text)}</p>
     <p class="plain dim">${text.reportsStored}</p>
     ${count ? `<button class="btn wide danger far${state.deleteAllArmed ? " armed" : ""}" id="clear-reports">${
       state.deleteAllArmed ? text.deleteAllArmed(num(count)) : text.deleteAll}</button>` : ""}`;
 
   el("export-file").addEventListener("click", exportReports);
+  const smsOut = (words) => { el("sms-out").textContent = words; };
+  el("sms-send")?.addEventListener("click", (event) => framedStop(event, smsOut));
+  el("sms-copy")?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(smsBody());
+      smsOut(text.smsCopied);
+    } catch (error) {
+      // No clipboard either: the message itself, to select by hand.
+      el("sms-out").innerHTML = `${text.smsCopyHand}<textarea readonly>${esc(smsBody())}</textarea>`;
+    }
+  });
+  el("sms-add").addEventListener("click", () => {
+    state.smsRead = readTexts(el("sms-in").value);    // kept as counts, so it re-reads in either language
+    renderReports();
+  });
   el("panel-reports").querySelectorAll("[data-delete]").forEach((button) => {
     button.addEventListener("click", () => deleteReport(button.dataset.delete));
   });
@@ -2249,6 +2372,84 @@ function undoLast() {
   showNote("removed", { type: removed.type, left: state.reports.length }, false);
 }
 
+/*
+  Text messages often still get through when mobile data does not. Each report becomes one short
+  line that another Ingito can read back, in plain ASCII so a message keeps its 160 characters:
+    INGITO1 W 23.10060,91.47520 20261011T1804Z G12
+  W = water here, R = road cut; latitude,longitude; the time in UTC; G = GPS (± metres), X = crosshair.
+*/
+const SMS_LINE = /INGITO1 ([WR]) (-?\d{1,2}\.\d{5}),(-?\d{1,3}\.\d{5}) (\d{8}T\d{4}Z) (G\d{1,5}|X)/g;
+
+function smsLine(report) {
+  return `INGITO1 ${report.type === "water_here" ? "W" : "R"} ${report.lat.toFixed(5)},${report.lon.toFixed(5)} ` +
+         `${report.at.replace(/[-:]/g, "").slice(0, 13)}Z ${report.placed === "gps" ? `G${Math.round(report.accuracy_m || 0)}` : "X"}`;
+}
+
+function smsBody() {
+  // The header stays English on purpose: one character outside the basic SMS alphabet and the phone
+  // sends the whole message in a format that holds 70 characters, not 160.
+  const lines = state.reports.filter((report) => report.via !== "sms").map(smsLine);
+  return ["Ingito field reports - paste into Ingito > Reports", ...lines].join("\n");
+}
+
+/* Where the frame blocks an action, explain it in `say` and report true so the caller stops. */
+function framedStop(event, say) {
+  if (!FRAMED) return false;
+  event?.preventDefault();
+  say(S().framedNote(OWN_ADDRESS));
+  return true;
+}
+
+/* Reads report lines out of pasted text, whatever else the message holds, and adds the new ones.
+   They stay marked as received: drawn hollow, listed "by text message", never merged with the radar. */
+function readTexts(words) {
+  const known = new Set(state.reports.map(smsLine));
+  let added = 0;
+  let repeat = 0;
+  for (const [line, kind, lat, lon, stamp, where] of words.matchAll(SMS_LINE)) {
+    if (known.has(line)) {
+      repeat += 1;
+      continue;
+    }
+    const at = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}T${stamp.slice(9, 11)}:${stamp.slice(11, 13)}:00.000Z`;
+    if (Number.isNaN(Date.parse(at)) || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+    known.add(line);
+    const point = [Number(lon), Number(lat)];
+    state.reports.push({
+      id: `s${Date.now().toString(36)}${state.reports.length}`,
+      type: kind === "W" ? "water_here" : "road_cut",
+      lon: point[0],
+      lat: point[1],
+      at,
+      accuracy_m: where === "X" ? null : Number(where.slice(1)),
+      placed: where === "X" ? "crosshair" : "gps",
+      area: areaAt(point)?.name || "",
+      pack_id: state.pack.pack_id,
+      hazard: state.pack.hazard.type,
+      source: "field observation, received by text message",
+      via: "sms",
+      satellite: {
+        sensor: state.pack.observation.sensor,
+        observation_date: state.pack.observation.acquisition_date,
+        radar_saw_water: state.stats.inWater(point[0], point[1]),
+      },
+    });
+    added += 1;
+  }
+  if (added) {
+    saveReports();
+    afterReportsChanged();
+  }
+  return { added, repeat };
+}
+
+function smsSaid(text) {
+  if (!state.smsRead) return "";
+  const { added, repeat } = state.smsRead;
+  return added ? text.smsAdded(num(added), repeat ? num(repeat) : "")
+    : repeat ? text.smsNothingNew(num(repeat)) : text.smsNone;
+}
+
 /* Export is a file, not an upload. A field team hands observations over the same way it received
    the pack: as a file, through whatever channel exists when connectivity returns. GeoJSON, so any
    GIS or humanitarian system can read it without our software. */
@@ -2270,7 +2471,7 @@ function exportReports() {
       properties: {
         id: report.id,
         observation: report.type,
-        source: "field observation",
+        source: report.source || "field observation",
         recorded_at: report.at,
         accuracy_m: report.accuracy_m,
         placed_by: report.placed,
@@ -2285,15 +2486,17 @@ function exportReports() {
   let link = "";
   try {
     const url = URL.createObjectURL(new Blob([json], { type: "application/geo+json" }));
-    link = `<a class="btn wide primary" href="${url}" download="ingito-field-reports.geojson">` +
+    link = `<a class="btn wide primary" id="export-save" href="${url}" download="ingito-field-reports.geojson">` +
            `<svg class="i" aria-hidden="true"><use href="#i-download"/></svg>${text.saveFile}</a>`;
   } catch (error) {
     link = "";
   }
   // The text box is not decoration: if a browser blocks downloads, the operator can still copy
   // the observations out by hand. The information has to be able to leave the device.
-  el("export-out").innerHTML = link +
+  el("export-out").innerHTML = link + `<p class="plain" id="export-say" role="status"></p>` +
     `<p class="plain">${text.exportCopy(num(state.reports.length))}</p><textarea readonly>${json.replace(/</g, "&lt;")}</textarea>`;
+  el("export-save")?.addEventListener("click", (event) =>
+    framedStop(event, (words) => { el("export-say").textContent = words; }));
 }
 
 /* ------------------------------------------------------------------ position */

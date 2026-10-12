@@ -164,7 +164,10 @@ colour, so nothing depends on telling colours apart.
   dark casing, and the per-upazila figures behind the Alerts and Area sheets.
 - **Action — seen and recorded by people.** What the operator recorded: red circles (water here)
   and red triangles (road cut). Stored separately and exported separately as GeoJSON marked
-  `"source": "field observation"`. The operator's own position is a river-green dot with a cream
+  `"source": "field observation"`. Reports can also go out as one text message (Reports > Text my
+  reports, or Copy the message; one `INGITO1 …` line each) and be pasted back into another phone,
+  where they are drawn hollow and marked "by text message". Layers > Print this map prints the
+  screen's map with its label, key, scale bar and sources (or saves it as a PDF). The operator's own position is a river-green dot with a cream
   core in a white ring — never red, never solid, so it cannot be mistaken for a report.
 
 ## Identity and design language
