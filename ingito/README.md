@@ -97,6 +97,7 @@ inside deep folders.
 python ../sar-flood/s1_flood.py       # Sentinel-1 flood layer + provenance   (~10 min)
 python pipeline/fetch_context.py      # roads, rivers, places, shelters (OSM)  (~15 s)
 python pipeline/fetch_imagery.py      # Sentinel-2 photo + the radar pictures  (~1 min)
+python pipeline/fetch_population.py   # people in the radar's water (WorldPop) (~1 min)
 python pipeline/build_pack.py         # one pack file + the pack index         (~1 min)
 ```
 
@@ -136,6 +137,7 @@ involved at any point.
 ingito/
   pipeline/fetch_context.py   roads, waterways, places, shelters from OpenStreetMap, both scripts
   pipeline/fetch_imagery.py   the Sentinel-2 photograph and the two radar pictures, one grid
+  pipeline/fetch_population.py  about how many people live in the radar's water, per upazila
   pipeline/build_pack.py      assembles ONE pack file: hazard + context + terrain + provenance
   pipeline/embed_pack.py      inlines a pack for a published build
   packs/                      the built packs, one file each, plus index.json
@@ -161,7 +163,13 @@ colour, so nothing depends on telling colours apart.
   for "measured, not drawn". Far out it is solid teal, so the smallest patch still shows. Carries
   sensor, both dates, the pass time, method and limitations. Never described as ground truth.
 - **Insight — worked out from the signal.** Roads that cross that water, drawn as red dashes on a
-  dark casing, and the per-upazila figures behind the Alerts and Area sheets.
+  dark casing, and the per-upazila figures behind the Alerts and Area sheets. Tapping the card's
+  shelter line asks for a road route: the shortest route over the pack's roads to a shelter outside
+  the radar's water, using only stretches where the radar saw none; if no such route exists from the
+  nearest road, the route with the least water, in red words ("you may need a boat"). Drawn shelter
+  green under a white halo, dotted where it leaves the road. The Alerts and Area sheets also say about
+  how many people live inside the radar's water, from WorldPop's 2024 population model, rounded and
+  labelled as an estimate that is probably low.
 - **Action — seen and recorded by people.** What the operator recorded: red circles (water here)
   and red triangles (road cut). Stored separately and exported separately as GeoJSON marked
   `"source": "field observation"`. Reports can also go out as one text message (Reports > Text my
@@ -238,7 +246,8 @@ water laid on top.
 
 Shelter points are reference locations from OpenStreetMap, not a verified shelter registry. A road
 flagged as crossing detected water is not a claim that it is impassable, and an unflagged road is
-not confirmed open.
+not confirmed open. The same goes for a route: it uses only the main and village roads in the pack
+(no lanes or footpaths), and "no radar water on it" says nothing about water the radar cannot see.
 
 ## Hazard is data, not identity
 
@@ -265,6 +274,8 @@ same instrument displays either source without a line of code changing.
 - Permanent water mask: JRC Global Surface Water v1.4 (European Commission JRC).
 - Roads, waterways, place names, shelter points: © OpenStreetMap contributors, ODbL.
 - Village names: GeoNames (geonames.org), CC BY 4.0.
+- Population: WorldPop (2025), constrained estimates of total number of people per grid square,
+  3 arc-seconds, R2025A v1, University of Southampton, DOI:10.5258/SOTON/WP00839, CC BY 4.0.
 - Typefaces: Inter by Rasmus Andersson and Hind Siliguri by Indian Type Foundry, both under the
   SIL Open Font License (`app/fonts/OFL-Inter.txt`, `app/fonts/OFL-HindSiliguri.txt`).
 - Method: UN-SPIDER Recommended Practice for SAR flood mapping.

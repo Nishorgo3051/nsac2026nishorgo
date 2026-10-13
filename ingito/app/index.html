@@ -327,8 +327,11 @@
   #r-water.hit { color: var(--teal-ink); font-weight: 700; }
   #r-ground { color: var(--dim); }
   #r-ground.near { color: var(--red-ink); font-weight: 600; }
-  .shelter { display: flex; align-items: flex-start; gap: var(--s2); margin-top: 0.35rem; font-size: 0.9rem; }
+  .shelter { display: flex; align-items: flex-start; gap: var(--s2); width: 100%; margin-top: 0.35rem; font-size: 0.9rem; text-align: left; border-radius: var(--r-sm); }
   .shelter svg.i { width: 1.1rem; height: 1.1rem; color: var(--river-green); margin-top: 0.1rem; }
+  .shelter svg.i.go { align-self: center; margin-top: 0; color: var(--dim); }
+  #r-shelter { flex: 1 1 auto; min-width: 0; }
+  #r-shelter.wet { color: var(--red-ink); font-weight: 600; }
   #r-shelter small { display: block; font-size: 0.76rem; color: var(--dim); }
   html[lang="bn"] #r-shelter small { font-size: 0.84rem; }
 
@@ -630,7 +633,7 @@
       </button>
       <div class="persp"><span class="tag"><span class="mk signal"></span><span data-t="satTag"></span></span><span id="r-water"></span></div>
       <div class="persp"><span class="tag"><span class="mk field"></span><span data-t="groundTag"></span></span><span id="r-ground"></span></div>
-      <div class="shelter"><svg class="i" aria-hidden="true"><use href="#i-shelter"/></svg><span id="r-shelter"></span></div>
+      <button class="shelter" id="r-route"><svg class="i" aria-hidden="true"><use href="#i-shelter"/></svg><span id="r-shelter"></span><svg class="i go" aria-hidden="true"><use id="r-route-icon" href="#i-chevron"/></svg></button>
     </div>
     <div id="actions">
       <button class="act" id="btn-water"><svg class="i" aria-hidden="true"><use href="#i-water"/></svg><span class="lbl" data-t="waterHere"></span><span class="n" id="n-water"></span></button>

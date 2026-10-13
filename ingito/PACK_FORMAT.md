@@ -23,6 +23,7 @@ reference pack is 6.7 MB.
 | `context` | object | Roads, waterways, shelters, places (below) |
 | `terrain` | object | Hillshade picture and elevation range (below) |
 | `imagery` | object? | Optical and radar pictures (below). Without it the app draws the map on a plain ground |
+| `population` | object? | About how many people live in the radar's water (below). Without it the app leaves those sentences out |
 | `areas` | list | `[{name, name_bn, km2, rings}]`: the parts (upazilas). `name_bn` is `""` when the config does not list it |
 | `usage` | string | One sentence: the pack needs no network once it is on the device |
 | `subset_of` | object? | Only in a smaller pack cut on a phone (Packs > Make a smaller pack): `{pack_id, fingerprint, area}` of the pack it was cut from; `area` is the upazila or `null` for the whole district. Its `observation` figures stay the original district's; its layers, `areas`, `coverage` and cropped pictures cover only what was kept |
@@ -78,6 +79,15 @@ greyscale JPEG hillshade.
 - `bounds`, `grid_m`
 - `optical`: `{date, time_utc, sensor, product, scene, cloud_cover, source, note, image}`
 - `radar`: `{before: {date, image}, during: {date, image}, sensor, display_db: [low, high], note}`
+
+## `population`
+
+Written by `pipeline/fetch_population.py` and copied in verbatim, only when its `flood_layer` names
+the flood layer this pack was built from.
+
+`{year, source, product, flood_layer, method, limitations, people_in_water, by_upazila: [{name,
+people_in_water}]}`. Counts are whole people, unrounded; the app shows them to two significant
+figures ("about 13,000") because they are a model, not a headcount.
 
 ## `packs/index.json`
 

@@ -1,0 +1,35 @@
+{
+  "year": 2024,
+  "source": "WorldPop (2025). Constrained estimates of 2015-2030 total number of people per grid square, 3 arc-seconds (about 100 m), R2025A v1. University of Southampton. DOI:10.5258/SOTON/WP00839. CC BY 4.0",
+  "product": "bgd_pop_2024_CN_100m_R2025A_v1.tif",
+  "flood_layer": "Feni_s1_flood_2024-08-21.geojson",
+  "method": "Each 100 m square's people, times the share of that square under the water the radar saw (measured on a 10 x 10 sub-grid), summed by upazila. A square is counted in the upazila holding its centre.",
+  "limitations": "A modelled estimate, not a headcount: WorldPop spreads census totals over squares with buildings. Radar misses water between houses and under trees, where people live, so the real number is probably higher.",
+  "people_in_water": 13419,
+  "by_upazila": [
+    {
+      "name": "Chhagalnaiya",
+      "people_in_water": 2486
+    },
+    {
+      "name": "Daganbhuiyan",
+      "people_in_water": 1246
+    },
+    {
+      "name": "Feni Sadar",
+      "people_in_water": 4334
+    },
+    {
+      "name": "Fulgazi",
+      "people_in_water": 2836
+    },
+    {
+      "name": "Parashuram",
+      "people_in_water": 1704
+    },
+    {
+      "name": "Sonagazi",
+      "people_in_water": 813
+    }
+  ]
+}

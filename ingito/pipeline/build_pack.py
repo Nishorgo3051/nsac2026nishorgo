@@ -29,6 +29,7 @@ WHAT IS DELIBERATELY NOT IN A PACK
 HOW TO RUN
   1. python ../../sar-flood/s1_flood.py        produces the flood layer and its provenance
   2. python fetch_context.py                   produces the roads, waterways and shelters
+     python fetch_population.py                optional: people living in the radar's water
   3. python build_pack.py                      writes ../packs/<pack-id>.pack.json
   Every step takes --area ../../areas/<id>.json; it may be left out while areas/ holds one config.
 
@@ -77,6 +78,7 @@ CONTEXT_FILE = INGITO / "context" / f"{AREA['aoi_name'].lower()}_context.json"
 PARTS_FILE = NSAC / AREA["parts"]
 AOI_FILE = NSAC / AREA["outline"]
 IMAGERY_DIR = INGITO / "context" / "imagery"
+POPULATION_FILE = INGITO / "context" / "population.json"
 
 # The pack is bilingual, so the places it names need both spellings. The area config lists the
 # official upazila names (parts_bn) and the standard names of the area's rivers and towns
@@ -263,6 +265,20 @@ def imagery_block():
     return meta
 
 
+def population_block(flood_layer):
+    """About how many people live where the radar saw water, from fetch_population.py. Optional,
+    and only for the flood layer it was computed from: a figure for another layer would be wrong."""
+    if not POPULATION_FILE.exists():
+        print("  no population figures (run fetch_population.py to add them)")
+        return None
+    block = json.loads(POPULATION_FILE.read_text(encoding="utf-8"))
+    if block.get("flood_layer") != flood_layer:
+        print(f"  population figures are for {block.get('flood_layer')}, not {flood_layer}: "
+              "left out. Run fetch_population.py again.")
+        return None
+    return block
+
+
 def observation_block():
     """The satellite hazard layer, plus everything needed to judge it."""
     found = sorted(SAR_OUT.glob(HAZARD_GLOB))
@@ -347,6 +363,9 @@ def main():
     print("Packing the satellite pictures...")
     imagery = imagery_block()
 
+    print("Packing the population figures...")
+    population = population_block(source_name)
+
     areas = [{"name": name, "name_bn": AREA["parts_bn"].get(name, ""), "km2": round(float(km2), 1),
               "rings": rings_of(geometry)}
              for name, km2, geometry in zip(parts.adm3_name, parts.area_sqkm, parts.geometry)]
@@ -370,6 +389,7 @@ def main():
         "context": context,
         "terrain": terrain,
         **({"imagery": imagery} if imagery else {}),
+        **({"population": population} if population else {}),
         "areas": areas,
         "usage": ("Prepared while online, then carried into the field. Once this file is on the "
                   "device the instrument needs no network: no tiles, no services, no accounts."),

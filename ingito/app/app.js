@@ -6,8 +6,9 @@
              villages, roads and shelters, all drawn from the pack on this device.
     SIGNAL   what Sentinel-1's radar measured: the water, hatched teal, with its sensor, dates and
              limits attached. Never presented as ground truth.
-    INSIGHT  what the signal means here: roads that run through that water, shelters clear of it,
-             how much of each upazila went under.
+    INSIGHT  what the signal means here: roads that run through that water, shelters clear of it
+             and the driest road to one, how much of each upazila went under and about how many
+             people live in that water.
     ACTION   what the person on the ground does: record "water here" or "road cut", compare before
              and after, hand the observations over.
 
@@ -40,6 +41,10 @@ const DELETE_ALL_PAUSE_MS = 800;      // "tap again" must be a second decision, 
 const DELETE_ALL_DISARM_MS = 5000;
 const GROUND_NEAR_M = 300;            // field reports this close count as "here" in the readout
 const NEAR_PLACE_M = 4000;            // a village this close names where the reticle is
+const ROUTE_REACH_M = 1000;           // a route starts or ends at most this far from a road in the pack
+// ponytail: a calibration knob, not a measurement. With no dry route, 1 m through radar water
+// costs as much as this many metres of road; raise it if routes take water to save a short detour.
+const WATER_PENALTY = 20;
 const FLY_MS = 520;                   // gliding to a place the operator picked
 const REVEAL_MS = 700;                // the before/after line opening
 const PANELS = ["layers", "alerts", "area", "reports", "source", "packs"];
@@ -56,7 +61,8 @@ const FONT = '"Inter", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", syste
   by a shape - hatching, a dash, a ring, a triangle - so no reading depends on telling colours apart.
     EARTH    cream roads, pale-teal rivers, green shelter squares, white upazila dashes
     SIGNAL   bright teal, hatched, with a hard edge: measured, not drawn
-    INSIGHT  red dashes on a dark casing: a road through that water
+    INSIGHT  red dashes on a dark casing: a road through that water. Shelter green under a white
+             halo: the road route to a shelter, dotted where it leaves the road
     ACTION   red circle / triangle: a person's report. The operator: a dark dot, cream core, white ring
 */
 const MAP = {
@@ -74,6 +80,7 @@ const MAP = {
   grid: "rgba(255, 255, 255, 0.12)", gridLabel: "rgba(255, 255, 255, 0.72)",
   label: "#ffffff", halo: "rgba(4, 22, 17, 0.88)",
   shelter: "#1e7d6b", shelterEdge: "#ffffff",
+  route: "#1e7d6b", routeHalo: "#ffffff",
   report: "#e63946", reportEdge: "#ffffff",
   you: "#0b3d32", youCore: "#eae6d9", youRing: "#ffffff",
   shield: "#0b3d32",
@@ -137,6 +144,16 @@ const STRINGS = {
     shelterLine: (dist, dir, kind, name) => `${dist} ${dir} · ${kind} (unverified)${name ? ` · ${name}` : ""}`,
     shelterClear: "Nearest shelter outside the water radar saw",
     noShelter: "No shelter point in this pack",
+    routeTap: "tap for a road route",
+    routeDry: (dist, kind, name) => `${dist} by road, no radar water on it · ${kind} (unverified)${name ? ` · ${name}` : ""}`,
+    routeDryNote: "Uses only the roads in this pack. A road can still be blocked: check before you go. Tap to clear.",
+    routeWet: (dist, wet) => `${dist} by road · ${wet} of it through radar water`,
+    routeWetNote: (kind, name) => `To the ${kind} (unverified)${name ? ` ${name}` : ""}. Every route from the nearest road crosses radar water: you may need a boat. Tap to clear.`,
+    routeNoRoad: (dist) => `No road in this pack within ${dist} of here`,
+    routeNoLink: "No road in this pack links here to a shelter clear of radar water",
+    routeClear: "Tap to clear.",
+    peopleIn: (n) => ` WorldPop's model puts about ${n} people inside that water.`,
+    peopleNote: (year) => `People figures are WorldPop's ${year} model of where people live, in 100 m squares: an estimate, not a headcount. Radar misses water between houses, so they are probably low.`,
     dirs: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
     kinds: { mosque: "mosque", school: "school", hospital: "hospital", clinic: "clinic" },
     kindCount: (n, count, kind) => `${n} ${kind}${count === 1 ? "" : "s"}`,
@@ -164,6 +181,7 @@ const STRINGS = {
       photo: "Satellite photo", terrain: "Terrain relief", waterways: "Rivers and canals", roads: "Roads",
       places: "Villages and places", shelters: "Shelter points (unverified)", admin: "Upazila boundaries",
       flood: "Water seen by radar", wet: "Roads through that water", reports: "My field reports",
+      route: "Road route to a shelter",
     },
     layerSubs: {
       photo: (d) => `Sentinel-2 · ${d} · before the flood`, terrain: "Copernicus DEM", waterways: "OpenStreetMap",
@@ -310,6 +328,16 @@ const STRINGS = {
     shelterLine: (dist, dir, kind, name) => `${dist} ${dir} · ${kind} (যাচাই হয়নি)${name ? ` · ${name}` : ""}`,
     shelterClear: "রাডারে দেখা পানির বাইরে সবচেয়ে কাছের আশ্রয়",
     noShelter: "এই প্যাকে কোনো আশ্রয়ের জায়গা নেই",
+    routeTap: "রাস্তা ধরে পথ দেখতে চাপুন",
+    routeDry: (dist, kind, name) => `রাস্তায় ${dist}, পথে রাডারে দেখা পানি নেই · ${kind} (যাচাই হয়নি)${name ? ` · ${name}` : ""}`,
+    routeDryNote: "শুধু এই প্যাকের রাস্তা ধরে হিসাব। রাস্তা তবুও বন্ধ থাকতে পারে: রওনা দেওয়ার আগে খোঁজ নিন। সরাতে চাপুন।",
+    routeWet: (dist, wet) => `রাস্তায় ${dist} · এর ${wet} রাডারে দেখা পানির ভেতর দিয়ে`,
+    routeWetNote: (kind, name) => `গন্তব্য: ${kind} (যাচাই হয়নি)${name ? ` ${name}` : ""}। সবচেয়ে কাছের রাস্তা থেকে প্রতিটি পথই রাডারে দেখা পানি পার হয়: নৌকা লাগতে পারে। সরাতে চাপুন।`,
+    routeNoRoad: (dist) => `এখান থেকে ${dist}-এর মধ্যে এই প্যাকে কোনো রাস্তা নেই`,
+    routeNoLink: "এই প্যাকের কোনো রাস্তা এখান থেকে পানিমুক্ত কোনো আশ্রয়ে যায় না",
+    routeClear: "সরাতে চাপুন।",
+    peopleIn: (n) => ` WorldPop-এর মডেল অনুযায়ী ওই পানির ভেতরে প্রায় ${n} মানুষের বাস।`,
+    peopleNote: (year) => `মানুষের সংখ্যাগুলো WorldPop-এর ${year} সালের মডেল: ১০০ মিটারের ঘরে ঘরে মানুষ কোথায় থাকে তার আনুমানিক হিসাব, মাথা গুনে নয়। ঘরবাড়ির ফাঁকের পানি রাডারে ধরা পড়ে না, তাই আসল সংখ্যা সম্ভবত বেশি।`,
     dirs: ["উত্তরে", "উত্তর-পূর্বে", "পূর্বে", "দক্ষিণ-পূর্বে", "দক্ষিণে", "দক্ষিণ-পশ্চিমে", "পশ্চিমে", "উত্তর-পশ্চিমে"],
     kinds: { mosque: "মসজিদ", school: "স্কুল", hospital: "হাসপাতাল", clinic: "ক্লিনিক" },
     kindCount: (n, count, kind) => `${n}টি ${kind}`,
@@ -335,6 +363,7 @@ const STRINGS = {
       photo: "স্যাটেলাইট ছবি", terrain: "ভূমির উঁচু-নিচু", waterways: "নদী ও খাল", roads: "রাস্তা",
       places: "গ্রাম ও জায়গার নাম", shelters: "আশ্রয়ের জায়গা (যাচাই হয়নি)", admin: "উপজেলার সীমানা",
       flood: "রাডারে দেখা পানি", wet: "ওই পানির ওপর দিয়ে যাওয়া রাস্তা", reports: "আমার মাঠের রিপোর্ট",
+      route: "আশ্রয়ে যাওয়ার রাস্তা",
     },
     layerSubs: {
       photo: (d) => `Sentinel-2 · ${d} · বন্যার আগের`, terrain: "Copernicus DEM", waterways: "OpenStreetMap",
@@ -453,6 +482,8 @@ const ctx = canvas.getContext("2d");
 const state = {
   pack: null,
   stats: null,                             // what the pack says per upazila, worked out once
+  network: null,                           // the pack's roads as a network, built on the first route
+  route: null,                             // the road route on the map: {from, path, shelter, metres, wet, dry} or {from, none}
   index: [],                               // every searchable name in the pack
   hits: [],                                // the search results on screen
   images: {},                              // optical, before, during, terrain
@@ -486,6 +517,8 @@ const S = () => STRINGS[state.lang];
 const num = (value) => (state.lang === "bn" ? String(value).replace(/[0-9]/g, (d) => BN_DIGITS[d]) : String(value));
 /* Counts with a thousands separator: 1,159 / ১,১৫৯. */
 const count = (value) => num(Number(value).toLocaleString("en-US"));
+/* A modelled figure, to two significant figures: "about 13,000", never a false "13,419". */
+const about = (value) => count(Number(Number(value).toPrecision(2)));
 const wide = () => Boolean(globalThis.matchMedia?.("(min-width: 900px)").matches);
 const calm = () => Boolean(globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
@@ -782,6 +815,7 @@ function computeStats(pack) {
   shelters.forEach((shelter) => { shelter.wet = inWater(shelter.lon, shelter.lat); });
   const wetRoads = (pack.context.roads || []).filter((road) => road.wet && road.coords.length);
   const byUpazila = pack.observation.by_upazila || [];
+  const people = pack.population?.by_upazila || [];
 
   const areas = (pack.areas || []).map((area) => {
     const box = boxOf(area.rings);
@@ -795,6 +829,7 @@ function computeStats(pack) {
     return {
       name: area.name, name_bn: area.name_bn, km2: area.km2, rings: area.rings, box, label,
       flood_km2: figures ? figures.flood_km2 : null, share: figures ? figures.share_pct : null,
+      people: people.find((row) => row.name === area.name)?.people_in_water ?? null,
       shelters: here.length, kinds, sheltersWet: here.filter((shelter) => shelter.wet).length,
       wetRoads: wetRoads.filter((road) => {
         const [lon, lat] = road.coords[Math.floor(road.coords.length / 2)];
@@ -835,6 +870,237 @@ function gpsHere() {
 /* The point everything answers about: the operator's GPS position, or the reticle. */
 function aim() {
   return gpsHere() ? [state.fix.lon, state.fix.lat] : unproject(canvas.width / 2, canvas.height / 2);
+}
+
+/* ------------------------------------------------------------------ the driest road to a shelter */
+
+/*
+  "Can I get there?" A road route from here to a shelter outside the radar's water, over the roads
+  in the pack, from the nearest road that leads to one. First only along stretches where the radar
+  saw no water; only if that reaches no shelter, the route with the least water, and the card says
+  every route from that road crosses it. What it cannot
+  know: roads that are not in the pack (lanes, footpaths) and water the radar missed. So a dry route
+  can still be blocked, and the card says that too.
+*/
+
+/* Metres from a point to a segment, on a flat grid around the point: exact enough over a road stretch. */
+function toSegmentM(point, a, b) {
+  const kx = metresPerDegree(point[1]);
+  const [ax, ay] = [(a[0] - point[0]) * kx, (a[1] - point[1]) * 110540];
+  const [dx, dy] = [(b[0] - a[0]) * kx, (b[1] - a[1]) * 110540];
+  const t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1)));
+  return Math.hypot(ax + t * dx, ay + t * dy);
+}
+
+/* Metres of radar water on each stretch of a road (between two of its points). Each piece of a wet
+   part lies along one stretch of the road it was cut from. A pack older than wet_parts counts the
+   whole road as wet, as its map does. */
+function wetStretches(road) {
+  const coords = road.coords;
+  const wet = coords.slice(1).map(() => 0);
+  if (!road.wet) return wet;
+  if (!road.wet_parts) return wet.map((_, i) => distanceM(coords[i], coords[i + 1]));
+  for (const part of road.wet_parts) {
+    for (let j = 1; j < part.length; j++) {
+      const middle = [(part[j - 1][0] + part[j][0]) / 2, (part[j - 1][1] + part[j][1]) / 2];
+      let best = { i: 0, m: Infinity };
+      for (let i = 0; i < wet.length; i++) {
+        const m = toSegmentM(middle, coords[i], coords[i + 1]);
+        if (m < best.m) best = { i, m };
+      }
+      wet[best.i] += distanceM(part[j - 1], part[j]);
+    }
+  }
+  return wet;
+}
+
+/* The pack's roads as a network. Roads meet where they share a point, as in OpenStreetMap, so
+   every point is a node. Points are filed in cells of about 1.2 km - wider than ROUTE_REACH_M - so
+   the nearest one is found in the 3 x 3 cells around a place, not among all fifty thousand. */
+const CELL = 0.0125;
+function roadNetwork(pack) {
+  const ids = new Map();
+  const nodes = [];
+  const links = [];                                // per node: [{to, m, wet}]
+  const cells = new Map();
+  const cellOf = ([lon, lat]) => [Math.floor(lon / CELL), Math.floor(lat / CELL)];
+  const node = (point) => {
+    const key = `${point[0]},${point[1]}`;
+    if (!ids.has(key)) {
+      const cell = cellOf(point).join();
+      if (!cells.has(cell)) cells.set(cell, []);
+      cells.get(cell).push(nodes.length);
+      ids.set(key, nodes.length);
+      nodes.push(point);
+      links.push([]);
+    }
+    return ids.get(key);
+  };
+  for (const road of pack.context.roads || []) {
+    const wet = wetStretches(road);
+    for (let i = 1; i < road.coords.length; i++) {
+      const [a, b] = [node(road.coords[i - 1]), node(road.coords[i])];
+      if (a === b) continue;
+      const m = distanceM(road.coords[i - 1], road.coords[i]);
+      links[a].push({ to: b, m, wet: wet[i - 1] });
+      links[b].push({ to: a, m, wet: wet[i - 1] });
+    }
+  }
+  // Which piece of the network each point is on. A road that joins nothing - its link road is not in
+  // the pack - leads to no shelter, so a route starts from the nearest road that does.
+  const piece = new Int32Array(nodes.length).fill(-1);
+  for (let first = 0, id = 0; first < nodes.length; first++, id++) {
+    if (piece[first] !== -1) continue;
+    const stack = [first];
+    piece[first] = id;
+    while (stack.length) {
+      for (const link of links[stack.pop()]) {
+        if (piece[link.to] === -1) {
+          piece[link.to] = id;
+          stack.push(link.to);
+        }
+      }
+    }
+  }
+  const nearest = (point, usable = () => true) => {
+    const [cx, cy] = cellOf(point);
+    let best = null;
+    for (let x = cx - 1; x <= cx + 1; x++) {
+      for (let y = cy - 1; y <= cy + 1; y++) {
+        for (const id of cells.get(`${x},${y}`) || []) {
+          const m = distanceM(point, nodes[id]);
+          if (m <= ROUTE_REACH_M && (!best || m < best.m) && usable(id)) best = { id, m };
+        }
+      }
+    }
+    return best;
+  };
+  // Where a route may end: shelters outside the radar's water, each at its nearest road point.
+  const ends = new Map();
+  const served = new Set();
+  for (const shelter of pack.context.shelters || []) {
+    const at = !shelter.wet && nearest([shelter.lon, shelter.lat]);
+    if (!at) continue;
+    if (!ends.has(at.id)) ends.set(at.id, []);
+    ends.get(at.id).push({ shelter, m: at.m });
+    served.add(piece[at.id]);
+  }
+  return { nodes, links, ends, start: (point) => nearest(point, (id) => served.has(piece[id])), nearest };
+}
+
+/* A binary min-heap of [cost, node]: the whole of the priority queue the search needs. */
+function heapPush(heap, item) {
+  let i = heap.push(item) - 1;
+  while (i > 0 && heap[(i - 1) >> 1][0] > item[0]) {
+    heap[i] = heap[(i - 1) >> 1];
+    i = (i - 1) >> 1;
+  }
+  heap[i] = item;
+}
+
+function heapPop(heap) {
+  const top = heap[0];
+  const last = heap.pop();
+  if (heap.length) {
+    let i = 0;
+    for (let child = 1; child < heap.length; child = 2 * i + 1) {
+      if (child + 1 < heap.length && heap[child + 1][0] < heap[child][0]) child++;
+      if (heap[child][0] >= last[0]) break;
+      heap[i] = heap[child];
+      i = child;
+    }
+    heap[i] = last;
+  }
+  return top;
+}
+
+/* Dijkstra outward from the start until no shelter can be nearer than the nearest one reached.
+   `cost` prices a link; Infinity closes it. Returns the shelter and how each point was reached. */
+function nearestShelter(network, start, cost) {
+  const best = new Float64Array(network.nodes.length).fill(Infinity);
+  const via = [];                                  // how each point was reached: {from, link}
+  let pick = null;
+  best[start.id] = 0;
+  const heap = [[0, start.id]];
+  while (heap.length) {
+    const [spent, at] = heapPop(heap);
+    if (pick && spent >= pick.total) break;
+    if (spent > best[at]) continue;
+    for (const end of network.ends.get(at) || []) {
+      if (!pick || spent + end.m < pick.total) pick = { ...end, at, total: spent + end.m };
+    }
+    for (const link of network.links[at]) {
+      const next = spent + cost(link);
+      if (next < best[link.to]) {
+        best[link.to] = next;
+        via[link.to] = { from: at, link };
+        heapPush(heap, [next, link.to]);
+      }
+    }
+  }
+  return pick && { ...pick, via };
+}
+
+function findRoute(from) {
+  const network = state.network || (state.network = roadNetwork(state.pack));
+  const start = network.start(from);
+  if (!start) return { from, none: network.nearest(from) ? "link" : "road" };
+  // Only stretches where the radar saw no water; failing that, the least water.
+  const dry = nearestShelter(network, start, (link) => (link.wet > 0 ? Infinity : link.m));
+  const found = dry || nearestShelter(network, start, (link) => link.m + WATER_PENALTY * link.wet);
+  // Walk back from the shelter's road point. The two ends off the road count in the distance;
+  // radar water on them does not, because no road is known there to measure it along.
+  const path = [network.nodes[found.at]];
+  let metres = start.m + found.m;
+  let wet = 0;
+  for (let at = found.at; at !== start.id; at = found.via[at].from) {
+    metres += found.via[at].link.m;
+    wet += found.via[at].link.wet;
+    path.push(network.nodes[found.via[at].from]);
+  }
+  return { from, path: path.reverse(), shelter: found.shelter, metres, wet, dry: Boolean(dry) };
+}
+
+/* What the card says about the route: its length, and whether it meets radar water. */
+function routeWords(route) {
+  const text = S();
+  if (route.none === "road") return `${esc(text.routeNoRoad(kmText(ROUTE_REACH_M)))}<small>${text.routeClear}</small>`;
+  if (route.none) return `${esc(text.routeNoLink)}<small>${text.routeClear}</small>`;
+  const kind = text.kinds[route.shelter.kind] || route.shelter.kind;
+  return route.dry
+    ? `${esc(text.routeDry(kmText(route.metres), kind, nameIn(route.shelter)))}<small>${text.routeDryNote}</small>`
+    : `${esc(text.routeWet(kmText(route.metres), kmText(route.wet)))}` +
+      `<small>${esc(text.routeWetNote(kind, nameIn(route.shelter)))}</small>`;
+}
+
+/* The view that shows a whole route around its start: the start stays in the middle, so the card
+   stays about the point the route is from, and the map zooms out - never in - until every point
+   clears the search bar and chips over the top of the map. */
+function routeView(route) {
+  const ratio = globalThis.devicePixelRatio || 1;
+  const covered = Math.max(0, el("top").getBoundingClientRect().bottom - canvas.getBoundingClientRect().top) * ratio;
+  const room = { x: 0.9 * canvas.width / 2, up: canvas.height / 2 - covered - 12 * ratio, down: 0.85 * canvas.height / 2 };
+  const [lon0, lat0] = route.from;
+  const squeeze = Math.cos((lat0 * Math.PI) / 180);
+  let ppd = state.view.ppd;
+  for (const [lon, lat] of [...route.path, [route.shelter.lon, route.shelter.lat]]) {
+    const dx = Math.abs(lon - lon0) * squeeze;
+    const dy = lat - lat0;
+    if (dx) ppd = Math.min(ppd, room.x / dx);
+    if (dy) ppd = Math.min(ppd, (dy > 0 ? Math.max(room.up, 1) : room.down) / Math.abs(dy));
+  }
+  return { lon: lon0, lat: lat0, ppd };
+}
+
+/* One tap asks for a route from the point the card is about; the next tap clears it. */
+function toggleRoute() {
+  state.route = state.route ? null : findRoute(aim());
+  if (state.route?.path) {
+    const view = routeView(state.route);
+    if (view.ppd < state.view.ppd || view.lon !== state.view.lon || view.lat !== state.view.lat) flyTo(view);
+  }
+  updateReadout();
+  draw();
 }
 
 /* ------------------------------------------------------------------ motion */
@@ -1091,6 +1357,10 @@ function draw() {
     }
   }
 
+  // INSIGHT: the road route the operator asked for, under the red wet stretches, so radar water on
+  // the route still shows on it.
+  if (!lens && state.route?.path) drawRoute(ratio);
+
   // INSIGHT: roads through radar water. Worked out from the signal, and a reason to pay attention,
   // so red - as dashes, so the shape says "interrupted" even without the colour.
   if (!lens && state.layers.wet) {
@@ -1150,6 +1420,26 @@ function drawShelter(x, y, size, near, ratio) {
     ctx.strokeStyle = "#ffffff";
     ctx.stroke();
   }
+}
+
+/* The route: shelter green under a white halo, which holds on green fields and on the dark ground.
+   The two ends off the road are dotted - no road is known there - and where it starts is a hollow
+   ring, never filled, so it cannot be taken for a report or for the operator. */
+function drawRoute(ratio) {
+  const { from, path, shelter } = state.route;
+  const dots = [0.1, 12 * ratio];
+  for (const [coords, dash] of [[path], [[from, path[0]], dots], [[path[path.length - 1], [shelter.lon, shelter.lat]], dots]]) {
+    strokeLine(coords, 9 * ratio, MAP.routeHalo, dash);
+    strokeLine(coords, 5 * ratio, MAP.route, dash);
+  }
+  const [x, y] = project(from[0], from[1]);
+  ctx.beginPath();
+  ctx.arc(x, y, 6.5 * ratio, 0, Math.PI * 2);
+  ctx.fillStyle = MAP.routeHalo;
+  ctx.fill();
+  ctx.lineWidth = 3.5 * ratio;
+  ctx.strokeStyle = MAP.route;
+  ctx.stroke();
 }
 
 function drawReport(report, ratio) {
@@ -1534,13 +1824,17 @@ function updateReadout() {
     const metres = distanceM(point, [shelter.lon, shelter.lat]);
     if (!nearest || metres < nearest.metres) nearest = { shelter, metres };
   }
-  // "unverified" comes before the name, so a long name is what gets cut, never the warning.
-  el("r-shelter").innerHTML = nearest
+  // "unverified" comes before the name, so a long name is what gets cut, never the warning. Once a
+  // route is asked for, the line answers about the route until it is cleared.
+  const row = el("r-shelter");
+  row.className = state.route?.path && !state.route.dry ? "wet" : "";
+  row.innerHTML = state.route ? routeWords(state.route) : nearest
     ? `${esc(text.shelterLine(kmText(nearest.metres),
                               text.dirs[bearingIndex(point, [nearest.shelter.lon, nearest.shelter.lat])],
                               text.kinds[nearest.shelter.kind] || nearest.shelter.kind, nameIn(nearest.shelter)))}` +
-      `<small>${text.shelterClear}</small>`
+      `<small>${text.shelterClear} · ${text.routeTap}</small>`
     : esc(text.noShelter);
+  el("r-route-icon").setAttribute("href", state.route ? "#i-close" : "#i-chevron");
 
   el("sheet").hidden = false;
 }
@@ -1601,6 +1895,7 @@ function icon(kind) {
     flood: `<defs><pattern id="ih" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="rgba(94,224,204,0.35)"/><line x1="0" y1="0" x2="0" y2="4" stroke="#cdfcf3" stroke-width="1.4"/></pattern></defs><rect x="4" y="6" width="20" height="12" rx="2" fill="url(#ih)" stroke="#7ef0dc" stroke-width="1.6"/>`,
     wet: `<line x1="2" y1="12" x2="26" y2="12" stroke="#1b0507" stroke-width="7"/><line x1="2" y1="12" x2="26" y2="12" stroke="#ff5361" stroke-width="2.4" stroke-dasharray="4 3"/>`,
     reports: `<circle cx="8" cy="12" r="5.5" fill="#e63946" stroke="#fff" stroke-width="1.8"/><path d="M20 5 L26 17 L14 17 Z" fill="#e63946" stroke="#fff" stroke-width="1.8"/>`,
+    route: `<path d="M3 17 L11 9 L25 9" fill="none" stroke="#fff" stroke-width="6"/><path d="M3 17 L11 9 L25 9" fill="none" stroke="#1e7d6b" stroke-width="3.2"/>`,
   };
   return `<svg class="icon" viewBox="0 0 28 24" width="40" height="34" aria-hidden="true"><rect width="28" height="24" rx="5" fill="#0a2a22"/>${marks[kind]}</svg>`;
 }
@@ -1667,7 +1962,8 @@ function renderAlerts() {
       <h3>${esc(areaLabel(area))}</h3>
       <p class="where">${esc(text.locLine(admin.district, admin.division))}</p>
       <p class="when">${when}</p>
-      <p class="why">${text.why(num(area.flood_km2), num(area.share))}${text.roadsCross(num(area.wetRoads), area.wetRoads)}</p>
+      <p class="why">${text.why(num(area.flood_km2), num(area.share))}${text.roadsCross(num(area.wetRoads), area.wetRoads)}${
+        area.people ? text.peopleIn(about(area.people)) : ""}</p>
       <p class="basis"><span class="mk signal" aria-hidden="true"></span>${text.basis}</p>
       <button class="btn primary" data-area="${esc(area.name)}">${text.viewArea}</button>
     </article>`;
@@ -1680,9 +1976,11 @@ function renderAlerts() {
        <p class="sev"><span class="bar" aria-hidden="true"></span><span class="level">${text.newWater}</span></p>
        <h3>${esc(text.districtTitle(admin.district))}</h3>
        <p class="when">${when}</p>
-       <p class="why">${text.districtWhy(num(totals.flood_km2), count(totals.patches))}${text.roadsCross(num(state.stats.wetRoads), state.stats.wetRoads)}</p>
+       <p class="why">${text.districtWhy(num(totals.flood_km2), count(totals.patches))}${text.roadsCross(num(state.stats.wetRoads), state.stats.wetRoads)}${
+         pack.population?.people_in_water ? text.peopleIn(about(pack.population.people_in_water)) : ""}</p>
        <p class="basis"><span class="mk signal" aria-hidden="true"></span>${text.basis}</p>
-     </article>`) + cards + `<p class="plain dim">${text.sevNote}</p>`;
+     </article>`) + cards + `<p class="plain dim">${text.sevNote}</p>` +
+    (pack.population ? `<p class="plain dim">${text.peopleNote(num(pack.population.year))}</p>` : "");
   el("panel-alerts").querySelectorAll("[data-area]").forEach((button) => {
     button.addEventListener("click", () => showArea(button.dataset.area));
   });
@@ -1716,7 +2014,8 @@ function renderArea() {
       ${text.coordLine(area.label[1].toFixed(3), area.label[0].toFixed(3), num(area.km2))}</p>
     <p class="sec">${text.sec.overview}</p>
     <p class="overview">${area.share === null ? text.noOverview
-      : text.overview(esc(name), num(area.flood_km2), num(area.share), area.name === state.stats.top)}</p>
+      : text.overview(esc(name), num(area.flood_km2), num(area.share), area.name === state.stats.top) +
+        (area.people ? text.peopleIn(about(area.people)) : "")}</p>
     <p class="sec">${text.sec.change}</p>
     <p class="plain">${area.flood_km2 === null ? ""
       : text.changeLine(fmtDate(o.baseline_date), fmtDate(o.acquisition_date), num(area.flood_km2))}</p>
@@ -1769,6 +2068,7 @@ function renderSource() {
   const share = event.reported_flooded_km2
     ? Math.round((100 * totals.flood_km2) / event.reported_flooded_km2) : null;
   const img = pack.imagery;
+  const pop = pack.population;
   const when = `${fmtDate(o.acquisition_date)}${o.acquisition_time_utc ? `, ${passClock(o.acquisition_time_utc)}` : ""}`;
   const kept = ["device", "embeddedKept"].includes(state.source?.key) || (state.source?.key === "file" && state.source.kept);
   const L = bn ? {
@@ -1793,6 +2093,9 @@ function renderSource() {
     shelterNote: "আশ্রয়ের জায়গাগুলো OpenStreetMap থেকে নেওয়া — যাচাই করা আশ্রয়কেন্দ্রের তালিকা নয়। স্কুল বা মসজিদ থাকলেই যে তা খোলা, শুকনো বা পৌঁছানোর মতো, তার নিশ্চয়তা নেই।",
     roadsNote: "বন্যার পানির ওপর দিয়ে যাওয়া রাস্তা চিহ্নিত মানেই চলাচল বন্ধ নয়; আবার চিহ্ন না থাকা রাস্তা খোলা আছে, তাও নিশ্চিত নয়। রাডার পানির গভীরতা বা স্রোত জানে না।",
     device: "এই যন্ত্র", pack: "প্যাক", built: "তৈরি", loaded: "যেখান থেকে লোড", network: "নেটওয়ার্ক",
+    people: "পানির ভেতরে মানুষ — WorldPop মডেল",
+    peopleMethod: "প্রতিটি ১০০ মিটারের ঘরের মানুষ, ঘরটির যতটা অংশ রাডারে দেখা পানির নিচে সেই অনুপাতে (ঘরটিকে ১০ × ১০ ভাগে মেপে), উপজেলা ধরে যোগ করা। ঘরের কেন্দ্র যে উপজেলায়, ঘরটি সেই উপজেলার।",
+    peopleLimits: "এটি মডেলের আনুমানিক হিসাব, মাথা গুনে নয়: WorldPop আদমশুমারির মোট সংখ্যা ঘরবাড়ি থাকা ঘরগুলোতে ভাগ করে দেয়। ঘরবাড়ির ফাঁকে আর গাছপালার নিচের পানি, যেখানে মানুষ থাকে, রাডারে ধরা পড়ে না; তাই আসল সংখ্যা সম্ভবত বেশি।",
   } : {
     title: "Where this information comes from", flood: "Flood water — satellite observation",
     sensor: "Sensor", product: "Product", observed: "Observed", baseline: "Baseline", detected: "Detected",
@@ -1812,6 +2115,8 @@ function renderSource() {
     limits: "Limits", reference: "Roads, rivers, places, shelters — reference",
     shelterNote: esc(pack.context.note), roadsNote: esc(pack.context.roads_note),
     device: "This device", pack: "Pack", built: "Built", loaded: "Loaded from", network: "Network",
+    people: "People in the water — WorldPop model",
+    peopleMethod: esc(pop?.method), peopleLimits: esc(pop?.limitations),
   };
 
   el("panel-source").innerHTML = sheetHead(L.title) + `
@@ -1841,6 +2146,13 @@ function renderSource() {
       </dl>
       <p class="plain">${L.sanity}</p>
     </details>
+    ${pop ? `<details><summary>${L.people}</summary>
+      <dl class="meta">
+        <dt>${L.source}</dt><dd>${esc(pop.source)}</dd>
+        <dt>${L.method}</dt><dd>${L.peopleMethod}</dd>
+        <dt>${L.limits}</dt><dd>${L.peopleLimits}</dd>
+      </dl>
+    </details>` : ""}
     ${img ? `<details><summary>${L.photo}</summary>
       <dl class="meta">
         <dt>${L.sensor}</dt><dd>${esc(img.optical.sensor)} &mdash; ${esc(img.optical.product)}</dd>
@@ -1939,7 +2251,8 @@ function printMap() {
   const pack = state.pack;
   const text = S();
   draw();
-  const key = ["flood", "wet", "shelters", "reports"].filter((layer) => state.layers[layer])
+  const key = [...["flood", "wet", "shelters", "reports"].filter((layer) => state.layers[layer]),
+               ...(state.route?.path ? ["route"] : [])]
     .map((layer) => `<li>${icon(layer)}<span>${text.layerNames[layer]}</span></li>`).join("");
   el("print-sheet").innerHTML = `
     <h1>${esc(state.lang === "bn" ? pack.name_bn || pack.name : pack.name)}</h1>
@@ -2633,6 +2946,12 @@ function openPack(text, source) {
   state.pack = pack;
   state.source = source;
   state.stats = stats;
+  state.network = null;                            // the roads are this pack's now
+  state.route = null;
+  // The road network is built while the operator reads the label, so the first route tap answers at
+  // once: on a slow phone a dead first tap invites a second, which would clear the route again.
+  const idle = globalThis.requestIdleCallback || ((job) => setTimeout(job, 1500));
+  idle(() => { if (state.pack === pack && !state.network) state.network = roadNetwork(pack); });
   state.packText = text;                           // saved as a file byte for byte, so its code holds
   state.fingerprint = undefined;
   fingerprintOf(text).then((code) => {
@@ -2930,6 +3249,7 @@ function bind() {
   };
   el("tool-area").addEventListener("click", openHere);
   el("r-earth").addEventListener("click", openHere);
+  el("r-route").addEventListener("click", toggleRoute);
   document.querySelectorAll(".panel").forEach((panel) => {
     panel.addEventListener("click", (event) => {
       if (event.target.closest("[data-close]")) closePanel();
