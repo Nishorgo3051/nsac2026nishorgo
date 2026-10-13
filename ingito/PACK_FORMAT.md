@@ -61,6 +61,11 @@ Added by the builder:
   the road crosses detected open water. `wet_parts` (wet roads only) holds the stretches of the road
   that lie inside that water, as lists of `[lon, lat]`; the app draws only these in red. A pack
   without `wet_parts` (built before 3 Oct 2026) gets the whole road marked
+- `lanes?`: `[{line, wet?, wet_parts?}]`, the village lanes and tracks (OpenStreetMap `residential`,
+  `living_street`, `track`) from `pipeline/fetch_lanes.py`, for routing; drawn only close up. Kept
+  apart from `roads` so no road figure changes. `line` is packed as whole numbers: the first point in
+  1e-5 degrees, then each step from the one before (`[x0, y0, dx1, dy1, ...]`), which halves the
+  size. `wet` and `wet_parts` are as for roads, present only on lanes that cross the water
 - `waterways`: `[{kind, coords, name?, name_bn?}]`
 - `shelters`: `[{kind, lon, lat, name?, name_bn?}]`, kind one of `school`, `mosque`, `hospital`,
   `clinic`
@@ -78,7 +83,8 @@ greyscale JPEG hillshade.
 
 - `bounds`, `grid_m`
 - `optical`: `{date, time_utc, sensor, product, scene, cloud_cover, source, note, image}`
-- `radar`: `{before: {date, image}, during: {date, image}, sensor, display_db: [low, high], note}`
+- `radar`: `{before: {date, image}, during: {date, image}, sensor, display_db: [low, high], note}`.
+  The two radar pictures are WebP (a third smaller than JPEG for radar speckle); the photo is JPEG
 
 ## `population`
 

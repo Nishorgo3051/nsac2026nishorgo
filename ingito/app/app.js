@@ -42,6 +42,7 @@ const DELETE_ALL_DISARM_MS = 5000;
 const GROUND_NEAR_M = 300;            // field reports this close count as "here" in the readout
 const NEAR_PLACE_M = 4000;            // a village this close names where the reticle is
 const ROUTE_REACH_M = 1000;           // a route starts or ends at most this far from a road in the pack
+const CUT_NEAR_M = 30;                // a road-cut report this close to a road closes the stretch it is on
 // ponytail: a calibration knob, not a measurement. With no dry route, 1 m through radar water
 // costs as much as this many metres of road; raise it if routes take water to save a short detour.
 const WATER_PENALTY = 20;
@@ -151,6 +152,8 @@ const STRINGS = {
     routeWetNote: (kind, name) => `To the ${kind} (unverified)${name ? ` ${name}` : ""}. Every route from the nearest road crosses radar water: you may need a boat. Tap to clear.`,
     routeNoRoad: (dist) => `No road in this pack within ${dist} of here`,
     routeNoLink: "No road in this pack links here to a shelter clear of radar water",
+    routeCut: "Every road from here to a shelter passes a road reported cut",
+    routeCutsOut: "Roads reported cut are left out. ",
     routeClear: "Tap to clear.",
     peopleIn: (n) => ` WorldPop's model puts about ${n} people inside that water.`,
     peopleNote: (year) => `People figures are WorldPop's ${year} model of where people live, in 100 m squares: an estimate, not a headcount. Radar misses water between houses, so they are probably low.`,
@@ -335,6 +338,8 @@ const STRINGS = {
     routeWetNote: (kind, name) => `গন্তব্য: ${kind} (যাচাই হয়নি)${name ? ` ${name}` : ""}। সবচেয়ে কাছের রাস্তা থেকে প্রতিটি পথই রাডারে দেখা পানি পার হয়: নৌকা লাগতে পারে। সরাতে চাপুন।`,
     routeNoRoad: (dist) => `এখান থেকে ${dist}-এর মধ্যে এই প্যাকে কোনো রাস্তা নেই`,
     routeNoLink: "এই প্যাকের কোনো রাস্তা এখান থেকে পানিমুক্ত কোনো আশ্রয়ে যায় না",
+    routeCut: "এখান থেকে আশ্রয়ে যাওয়ার প্রতিটি পথেই রিপোর্টে বন্ধ বলা রাস্তা পড়ে",
+    routeCutsOut: "রিপোর্টে বন্ধ বলা রাস্তাগুলো বাদ দেওয়া হয়েছে। ",
     routeClear: "সরাতে চাপুন।",
     peopleIn: (n) => ` WorldPop-এর মডেল অনুযায়ী ওই পানির ভেতরে প্রায় ${n} মানুষের বাস।`,
     peopleNote: (year) => `মানুষের সংখ্যাগুলো WorldPop-এর ${year} সালের মডেল: ১০০ মিটারের ঘরে ঘরে মানুষ কোথায় থাকে তার আনুমানিক হিসাব, মাথা গুনে নয়। ঘরবাড়ির ফাঁকের পানি রাডারে ধরা পড়ে না, তাই আসল সংখ্যা সম্ভবত বেশি।`,
@@ -914,9 +919,21 @@ function wetStretches(road) {
   return wet;
 }
 
-/* The pack's roads as a network. Roads meet where they share a point, as in OpenStreetMap, so
-   every point is a node. Points are filed in cells of about 1.2 km - wider than ROUTE_REACH_M - so
-   the nearest one is found in the 3 x 3 cells around a place, not among all fifty thousand. */
+/* Lanes travel packed: the first point in whole 1e-5 degrees, then each step from the one before. */
+function unpackLine(line) {
+  const coords = [];
+  for (let i = 0, x = 0, y = 0; i < line.length; i += 2) {
+    x += line[i];
+    y += line[i + 1];
+    coords.push([x / 1e5, y / 1e5]);
+  }
+  return coords;
+}
+
+/* The pack's roads and lanes as a network. Roads meet where they share a point, as in
+   OpenStreetMap, so every point is a node. Points are filed in cells of about 1.2 km - wider than
+   ROUTE_REACH_M - so the points near a place are found in the 3 x 3 cells around it, not among
+   all hundred thousand. Keys are numbers, not strings: half the time on a slow phone. */
 const CELL = 0.0125;
 function roadNetwork(pack) {
   const ids = new Map();
@@ -924,19 +941,22 @@ function roadNetwork(pack) {
   const links = [];                                // per node: [{to, m, wet}]
   const cells = new Map();
   const cellOf = ([lon, lat]) => [Math.floor(lon / CELL), Math.floor(lat / CELL)];
+  const cellKey = (x, y) => x * 100000 + y;
   const node = (point) => {
-    const key = `${point[0]},${point[1]}`;
-    if (!ids.has(key)) {
-      const cell = cellOf(point).join();
+    const key = Math.round(point[0] * 1e5) * 1e8 + Math.round(point[1] * 1e5);
+    let id = ids.get(key);
+    if (id === undefined) {
+      id = nodes.length;
+      const cell = cellKey(...cellOf(point));
       if (!cells.has(cell)) cells.set(cell, []);
-      cells.get(cell).push(nodes.length);
-      ids.set(key, nodes.length);
+      cells.get(cell).push(id);
+      ids.set(key, id);
       nodes.push(point);
       links.push([]);
     }
-    return ids.get(key);
+    return id;
   };
-  for (const road of pack.context.roads || []) {
+  for (const road of [...(pack.context.roads || []), ...(pack.context.lanes || [])]) {
     const wet = wetStretches(road);
     for (let i = 1; i < road.coords.length; i++) {
       const [a, b] = [node(road.coords[i - 1]), node(road.coords[i])];
@@ -962,16 +982,19 @@ function roadNetwork(pack) {
       }
     }
   }
-  const nearest = (point, usable = () => true) => {
+  const around = (point) => {
     const [cx, cy] = cellOf(point);
-    let best = null;
+    const near = [];
     for (let x = cx - 1; x <= cx + 1; x++) {
-      for (let y = cy - 1; y <= cy + 1; y++) {
-        for (const id of cells.get(`${x},${y}`) || []) {
-          const m = distanceM(point, nodes[id]);
-          if (m <= ROUTE_REACH_M && (!best || m < best.m) && usable(id)) best = { id, m };
-        }
-      }
+      for (let y = cy - 1; y <= cy + 1; y++) near.push(...(cells.get(cellKey(x, y)) || []));
+    }
+    return near;
+  };
+  const nearest = (point, usable = () => true) => {
+    let best = null;
+    for (const id of around(point)) {
+      const m = distanceM(point, nodes[id]);
+      if (m <= ROUTE_REACH_M && (!best || m < best.m) && usable(id)) best = { id, m };
     }
     return best;
   };
@@ -985,7 +1008,29 @@ function roadNetwork(pack) {
     ends.get(at.id).push({ shelter, m: at.m });
     served.add(piece[at.id]);
   }
-  return { nodes, links, ends, start: (point) => nearest(point, (id) => served.has(piece[id])), nearest };
+  return { nodes, links, ends, around, nearest, start: (point) => nearest(point, (id) => served.has(piece[id])) };
+}
+
+/* The stretches road-cut reports close: for each, the one stretch of road it sits on, both ways.
+   Only that stretch: a person at the cut can still go back the way they came. Someone who saw the
+   road cut knows more than the radar did, so no route is sent through it. */
+function closedLinks(network) {
+  const closed = new Set();
+  for (const report of state.reports) {
+    if (report.type !== "road_cut") continue;
+    const point = [report.lon, report.lat];
+    let best = null;
+    for (const id of network.around(point)) {
+      for (const link of network.links[id]) {
+        const m = toSegmentM(point, network.nodes[id], network.nodes[link.to]);
+        if (m <= CUT_NEAR_M && (!best || m < best.m)) best = { id, link, m };
+      }
+    }
+    if (!best) continue;
+    closed.add(best.link);
+    for (const back of network.links[best.link.to]) if (back.to === best.id) closed.add(back);
+  }
+  return closed;
 }
 
 /* A binary min-heap of [cost, node]: the whole of the priority queue the search needs. */
@@ -1045,32 +1090,40 @@ function findRoute(from) {
   const network = state.network || (state.network = roadNetwork(state.pack));
   const start = network.start(from);
   if (!start) return { from, none: network.nearest(from) ? "link" : "road" };
+  const closed = closedLinks(network);
+  const open = (cost) => (link) => (closed.has(link) ? Infinity : cost(link));
   // Only stretches where the radar saw no water; failing that, the least water.
-  const dry = nearestShelter(network, start, (link) => (link.wet > 0 ? Infinity : link.m));
-  const found = dry || nearestShelter(network, start, (link) => link.m + WATER_PENALTY * link.wet);
+  const dry = nearestShelter(network, start, open((link) => (link.wet > 0 ? Infinity : link.m)));
+  const found = dry || nearestShelter(network, start, open((link) => link.m + WATER_PENALTY * link.wet));
+  if (!found) return { from, none: "cut" };
   // Walk back from the shelter's road point. The two ends off the road count in the distance;
   // radar water on them does not, because no road is known there to measure it along.
   const path = [network.nodes[found.at]];
+  const wetSteps = [];                             // stretches with radar water, drawn red on the route
   let metres = start.m + found.m;
   let wet = 0;
   for (let at = found.at; at !== start.id; at = found.via[at].from) {
-    metres += found.via[at].link.m;
-    wet += found.via[at].link.wet;
-    path.push(network.nodes[found.via[at].from]);
+    const { from: back, link } = found.via[at];
+    metres += link.m;
+    wet += link.wet;
+    if (link.wet > 0) wetSteps.push([network.nodes[back], network.nodes[at]]);
+    path.push(network.nodes[back]);
   }
-  return { from, path: path.reverse(), shelter: found.shelter, metres, wet, dry: Boolean(dry) };
+  return { from, path: path.reverse(), wetSteps, shelter: found.shelter, metres, wet,
+           dry: Boolean(dry), cuts: closed.size > 0 };
 }
 
 /* What the card says about the route: its length, and whether it meets radar water. */
 function routeWords(route) {
   const text = S();
   if (route.none === "road") return `${esc(text.routeNoRoad(kmText(ROUTE_REACH_M)))}<small>${text.routeClear}</small>`;
-  if (route.none) return `${esc(text.routeNoLink)}<small>${text.routeClear}</small>`;
+  if (route.none) return `${esc(route.none === "cut" ? text.routeCut : text.routeNoLink)}<small>${text.routeClear}</small>`;
   const kind = text.kinds[route.shelter.kind] || route.shelter.kind;
+  const cuts = route.cuts ? text.routeCutsOut : "";
   return route.dry
-    ? `${esc(text.routeDry(kmText(route.metres), kind, nameIn(route.shelter)))}<small>${text.routeDryNote}</small>`
+    ? `${esc(text.routeDry(kmText(route.metres), kind, nameIn(route.shelter)))}<small>${cuts}${text.routeDryNote}</small>`
     : `${esc(text.routeWet(kmText(route.metres), kmText(route.wet)))}` +
-      `<small>${esc(text.routeWetNote(kind, nameIn(route.shelter)))}</small>`;
+      `<small>${cuts}${esc(text.routeWetNote(kind, nameIn(route.shelter)))}</small>`;
 }
 
 /* The view that shows a whole route around its start: the start stays in the middle, so the card
@@ -1297,6 +1350,13 @@ function draw() {
   }
 
   if (!lens && state.layers.roads) {
+    // Lanes and tracks: thirteen thousand of them, so only close up and only where the screen is.
+    if (detailed && pack.context.lanes) {
+      const view = [...unproject(0, canvas.height), ...unproject(canvas.width, 0)];
+      for (const lane of pack.context.lanes) {
+        if (boxesMeet(lane.box, view)) strokeLine(lane.coords, 0.9 * ratio, MAP.roadMinor);
+      }
+    }
     for (const casing of [true, false]) {
       for (const road of pack.context.roads || []) {
         const minor = MINOR_ROADS.has(road.kind);
@@ -1431,6 +1491,11 @@ function drawRoute(ratio) {
   for (const [coords, dash] of [[path], [[from, path[0]], dots], [[path[path.length - 1], [shelter.lon, shelter.lat]], dots]]) {
     strokeLine(coords, 9 * ratio, MAP.routeHalo, dash);
     strokeLine(coords, 5 * ratio, MAP.route, dash);
+  }
+  // Radar water on the route, in the wet-road red, whether it lies on a road or on a lane.
+  for (const step of state.route.wetSteps || []) {
+    strokeLine(step, 9 * ratio, MAP.wetCasing);
+    strokeLine(step, 3 * ratio, MAP.wetDash, [5 * ratio, 4 * ratio]);
   }
   const [x, y] = project(from[0], from[1]);
   ctx.beginPath();
@@ -2321,6 +2386,7 @@ function cutPack(pack, areaName, keep) {
     observation: { ...o, features, feature_count: features.length },
     context: { ...c,
                roads: keep.roads ? (c.roads || []).filter((road) => meets(road.coords)) : [],
+               lanes: keep.roads ? (c.lanes || []).filter((lane) => meets(lane.coords)) : [],
                waterways: keep.reference ? (c.waterways || []).filter((way) => meets(way.coords)) : [],
                places: keep.reference ? (c.places || []).filter(inside) : [],
                shelters: keep.shelters ? (c.shelters || []).filter(inside) : [] },
@@ -2594,6 +2660,8 @@ function updateCounts() {
 }
 
 function afterReportsChanged() {
+  // A road cut reported, or taken back, changes which roads a route may use: ask again from the same point.
+  if (state.route) state.route = findRoute(state.route.from);
   updateCounts();
   updateReadout();
   draw();
@@ -2942,6 +3010,11 @@ function openPack(text, source) {
   // anything on screen changes, rather than half-opening and breaking the map.
   const missing = ["observation", "context", "coverage", "terrain", "hazard"].filter((key) => !pack[key]);
   if (missing.length) throw new Error(`the pack has no ${missing.join(", ")}`);
+  // Lanes are unpacked out of sight of JSON, so a pack saved or cut on this phone keeps them packed.
+  for (const lane of pack.context.lanes || []) {
+    const coords = unpackLine(lane.line);
+    Object.defineProperties(lane, { coords: { value: coords }, box: { value: boxOf([coords]) } });
+  }
   const stats = computeStats(pack);
   state.pack = pack;
   state.source = source;

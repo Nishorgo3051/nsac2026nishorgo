@@ -79,6 +79,10 @@ PARTS_FILE = NSAC / AREA["parts"]
 AOI_FILE = NSAC / AREA["outline"]
 IMAGERY_DIR = INGITO / "context" / "imagery"
 POPULATION_FILE = INGITO / "context" / "population.json"
+LANES_FILE = INGITO / "context" / f"{AREA['aoi_name'].lower()}_lanes.json"
+# ponytail: a size knob. Lower it if the pack must shrink; above about 85 the radar WebP is no
+# smaller than the JPEG it replaces.
+RADAR_WEBP_QUALITY = 75
 
 # The pack is bilingual, so the places it names need both spellings. The area config lists the
 # official upazila names (parts_bn) and the standard names of the area's rivers and towns
@@ -193,7 +197,7 @@ def rings_of(geometry):
     return rings
 
 
-def mark_wet_roads(context, geojson_path):
+def mark_wet_roads(roads, geojson_path):
     """
     Flag the road lines that cross detected open water.
 
@@ -211,15 +215,15 @@ def mark_wet_roads(context, geojson_path):
 
     flood = gpd.read_file(geojson_path).to_crs(4326)
     if flood.empty:
-        for road in context["roads"]:
+        for road in roads:
             road["wet"] = False
         return 0
     lines = gpd.GeoDataFrame(
-        geometry=[LineString(road["coords"]) for road in context["roads"]], crs=4326)
+        geometry=[LineString(road["coords"]) for road in roads], crs=4326)
     hit = gpd.sjoin(lines, flood[["geometry"]], how="inner", predicate="intersects")
     wet_rows = set(hit.index)
     water = flood.geometry.union_all()
-    for index, road in enumerate(context["roads"]):
+    for index, road in enumerate(roads):
         road["wet"] = index in wet_rows
         if road["wet"]:
             # Only the stretch inside the water, so a 10 km road with 50 m under water is not
@@ -246,9 +250,40 @@ def complete_names(items):
             item["name"] = to_en[item["name_bn"]]
 
 
+def lanes_block(geojson_path):
+    """
+    The village lanes and tracks from fetch_lanes.py, for routing. Optional. Flagged for radar water
+    like the roads. Each lane travels as whole numbers - its first point in 1e-5 degrees, then each
+    step from the one before - which halves its size; the app unpacks it on opening.
+    """
+    if not LANES_FILE.exists():
+        print("  no lanes (run fetch_lanes.py to add them for routing)")
+        return None
+    lanes = [{"coords": lane["coords"]} for lane in
+             json.loads(LANES_FILE.read_text(encoding="utf-8"))["lanes"]]
+    wet = mark_wet_roads(lanes, geojson_path)
+    packed = []
+    for lane in lanes:
+        line, last = [], (0, 0)
+        for lon, lat in lane["coords"]:
+            point = (round(lon * 1e5), round(lat * 1e5))
+            line += [point[0] - last[0], point[1] - last[1]]
+            last = point
+        packed.append({"line": line, **({"wet": True, "wet_parts": lane["wet_parts"]} if lane["wet"] else {})})
+    print(f"  {len(packed)} lanes and tracks for routing ({wet} crossing detected water)")
+    return packed
+
+
 def data_uri(path, mime="image/jpeg"):
     """Embed a picture in the pack. Base64 costs a third in size and keeps the pack ONE file."""
     return f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode("ascii")
+
+
+def webp_uri(path):
+    """A radar picture as WebP: a third smaller than its JPEG, and the speckle looks the same."""
+    buffer = io.BytesIO()
+    Image.open(path).save(buffer, format="WEBP", quality=RADAR_WEBP_QUALITY, method=6)
+    return "data:image/webp;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
 
 
 def imagery_block():
@@ -261,7 +296,7 @@ def imagery_block():
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     meta["optical"]["image"] = data_uri(IMAGERY_DIR / meta["optical"].pop("file"))
     for when in ("before", "during"):
-        meta["radar"][when]["image"] = data_uri(IMAGERY_DIR / meta["radar"][when].pop("file"))
+        meta["radar"][when]["image"] = webp_uri(IMAGERY_DIR / meta["radar"][when].pop("file"))
     return meta
 
 
@@ -329,7 +364,7 @@ def main():
     context = json.loads(CONTEXT_FILE.read_text(encoding="utf-8"))
     for key in ("roads", "waterways", "shelters", "places"):
         complete_names(context.get(key, []))
-    wet = mark_wet_roads(context, sorted(SAR_OUT.glob(HAZARD_GLOB))[-1])
+    wet = mark_wet_roads(context["roads"], sorted(SAR_OUT.glob(HAZARD_GLOB))[-1])
     context["roads_crossing_water"] = wet
     context["roads_note"] = ("A road is flagged when it crosses an area where the radar saw open "
                              "water on the observation date. That is not a statement that the road "
@@ -338,6 +373,10 @@ def main():
                              "nothing about depth or current.")
     print(f"  {len(context['roads'])} roads ({wet} crossing detected water), "
           f"{len(context['waterways'])} waterways, {len(context['shelters'])} shelter points")
+    # Added after the road figures are taken, so lanes change none of them.
+    lanes = lanes_block(sorted(SAR_OUT.glob(HAZARD_GLOB))[-1])
+    if lanes:
+        context["lanes"] = lanes
 
     print("Packing the terrain from the public Copernicus DEM...")
     elevation, transform, crs = read_dem(area)
