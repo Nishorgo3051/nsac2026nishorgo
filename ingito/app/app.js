@@ -142,6 +142,7 @@ const STRINGS = {
     shelterLine: (dist, dir, kind, name) => `${dist} ${dir} · ${kind} (unverified)${name ? ` · ${name}` : ""}`,
     shelterClear: "Nearest shelter outside the water radar saw",
     noShelter: "No shelter point in this pack",
+    routeBy: (dist, dir, kind, name) => `${dist} by road, ${dir} · ${kind} (unverified)${name ? ` · ${name}` : ""}`,
     routeDry: (dist, kind, name) => `${dist} by road, no radar water on it · ${kind} (unverified)${name ? ` · ${name}` : ""}`,
     routeDryNote: "Uses only the roads in this pack. A road can still be blocked: check before you go. Tap to clear.",
     routeWet: (dist, wet) => `${dist} by road · ${wet} of it through radar water`,
@@ -326,6 +327,7 @@ const STRINGS = {
     shelterLine: (dist, dir, kind, name) => `${dist} ${dir} · ${kind} (যাচাই হয়নি)${name ? ` · ${name}` : ""}`,
     shelterClear: "রাডারে দেখা পানির বাইরে সবচেয়ে কাছের আশ্রয়",
     noShelter: "এই প্যাকে কোনো আশ্রয়ের জায়গা নেই",
+    routeBy: (dist, dir, kind, name) => `রাস্তায় ${dist}, ${dir} · ${kind} (যাচাই হয়নি)${name ? ` · ${name}` : ""}`,
     routeDry: (dist, kind, name) => `রাস্তায় ${dist}, পথে রাডারে দেখা পানি নেই · ${kind} (যাচাই হয়নি)${name ? ` · ${name}` : ""}`,
     routeDryNote: "শুধু এই প্যাকের রাস্তা ধরে হিসাব। রাস্তা তবুও বন্ধ থাকতে পারে: রওনা দেওয়ার আগে খোঁজ নিন। সরাতে চাপুন।",
     routeWet: (dist, wet) => `রাস্তায় ${dist} · এর ${wet} রাডারে দেখা পানির ভেতর দিয়ে`,
@@ -1884,10 +1886,18 @@ function updateReadout() {
     if (!nearest || metres < nearest.metres) nearest = { shelter, metres };
   }
   // "unverified" comes before the name, so a long name is what gets cut, never the warning. Once a
-  // route is asked for, the line answers about the route until it is cleared.
+  // route is asked for, the line answers about the route until it is removed. Before that, with the
+  // road network built, the answer is the nearest shelter BY ROAD - a straight line can say one
+  // kilometre where the road is four. Until then, or where no road reaches one, the straight line.
+  const guess = !state.route && state.network ? findRoute(point) : null;
   const row = el("r-shelter");
-  row.className = state.route?.path && !state.route.dry ? "wet" : "";
-  row.innerHTML = state.route ? routeWords(state.route) : nearest
+  row.className = (state.route || guess)?.path && !(state.route || guess).dry ? "wet" : "";
+  row.innerHTML = state.route ? routeWords(state.route) : guess?.path
+    ? esc(guess.dry
+      ? text.routeBy(kmText(guess.metres), text.dirs[bearingIndex(point, [guess.shelter.lon, guess.shelter.lat])],
+                     text.kinds[guess.shelter.kind] || guess.shelter.kind, nameIn(guess.shelter))
+      : text.routeWet(kmText(guess.metres), kmText(guess.wet))) + `<small>${text.shelterClear}</small>`
+    : nearest
     ? `${esc(text.shelterLine(kmText(nearest.metres),
                               text.dirs[bearingIndex(point, [nearest.shelter.lon, nearest.shelter.lat])],
                               text.kinds[nearest.shelter.kind] || nearest.shelter.kind, nameIn(nearest.shelter)))}` +
@@ -3065,7 +3075,11 @@ function openPack(text, source) {
   // The road network is built just after the map appears, so the first route tap answers at once:
   // on a slow phone a dead first tap invites a second, which would clear the route again.
   const idle = globalThis.requestIdleCallback || ((job) => setTimeout(job, 1500));
-  idle(() => { if (state.pack === pack && !state.network) state.network = roadNetwork(pack); });
+  idle(() => {
+    if (state.pack !== pack || state.network) return;
+    state.network = roadNetwork(pack);
+    updateReadout();                               // the shelter line can now answer by road
+  });
   state.packText = text;                           // saved as a file byte for byte, so its code holds
   state.fingerprint = undefined;
   fingerprintOf(text).then((code) => {
