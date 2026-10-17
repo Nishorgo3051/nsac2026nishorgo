@@ -131,7 +131,6 @@
   :focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
   svg.i { width: 1.25rem; height: 1.25rem; flex: none; fill: none; stroke: currentColor;
           stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .grow { flex: 1 1 auto; }
   /* Latin capitals get tracking; Bangla has no capitals, and spacing it apart breaks its joins. */
   .caps { text-transform: uppercase; letter-spacing: 0.1em; }
   html[lang="bn"] .caps { text-transform: none; letter-spacing: 0; }
@@ -213,11 +212,12 @@
   /* ================= the brand bar ================= */
   #bar { grid-area: bar; background: var(--river-deep); color: var(--delta-sand); padding: 0.4rem 0.75rem 0.45rem; }
   #bar .top { display: flex; align-items: center; gap: var(--s2); }
-  .brand { display: flex; align-items: center; gap: 0.55rem; min-width: 0; }
-  .logo { width: 2.3rem; height: 2.3rem; flex: none; }
-  .word { display: grid; line-height: 1.1; }
-  .word b { font-size: 0.9rem; font-weight: 700; letter-spacing: 0.32em; }
-  .word span { font-size: 0.98rem; font-weight: 600; }
+  .logo { width: 2rem; height: 2rem; flex: none; }
+  #seen { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 0.86rem; font-weight: 700; line-height: 1.25; }
+  #stale { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.1rem var(--s2); margin: 0.25rem 0 0; font-size: 0.8rem; line-height: 1.3; }
+  #stale b { color: #ff8a92; }            /* sun red lifted to 5.4:1 on river deep: this line is a caution */
+  #stale small { font: 600 0.74rem var(--mono); color: var(--floodplain); }
+  html[lang="bn"] #seen, html[lang="bn"] #stale { font-size: 0.9rem; }
   .seg { display: flex; border: 1.5px solid rgba(234, 230, 217, 0.7); border-radius: var(--r-pill); overflow: hidden; }
   .seg button { min-width: 2.9rem; height: var(--tap); padding: 0 0.6rem; font-weight: 700; font-size: 0.92rem; }
   .seg button[aria-pressed="true"] { background: var(--delta-sand); color: var(--river-deep); }
@@ -225,14 +225,6 @@
     width: var(--tap); height: var(--tap); border-radius: var(--r-pill); display: grid; place-items: center;
     border: 1.5px solid rgba(234, 230, 217, 0.7);
   }
-  #status { display: flex; align-items: center; gap: var(--s2); margin: 0.3rem 0 0; min-height: 1.5rem; }
-  #status svg.i { width: 1rem; height: 1rem; color: var(--signal); }
-  #status:has(#tele:empty) svg.i { visibility: hidden; }     /* no pass to describe before a pack */
-  #tele {
-    flex: 1 1 auto; min-width: 0; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.07em; color: var(--floodplain);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  html[lang="bn"] #tele { font-size: 0.8rem; letter-spacing: 0; }
   #chip-net {
     flex: none; font-size: 0.74rem; font-weight: 700; border-radius: var(--r-pill); padding: 0.1rem 0.55rem;
     border: 1.5px solid rgba(234, 230, 217, 0.75); white-space: nowrap;
@@ -475,7 +467,6 @@
      dot the map uses - so every answer gets the width to sit on one line. The words stay readable
      to a screen reader. */
   @media (max-width: 360px) {
-    .word b { letter-spacing: 0.24em; }
     #key .txt { max-width: 9.5rem; overflow: hidden; text-overflow: ellipsis; }
     .persp { grid-template-columns: 1.7rem 1fr; }
     .persp .tag > span:not(.mk) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -566,20 +557,19 @@
 </svg>
 
 <div id="screen">
+  <!-- Never behind a tap: when the radar saw this, that it may be out of date, and the file code.
+       The language switch stays here too: a reader of either script must not need a menu to find it. -->
   <header id="bar">
     <div class="top">
-      <span class="brand">
-        <svg class="logo" role="img" aria-label="INGITO ইঙ্গিত"><use href="#logo"/></svg>
-        <span class="word" aria-hidden="true"><b>INGITO</b><span lang="bn">ইঙ্গিত</span></span>
-      </span>
-      <span class="grow"></span>
+      <svg class="logo" role="img" aria-label="INGITO ইঙ্গিত"><use href="#logo"/></svg>
+      <p id="seen"></p>
       <div class="seg" id="lang" role="group" aria-label="Language / ভাষা">
         <button data-lang="en" aria-pressed="false" lang="en">EN</button>
         <button data-lang="bn" aria-pressed="false" lang="bn">বাংলা</button>
       </div>
       <button class="round" id="theme"><svg class="i" id="theme-icon"><use href="#i-moon"/></svg></button>
     </div>
-    <p id="status"><svg class="i" aria-hidden="true"><use href="#i-orbit"/></svg><span id="tele"></span><span id="chip-net"></span></p>
+    <p id="stale"><b id="stale-warn"></b><small id="stale-code"></small><span id="chip-net"></span></p>
   </header>
 
   <main id="stage">

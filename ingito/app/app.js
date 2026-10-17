@@ -53,7 +53,6 @@ const PANELS = ["layers", "alerts", "area", "reports", "source", "packs"];
    to fetch from, so the pack can be embedded in the page instead - as the pack file's exact text,
    so the fingerprint worked out from it matches the one recorded when the pack was built. */
 const EMBEDDED_TEXT = typeof globalThis.INGITO_PACK_TEXT === "string" ? globalThis.INGITO_PACK_TEXT : null;
-const FRESH_DAYS = 3;                 // past this age the label adds its caution: a display choice, not a validity limit
 const FONT = '"Inter", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif';
 
 /*
@@ -126,7 +125,6 @@ const STRINGS = {
     openFile: "Or open a pack file handed to you by another team",
     keyFlood: "Water seen by radar",
     keyRadar: "Radar · dark = water",
-    tele: (date, time, platform) => `${date.toUpperCase()} · ${time} · ${platform.toUpperCase()} · C-BAND SAR`,
     clock: (h, m) => `${String(h).padStart(2, "0")}:${m} UTC+6`,
     net: { online: "Online", nolink: "No link", offline: "Offline", checking: "Checking" },
     recorded: (n) => `${n} recorded`,
@@ -309,7 +307,6 @@ const STRINGS = {
     openFile: "অথবা অন্য দলের কাছ থেকে পাওয়া প্যাক ফাইল খুলুন",
     keyFlood: "রাডারে দেখা পানি",
     keyRadar: "রাডার · কালো = পানি",
-    tele: (date, time, platform) => `${date} · ${time} · ${platform} · C-band রাডার`,
     clock: (h, m) => {
       const period = h < 4 ? "রাত" : h < 12 ? "সকাল" : h < 15 ? "দুপুর" : h < 18 ? "বিকেল" : h < 20 ? "সন্ধ্যা" : "রাত";
       return `${period} ${((h + 11) % 12) + 1}:${m}`;
@@ -2265,7 +2262,7 @@ function labelRows() {
     [text.labelRows.seen, esc(text.labelSeen(fmtDate(o.acquisition_date), passClock(o.acquisition_time_utc),
                                              o.platform || o.sensor))],
     [text.labelRows.age, days === null ? "&mdash;" : esc(text.ageLine(days, count(days))) +
-      (days > FRESH_DAYS ? `<b class="warn">${esc(text.oldWarn)}</b>` : "")],
+      `<b class="warn">${esc(text.oldWarn)}</b>`],
     [text.labelRows.covers, esc(text.coversLine(num(pack.coverage.area_km2), num((pack.areas || []).length),
                                                 (pack.areas || []).length === 1))],
     [text.labelRows.shows, esc(text.showsLine)],
@@ -2918,11 +2915,13 @@ function status() {
     const radarView = state.lens && pack.imagery;
     el("key-swatch").className = radarView ? "mk signal radar" : "mk signal";
     el("key-text").textContent = radarView ? text.keyRadar : text.keyFlood;
-    // The pass as telemetry, date FIRST: when a narrow screen cuts the line, it cuts the sensor
-    // name, never the day the water was seen.
+    // How old the map is, with its caution and its file code, always on screen: the first thing to
+    // know before trusting anything under it.
     const o = pack.observation;
-    el("tele").textContent = text.tele(fmtDate(o.acquisition_date), passClock(o.acquisition_time_utc),
-                                       o.platform || o.sensor).replace(/ · {2}·/, " ·");
+    el("seen").textContent = `${text.labelRows.seen}: ${fmtDate(o.acquisition_date)}` +
+      (o.acquisition_time_utc ? `, ${passClock(o.acquisition_time_utc)}` : "");
+    el("stale-warn").textContent = text.oldWarn;
+    el("stale-code").textContent = state.fingerprint ? `${text.labelRows.code} ${state.fingerprint}` : "";
   }
   if (state.panel === "source") renderSource();
 }
@@ -3021,8 +3020,8 @@ function openPack(text, source) {
   state.stats = stats;
   state.network = null;                            // the roads are this pack's now
   state.route = null;
-  // The road network is built while the operator reads the label, so the first route tap answers at
-  // once: on a slow phone a dead first tap invites a second, which would clear the route again.
+  // The road network is built just after the map appears, so the first route tap answers at once:
+  // on a slow phone a dead first tap invites a second, which would clear the route again.
   const idle = globalThis.requestIdleCallback || ((job) => setTimeout(job, 1500));
   idle(() => { if (state.pack === pack && !state.network) state.network = roadNetwork(pack); });
   state.packText = text;                           // saved as a file byte for byte, so its code holds
@@ -3031,7 +3030,7 @@ function openPack(text, source) {
     if (state.pack !== pack) return;               // another pack was opened meanwhile
     state.fingerprint = code;
     if (!el("label").hidden) renderLabel();
-    if (state.panel === "source") renderSource();
+    status();
   });
   state.index = buildIndex(pack);
   state.images = {
@@ -3041,10 +3040,9 @@ function openPack(text, source) {
     during: picture(pack.imagery?.radar?.during?.image),
   };
 
-  // The label first, over the map: what this pack is, before anyone relies on it.
-  el("gate-packs").hidden = true;
-  el("label").hidden = false;
-  el("gate").hidden = false;
+  // The map at once: its date, caution and file code are in the bar above it, so nothing has to be
+  // tapped away first. The full label is in More.
+  el("gate").hidden = true;
   el("reticle").hidden = false;
   el("top").hidden = false;
   el("controls").hidden = false;
@@ -3057,7 +3055,6 @@ function openPack(text, source) {
   // standing empty.
   if (wide() && !state.panel) togglePanel("alerts");
   applyLang();
-  el("label-open").focus({ preventScroll: true });
 }
 
 async function listPacks() {
