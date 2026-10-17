@@ -45,8 +45,6 @@ const CUT_NEAR_M = 30;                // a road-cut report this close to a road 
 // ponytail: a calibration knob, not a measurement. With no dry route, 1 m through radar water
 // costs as much as this many metres of road; raise it if routes take water to save a short detour.
 const WATER_PENALTY = 20;
-const FLY_MS = 520;                   // gliding to a place the operator picked
-const REVEAL_MS = 700;                // the before/after line opening
 const PANELS = ["more", "layers", "alerts", "area", "reports", "source", "packs"];
 /* A published build (an artifact page, or a single HTML file sent to somebody) has no packs folder
    to fetch from, so the pack can be embedded in the page instead - as the pack file's exact text,
@@ -521,7 +519,6 @@ const count = (value) => num(Number(value).toLocaleString("en-US"));
 /* A modelled figure, to two significant figures: "about 13,000", never a false "13,419". */
 const about = (value) => count(Number(Number(value).toPrecision(2)));
 const wide = () => Boolean(globalThis.matchMedia?.("(min-width: 900px)").matches);
-const calm = () => Boolean(globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 function fmtDate(iso) {
   const [y, m, d] = String(iso || "").split("-").map(Number);
@@ -1154,41 +1151,13 @@ function toggleRoute() {
 
 /* ------------------------------------------------------------------ motion */
 
-/* Small tweens for the few moves that explain something, one per channel ("view", "split"), so a
-   glide and the before/after reveal can run together. Skipped entirely when the phone asks for
-   reduced motion; a newer move on the same channel cancels the older one. */
-const tweens = {};
-function animate(channel, ms, frame, done) {
-  const token = {};
-  tweens[channel] = token;
-  if (calm()) {
-    frame(1);
-    if (done) done();
-    return;
-  }
-  const start = performance.now();
-  const step = (now) => {
-    if (tweens[channel] !== token) return;
-    const t = Math.min((now - start) / ms, 1);
-    frame(t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
-    if (t < 1) requestAnimationFrame(step);
-    else if (done) done();
-  };
-  requestAnimationFrame(step);
-}
-
-/* Glide to a place: position and zoom move together, zoom in log space, so it reads as one move. */
+/* Go to a place at once: no glide, so nothing moves that the operator did not move, and a cheap
+   phone has no frames to drop. */
 function flyTo(target) {
-  const from = { ...state.view };
   hideNote();
-  animate("view", FLY_MS, (e) => {
-    state.view = {
-      lon: from.lon + (target.lon - from.lon) * e,
-      lat: from.lat + (target.lat - from.lat) * e,
-      ppd: Math.exp(Math.log(from.ppd) + (Math.log(target.ppd) - Math.log(from.ppd)) * e),
-    };
-    draw();
-  }, updateReadout);
+  state.view = { lon: target.lon, lat: target.lat, ppd: target.ppd };
+  draw();
+  updateReadout();
 }
 
 /* ------------------------------------------------------------------ drawing */
@@ -3019,19 +2988,13 @@ function applyLang() {
   if (document.fonts?.ready) document.fonts.ready.then(draw);   // map labels in the new script
 }
 
-/* Before / After, from More. While it is on, its chip stays on the map as the way back out.
-   Turning it on opens the line from the right edge to the middle, so the first thing seen is the
-   water arriving - the reveal is the explanation. */
+/* Before / After, from More. It opens with the line in the middle; dragging it shows the water
+   arrive. While it is on, its chip stays on the map as the way back out. */
 function setLens(on) {
   state.lens = Boolean(on && state.pack?.imagery);
   el("lens").hidden = !state.lens;
   el("compare").hidden = !state.lens;
-  if (state.lens) {
-    animate("split", REVEAL_MS, (e) => {
-      state.split = 0.94 - 0.44 * e;
-      draw();
-    });
-  }
+  state.split = 0.5;
   status();
   draw();
 }
@@ -3293,7 +3256,6 @@ function bind() {
   const startPan = (p) => ({ kind: "pan", x: p.x, y: p.y, lon: state.view.lon, lat: state.view.lat });
 
   canvas.addEventListener("pointerdown", (event) => {
-    tweens.view = tweens.split = null;              // a hand on the map wins over any glide
     closeResults();
     try {
       canvas.setPointerCapture(event.pointerId);
@@ -3345,7 +3307,6 @@ function bind() {
   canvas.addEventListener("pointercancel", end);
   canvas.addEventListener("wheel", (event) => {
     event.preventDefault();
-    tweens.view = null;
     const box = canvas.getBoundingClientRect();
     const ratio = globalThis.devicePixelRatio || 1;
     zoomAt(event.deltaY < 0 ? 1.25 : 0.8, (event.clientX - box.left) * ratio, (event.clientY - box.top) * ratio);
@@ -3413,7 +3374,6 @@ function bind() {
 }
 
 function zoom(factor) {
-  tweens.view = null;
   zoomAt(factor);
   updateReadout();
   draw();
