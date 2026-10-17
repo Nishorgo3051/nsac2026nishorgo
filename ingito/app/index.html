@@ -201,12 +201,12 @@
   }
 
   /* ================= layout ================= */
-  /* One column on a phone: brand bar, the Earth, the insight card, four ways in. */
+  /* One column on a phone: the date bar, the Earth, the insight card with its buttons. */
   #screen {
     display: grid; height: 100%;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto auto;
-    grid-template-areas: "bar" "map" "sheet" "nav";
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "bar" "map" "sheet";
   }
 
   /* ================= the brand bar ================= */
@@ -221,16 +221,12 @@
   .seg { display: flex; border: 1.5px solid rgba(234, 230, 217, 0.7); border-radius: var(--r-pill); overflow: hidden; }
   .seg button { min-width: 2.9rem; height: var(--tap); padding: 0 0.6rem; font-weight: 700; font-size: 0.92rem; }
   .seg button[aria-pressed="true"] { background: var(--delta-sand); color: var(--river-deep); }
-  .round {
-    width: var(--tap); height: var(--tap); border-radius: var(--r-pill); display: grid; place-items: center;
-    border: 1.5px solid rgba(234, 230, 217, 0.7);
-  }
   #chip-net {
     flex: none; font-size: 0.74rem; font-weight: 700; border-radius: var(--r-pill); padding: 0.1rem 0.55rem;
-    border: 1.5px solid rgba(234, 230, 217, 0.75); white-space: nowrap;
+    border: 1.5px solid var(--ink); white-space: nowrap;
   }
   /* Offline is the instrument's normal working state in the field: shown bright, not as an error. */
-  #chip-net.lit { background: var(--delta-sand); color: var(--river-deep); }
+  #chip-net.lit { background: var(--action-bg); border-color: var(--action-bg); color: var(--action-ink); }
 
   /* ================= the Earth ================= */
   #stage { grid-area: map; position: relative; overflow: hidden; background: var(--map-ground); min-height: 0; }
@@ -283,12 +279,6 @@
   }
   html[lang="bn"] .pill { font-size: 0.84rem; letter-spacing: 0; }
 
-  /* A one-time invitation to the comparison, pointing at the button it explains. */
-  #hint {
-    position: absolute; right: var(--s2); top: 6.4rem; max-width: 14rem; text-align: left; border-radius: var(--r-md);
-    border-top: 3px solid var(--signal); padding: 0.5rem 0.65rem; font-size: 0.86rem; font-weight: 600;
-  }
-
   /* Right under the insight card's buttons: the answer appears where the thumb already is. */
   #confirm {
     position: absolute; left: var(--s2); right: 3.8rem; bottom: 1.3rem; display: flex; align-items: center; gap: 0.6rem;
@@ -302,7 +292,8 @@
   /* ================= the insight card ================= */
   /* It overlaps the map by a few pixels: a card placed on the geography, not a box beside it. */
   #sheet {
-    grid-area: sheet; position: relative; z-index: 3; margin-top: -0.8rem; padding: 0.6rem 0.75rem 0.65rem;
+    grid-area: sheet; position: relative; z-index: 3; margin-top: -0.8rem;
+    padding: 0.6rem 0.75rem calc(0.65rem + env(safe-area-inset-bottom));
     background: var(--surface); border-radius: var(--r-lg) var(--r-lg) 0 0; box-shadow: var(--e2);
   }
   .earth { display: flex; align-items: flex-start; gap: var(--s2); width: 100%; text-align: left; border-radius: var(--r-sm); }
@@ -336,18 +327,13 @@
   .act .lbl { font-size: 1.05rem; font-weight: 700; line-height: 1.15; }
   html[lang="bn"] .act .lbl { font-size: 1.15rem; }
   .act .n { font-size: 0.76rem; font-weight: 500; opacity: 0.88; }
-
-  /* ================= four ways in ================= */
-  #nav { grid-area: nav; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
-  #nav button {
-    position: relative; height: 3.4rem; display: grid; place-content: center; justify-items: center; gap: 0.1rem;
-    font-size: 0.72rem; font-weight: 600; color: var(--dim);
-  }
-  html[lang="bn"] #nav button { font-size: 0.86rem; }
-  #nav button[aria-pressed="true"] { color: var(--teal-ink); }
-  #nav button[aria-pressed="true"]::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 3px; border-radius: 0 0 3px 3px; background: var(--river-green); }
-  #nav .badge {
-    position: absolute; top: 0.35rem; left: calc(50% + 0.45rem); min-width: 1.15rem; height: 1.15rem; padding: 0 0.25rem;
+  /* Pressed: a route is on the map, or More is open. Inverted, so the state reads without colour. */
+  .act { border: 2px solid var(--action-bg); }
+  .act[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
+  .act.more { grid-column: 1 / -1; min-height: var(--tap); display: flex; justify-content: center; gap: var(--s2); background: var(--surface-2); color: var(--ink); }
+  /* Reports waiting to be handed over: a reason to open More, so the count is red. */
+  .act .badge {
+    min-width: 1.15rem; height: 1.15rem; padding: 0 0.25rem;
     border-radius: var(--r-pill); background: var(--sun-red); color: #fff; font-size: 0.66rem; font-weight: 700; line-height: 1.15rem; text-align: center;
   }
 
@@ -361,7 +347,8 @@
   /* With a sheet open, the insight card keeps only its two buttons, and the map gets the room. */
   #screen.panelled .insight { display: none; }
   #screen.panelled #sheet { margin-top: 0; box-shadow: none; border-top: 1px solid var(--line); border-radius: 0; }
-  #screen.panelled #confirm, #screen.panelled #hint { display: none; }
+  #screen.panelled #confirm { display: none; }
+  #panel-more #search { margin: var(--s2) 0; }
   .ph { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: var(--s2); padding: 0.7rem 0 0.45rem; background: var(--surface); }
   .ph h2 { flex: 1 1 auto; margin: 0; font-size: 1.1rem; font-weight: 700; line-height: 1.25; }
   .x { width: var(--tap); height: var(--tap); border-radius: var(--r-pill); display: grid; place-items: center; margin-right: -0.5rem; }
@@ -478,7 +465,6 @@
     #sheet { padding-top: 0.5rem; padding-bottom: 0.5rem; }
     .persp, .shelter { margin-top: 0.2rem; }
     .act { min-height: 3rem; }
-    #nav button { height: 3.1rem; }
     #r-shelter small { display: none; }
     #key { display: none !important; }
     .line.split { justify-content: flex-end; }
@@ -491,15 +477,14 @@
   @media (min-width: 900px) {
     #screen {
       grid-template-columns: 26rem minmax(0, 1fr);
-      grid-template-rows: auto auto minmax(0, 1fr) auto;
-      grid-template-areas: "bar bar" "sheet map" "side map" "nav map";
+      grid-template-rows: auto auto minmax(0, 1fr);
+      grid-template-areas: "bar bar" "sheet map" "side map";
     }
     #sheet, #screen.panelled #sheet { margin-top: 0; border-radius: 0; box-shadow: none; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
     #screen.panelled .insight { display: block; }
     .panel { grid-area: side; align-self: stretch; max-height: none; border-radius: 0; box-shadow: none; border-right: 1px solid var(--line); animation: none; }
-    #nav { border-right: 1px solid var(--line); }
     #controls, #scale, #confirm { bottom: var(--s2); }
-    #screen.panelled #confirm, #screen.panelled #hint { display: flex; }
+    #screen.panelled #confirm { display: flex; }
     #top { right: auto; width: min(26rem, calc(100% - 1rem)); }
   }
 
@@ -567,9 +552,8 @@
         <button data-lang="en" aria-pressed="false" lang="en">EN</button>
         <button data-lang="bn" aria-pressed="false" lang="bn">বাংলা</button>
       </div>
-      <button class="round" id="theme"><svg class="i" id="theme-icon"><use href="#i-moon"/></svg></button>
     </div>
-    <p id="stale"><b id="stale-warn"></b><small id="stale-code"></small><span id="chip-net"></span></p>
+    <p id="stale"><b id="stale-warn"></b><small id="stale-code"></small></p>
   </header>
 
   <main id="stage">
@@ -578,17 +562,9 @@
     <div id="compare" hidden><span class="pill" id="pill-before"></span><span class="pill" id="pill-during"></span></div>
 
     <div id="top" hidden>
-      <div class="line">
-        <form id="search" class="float" role="search" autocomplete="off">
-          <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
-          <input id="q" type="search" enterkeyhint="search" spellcheck="false">
-        </form>
-        <button class="mapbtn float" id="tool-layers" aria-pressed="false"><svg class="i"><use href="#i-layers"/></svg></button>
-      </div>
-      <ul id="results" class="float" hidden></ul>
       <div class="line split">
         <p id="key" class="chip float" hidden><span class="mk signal" id="key-swatch"></span><span class="txt" id="key-text"></span></p>
-        <button id="lens" class="chip float" aria-pressed="false"><svg class="i"><use href="#i-change"/></svg><span id="lens-text"></span></button>
+        <button id="lens" class="chip float" aria-pressed="true" hidden><svg class="i"><use href="#i-change"/></svg><span id="lens-text"></span></button>
       </div>
     </div>
 
@@ -598,8 +574,6 @@
       <button class="mapbtn float" id="zoom-in">+</button>
       <button class="mapbtn float" id="zoom-out">&minus;</button>
     </div>
-    <button id="hint" class="float" hidden></button>
-
     <div id="confirm" class="float" hidden>
       <span class="text" id="confirm-text"></span>
       <button id="confirm-undo" data-t="undo"></button>
@@ -612,32 +586,40 @@
   <section class="panel" id="panel-reports" hidden></section>
   <section class="panel" id="panel-source" hidden></section>
   <section class="panel" id="panel-packs" hidden></section>
+  <!-- More: everything that is not one of the four field buttons. Fixed markup, so the search box
+       keeps what was typed while the rows under it are redrawn. -->
+  <section class="panel" id="panel-more" hidden>
+    <header class="ph"><h2 data-t="more"></h2><span id="chip-net"></span>
+      <button class="x" id="more-close" data-close><svg class="i"><use href="#i-close"/></svg></button></header>
+    <form id="search" class="float" role="search" autocomplete="off">
+      <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="q" type="search" enterkeyhint="search" spellcheck="false">
+    </form>
+    <ul id="results" class="float" hidden></ul>
+    <div id="more-list"></div>
+    <p class="plain" id="more-say" role="status"></p>
+  </section>
 
   <!-- EARTH, SIGNAL, INSIGHT for the point under the reticle - then ACTION, one tap away. -->
   <section id="sheet" hidden>
     <div class="insight" aria-live="polite">
-      <button class="earth" id="r-earth">
+      <div class="earth">
         <svg class="i" aria-hidden="true"><use href="#i-pin"/></svg>
         <span class="txt"><span id="r-place"></span><span id="r-coords"></span></span>
-        <svg class="i go" aria-hidden="true"><use href="#i-chevron"/></svg>
-      </button>
+      </div>
       <div class="persp"><span class="tag"><span class="mk signal"></span><span data-t="satTag"></span></span><span id="r-water"></span></div>
       <div class="persp"><span class="tag"><span class="mk field"></span><span data-t="groundTag"></span></span><span id="r-ground"></span></div>
-      <button class="shelter" id="r-route"><svg class="i" aria-hidden="true"><use href="#i-shelter"/></svg><span id="r-shelter"></span><svg class="i go" aria-hidden="true"><use id="r-route-icon" href="#i-chevron"/></svg></button>
+      <div class="shelter"><svg class="i" aria-hidden="true"><use href="#i-shelter"/></svg><span id="r-shelter"></span></div>
     </div>
+    <!-- The four things a responder does here, then More for everything else. -->
     <div id="actions">
+      <button class="act" id="btn-route" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-shelter"/></svg><span class="lbl" id="route-label"></span></button>
       <button class="act" id="btn-water"><svg class="i" aria-hidden="true"><use href="#i-water"/></svg><span class="lbl" data-t="waterHere"></span><span class="n" id="n-water"></span></button>
       <button class="act" id="btn-road"><svg class="i" aria-hidden="true"><use href="#i-road"/></svg><span class="lbl" data-t="roadCut"></span><span class="n" id="n-road"></span></button>
+      <button class="act" id="btn-share"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg><span class="lbl" data-t="sharePack"></span></button>
+      <button class="act more" id="tool-more" aria-pressed="false"><span class="lbl" data-t="more"></span><span class="badge" id="nav-count" hidden></span></button>
     </div>
   </section>
-
-  <nav id="nav" hidden>
-    <button id="tool-alerts" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg><span data-t="alerts"></span></button>
-    <button id="tool-area" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-area"/></svg><span data-t="area"></span></button>
-    <button id="tool-reports" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-reports"/></svg><span data-t="reports"></span><span class="badge" id="nav-count" hidden></span></button>
-    <button id="tool-source" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-source"/></svg><span data-t="source"></span></button>
-    <button id="tool-packs" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg><span data-t="packs"></span></button>
-  </nav>
 
   <section id="gate">
     <div class="gate-inner" id="gate-packs">

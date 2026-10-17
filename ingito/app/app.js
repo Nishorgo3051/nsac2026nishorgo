@@ -29,7 +29,6 @@ const PACK_KEY = "/__ingito_pack__";          // cache key for whichever pack is
 const REPORTS_KEY = "ingito.reports.v1";
 const THEME_KEY = "ingito.theme.v2";          // v2: light/dark (v1 stored day/night)
 const LANG_KEY = "ingito.lang.v1";
-const HINT_KEY = "ingito.hint.radar.v1";
 const INDEX_URLS = ["../packs/index.json", "packs/index.json"];
 /* Inside another site's frame (the claude.ai preview link) the browser silently blocks printing,
    downloads and opening other apps. There, a tap on those buttons says so instead of doing nothing. */
@@ -48,7 +47,7 @@ const CUT_NEAR_M = 30;                // a road-cut report this close to a road 
 const WATER_PENALTY = 20;
 const FLY_MS = 520;                   // gliding to a place the operator picked
 const REVEAL_MS = 700;                // the before/after line opening
-const PANELS = ["layers", "alerts", "area", "reports", "source", "packs"];
+const PANELS = ["more", "layers", "alerts", "area", "reports", "source", "packs"];
 /* A published build (an artifact page, or a single HTML file sent to somebody) has no packs folder
    to fetch from, so the pack can be embedded in the page instead - as the pack file's exact text,
    so the fingerprint worked out from it matches the one recorded when the pack was built. */
@@ -115,6 +114,7 @@ const STRINGS = {
     undo: "Undo", close: "Close",
     waterHere: "Water here", roadCut: "Road cut",
     alerts: "Alerts", area: "Area", reports: "Reports", source: "Source", layers: "Layers",
+    more: "More", sharePack: "Share pack",
     locate: "Show where I am", lens: "Before / After", zoomIn: "Zoom in", zoomOut: "Zoom out",
     toDark: "Switch to dark mode", toLight: "Switch to light mode",
     search: "Search a place", searchAria: "Search the places in this pack",
@@ -129,7 +129,6 @@ const STRINGS = {
     net: { online: "Online", nolink: "No link", offline: "Offline", checking: "Checking" },
     recorded: (n) => `${n} recorded`,
     before: (d) => `${d} · before`, during: (d) => `${d} · flood day`,
-    hint: "See the flood arrive: compare the radar from before and after",
     satTag: "Satellite", groundTag: "Ground",
     whoGps: (acc) => `You (GPS ±${acc} m)`, whoCross: "Crosshair (no GPS)",
     whoFar: "Crosshair (GPS outside this pack)",
@@ -143,7 +142,6 @@ const STRINGS = {
     shelterLine: (dist, dir, kind, name) => `${dist} ${dir} · ${kind} (unverified)${name ? ` · ${name}` : ""}`,
     shelterClear: "Nearest shelter outside the water radar saw",
     noShelter: "No shelter point in this pack",
-    routeTap: "tap for a road route",
     routeDry: (dist, kind, name) => `${dist} by road, no radar water on it · ${kind} (unverified)${name ? ` · ${name}` : ""}`,
     routeDryNote: "Uses only the roads in this pack. A road can still be blocked: check before you go. Tap to clear.",
     routeWet: (dist, wet) => `${dist} by road · ${wet} of it through radar water`,
@@ -297,6 +295,7 @@ const STRINGS = {
     undo: "বাতিল", close: "বন্ধ করুন",
     waterHere: "এখানে পানি", roadCut: "রাস্তা বন্ধ",
     alerts: "সতর্কতা", area: "এলাকা", reports: "রিপোর্ট", source: "তথ্যসূত্র", layers: "লেয়ার",
+    more: "আরও", sharePack: "প্যাক শেয়ার করুন",
     locate: "আমি কোথায় দেখান", lens: "আগে / পরে", zoomIn: "কাছে আনুন", zoomOut: "দূরে নিন",
     toDark: "অন্ধকার মোডে যান", toLight: "আলো মোডে যান",
     search: "জায়গার নাম লিখুন", searchAria: "এই প্যাকের জায়গা খুঁজুন",
@@ -314,7 +313,6 @@ const STRINGS = {
     net: { online: "অনলাইন", nolink: "নেট পাচ্ছে না", offline: "অফলাইন", checking: "যাচাই হচ্ছে" },
     recorded: (n) => `${n}টি জমা`,
     before: (d) => `${d} · আগে`, during: (d) => `${d} · বন্যার দিন`,
-    hint: "বন্যা কীভাবে এলো দেখুন — রাডারের আগের আর পরের ছবি মিলিয়ে",
     satTag: "স্যাটেলাইট", groundTag: "মাঠ",
     whoGps: (acc) => `আপনি (জিপিএস ±${acc} মি)`, whoCross: "নিশানা (জিপিএস নেই)",
     whoFar: "নিশানা (জিপিএস প্যাকের এলাকার বাইরে)",
@@ -328,7 +326,6 @@ const STRINGS = {
     shelterLine: (dist, dir, kind, name) => `${dist} ${dir} · ${kind} (যাচাই হয়নি)${name ? ` · ${name}` : ""}`,
     shelterClear: "রাডারে দেখা পানির বাইরে সবচেয়ে কাছের আশ্রয়",
     noShelter: "এই প্যাকে কোনো আশ্রয়ের জায়গা নেই",
-    routeTap: "রাস্তা ধরে পথ দেখতে চাপুন",
     routeDry: (dist, kind, name) => `রাস্তায় ${dist}, পথে রাডারে দেখা পানি নেই · ${kind} (যাচাই হয়নি)${name ? ` · ${name}` : ""}`,
     routeDryNote: "শুধু এই প্যাকের রাস্তা ধরে হিসাব। রাস্তা তবুও বন্ধ থাকতে পারে: রওনা দেওয়ার আগে খোঁজ নিন। সরাতে চাপুন।",
     routeWet: (dist, wet) => `রাস্তায় ${dist} · এর ${wet} রাডারে দেখা পানির ভেতর দিয়ে`,
@@ -1894,9 +1891,9 @@ function updateReadout() {
     ? `${esc(text.shelterLine(kmText(nearest.metres),
                               text.dirs[bearingIndex(point, [nearest.shelter.lon, nearest.shelter.lat])],
                               text.kinds[nearest.shelter.kind] || nearest.shelter.kind, nameIn(nearest.shelter)))}` +
-      `<small>${text.shelterClear} · ${text.routeTap}</small>`
+      `<small>${text.shelterClear}</small>`
     : esc(text.noShelter);
-  el("r-route-icon").setAttribute("href", state.route ? "#i-close" : "#i-chevron");
+  el("btn-route").setAttribute("aria-pressed", String(Boolean(state.route)));
 
   el("sheet").hidden = false;
 }
@@ -1937,6 +1934,7 @@ function refreshPanel() {
   if (state.panel === "source") renderSource();
   if (state.panel === "reports") renderReports();
   if (state.panel === "packs") renderPacks();
+  if (state.panel === "more") renderMore();
 }
 
 function sheetHead(title) {
@@ -2051,6 +2049,13 @@ function renderAlerts() {
 function showArea(name) {
   state.areaName = name;
   openPanel("area");
+}
+
+/* The Area sheet is about wherever the reticle is - or the nearest upazila, from outside them. */
+function openHere() {
+  const name = state.here || nearestArea(aim())?.name || "";
+  if (state.panel === "area" && state.areaName === name) closePanel();
+  else showArea(name);
 }
 
 /*
@@ -2472,6 +2477,46 @@ function renderPacks() {
   }));
 }
 
+/*
+  More: everything that is not one of the four field buttons, one tap away and never competing
+  with them. A row opens the sheet it always opened, or does the one thing it names.
+*/
+const MORE = {
+  print: (event, say) => framedStop(event, say) || printMap(),
+  lens: () => { closePanel(); setLens(true); },
+  area: openHere,
+  label: () => {
+    renderLabel();
+    el("gate-packs").hidden = true;
+    el("label").hidden = false;
+    el("gate").hidden = false;
+  },
+  theme: () => {
+    state.theme = state.theme === "dark" ? "light" : "dark";
+    remember(THEME_KEY, state.theme);
+    applyTheme();
+    refreshPanel();
+  },
+};
+
+function renderMore() {
+  const text = S();
+  const pack = state.pack;
+  const row = (key, words) => `<button class="lrow" data-more="${key}"><span class="txt"><b>${esc(words)}</b></span></button>`;
+  el("more-list").innerHTML = row("reports", text.reportsTitle(num(state.reports.length))) +
+    (state.reports.some((report) => report.via !== "sms")
+      ? `<a class="lrow" id="more-sms" href="sms:?&body=${encodeURIComponent(smsBody())}"><span class="txt"><b>${text.smsSend}</b></span></a>` : "") +
+    row("print", text.printBtn) + row("packs", text.packs) + row("layers", text.layers) +
+    (pack.imagery ? row("lens", text.lens) : "") +
+    row("alerts", text.alerts) + row("area", text.area) + row("source", text.source) +
+    row("label", state.lang === "bn" ? pack.name_bn || pack.name : pack.name) +
+    row("theme", state.theme === "dark" ? text.toLight : text.toDark);
+  const say = (words) => { el("more-say").textContent = words; };
+  el("more-sms")?.addEventListener("click", (event) => framedStop(event, say));
+  el("more-list").querySelectorAll("[data-more]").forEach((button) => button.addEventListener("click", (event) =>
+    (MORE[button.dataset.more] || (() => openPanel(button.dataset.more)))(event, say)));
+}
+
 function sourceText() {
   const words = S().loadedFrom;
   if (!state.source) return "";
@@ -2685,6 +2730,7 @@ function renderNote() {
     kind === "saved" ? text.noteSaved(typeName(args.type), num(args.n), args.stored, args.gps)
     : kind === "removed" ? text.noteRemoved(typeName(args.type), num(args.left))
     : kind === "far" ? text.noteFar
+    : kind === "say" ? esc(typeof text[args.key] === "function" ? text[args.key](OWN_ADDRESS) : text[args.key])
     : text.noteNoFix(text.gps[state.gpsProblem]);
   el("confirm-undo").hidden = !undo;
   el("confirm").hidden = false;
@@ -2927,10 +2973,7 @@ function status() {
 }
 
 function applyTheme() {
-  const dark = state.theme === "dark";
   document.documentElement.dataset.theme = state.theme;
-  el("theme-icon").innerHTML = `<use href="#${dark ? "i-sun" : "i-moon"}"/>`;
-  el("theme").setAttribute("aria-label", dark ? S().toLight : S().toDark);
 }
 
 /* Switching language rewrites every word on screen, the open sheet, the note box and the map's
@@ -2942,13 +2985,13 @@ function applyLang() {
     button.setAttribute("aria-pressed", String(button.dataset.lang === state.lang)));
   document.querySelectorAll("[data-t]").forEach((node) => { node.textContent = text[node.dataset.t]; });
   el("lens-text").textContent = text.lens;
-  el("tool-layers").setAttribute("aria-label", text.layers);
+  el("route-label").textContent = text.layerNames.route;
+  el("more-close").setAttribute("aria-label", text.close);
   el("tool-locate").setAttribute("aria-label", text.locate);
   el("zoom-in").setAttribute("aria-label", text.zoomIn);
   el("zoom-out").setAttribute("aria-label", text.zoomOut);
   el("q").placeholder = text.search;
   el("q").setAttribute("aria-label", text.searchAria);
-  el("hint").textContent = text.hint;
   if (state.pack?.imagery) {
     el("pill-before").textContent = text.before(fmtDate(state.pack.imagery.radar.before.date));
     el("pill-during").textContent = text.during(fmtDate(state.pack.imagery.radar.during.date));
@@ -2966,15 +3009,14 @@ function applyLang() {
   if (document.fonts?.ready) document.fonts.ready.then(draw);   // map labels in the new script
 }
 
-/* Before / After. Turning it on opens the line from the right edge to the middle, so the first
-   thing seen is the water arriving - the reveal is the explanation. */
+/* Before / After, from More. While it is on, its chip stays on the map as the way back out.
+   Turning it on opens the line from the right edge to the middle, so the first thing seen is the
+   water arriving - the reveal is the explanation. */
 function setLens(on) {
   state.lens = Boolean(on && state.pack?.imagery);
-  el("lens").setAttribute("aria-pressed", String(state.lens));
+  el("lens").hidden = !state.lens;
   el("compare").hidden = !state.lens;
   if (state.lens) {
-    el("hint").hidden = true;
-    remember(HINT_KEY, "seen");
     animate("split", REVEAL_MS, (e) => {
       state.split = 0.94 - 0.44 * e;
       draw();
@@ -3046,14 +3088,12 @@ function openPack(text, source) {
   el("reticle").hidden = false;
   el("top").hidden = false;
   el("controls").hidden = false;
-  el("nav").hidden = false;
-  el("lens").hidden = !pack.imagery;
-  el("hint").hidden = !pack.imagery || remembered(HINT_KEY) === "seen";
+  setLens(false);
   resize();                        // the canvas needs its real size before the view is fitted
   openOnWater(pack);
-  // On a wide screen the side column is always visible, so it opens on the alerts rather than
-  // standing empty.
-  if (wide() && !state.panel) togglePanel("alerts");
+  // On a wide screen the side column is always visible, so it opens on More rather than standing
+  // empty.
+  if (wide() && !state.panel) togglePanel("more");
   applyLang();
 }
 
@@ -3301,25 +3341,21 @@ function bind() {
 
   el("zoom-in").addEventListener("click", () => zoom(1.5));
   el("zoom-out").addEventListener("click", () => zoom(1 / 1.5));
-  el("lens").addEventListener("click", () => setLens(!state.lens));
-  el("hint").addEventListener("click", () => setLens(true));
+  el("lens").addEventListener("click", () => setLens(false));
+  el("btn-route").addEventListener("click", toggleRoute);
   el("btn-water").addEventListener("click", () => addReport("water_here"));
   el("btn-road").addEventListener("click", () => addReport("road_cut"));
+  // Share: the pack is saved as a file, and the note says how to pass it on - the phone's own
+  // Quick Share or Bluetooth does the sending.
+  el("btn-share").addEventListener("click", (event) => {
+    if (framedStop(event, () => showNote("say", { key: "framedNote" }, false))) return;
+    saveFile(state.packText, `${state.pack.pack_id}.pack.json`);
+    showNote("say", { key: "packsNote" }, false);
+  });
+  el("tool-more").addEventListener("click", () => togglePanel("more"));
   el("confirm-undo").addEventListener("click", undoLast);
   el("label-open").addEventListener("click", () => { el("gate").hidden = true; });
   el("confirm-text").addEventListener("click", hideNote);
-  for (const key of ["layers", "alerts", "reports", "source", "packs"]) {
-    el(`tool-${key}`).addEventListener("click", () => togglePanel(key));
-  }
-  // The Area sheet is about wherever the reticle is - or the nearest upazila, from outside them.
-  const openHere = () => {
-    const name = state.here || nearestArea(aim())?.name || "";
-    if (state.panel === "area" && state.areaName === name) closePanel();
-    else showArea(name);
-  };
-  el("tool-area").addEventListener("click", openHere);
-  el("r-earth").addEventListener("click", openHere);
-  el("r-route").addEventListener("click", toggleRoute);
   document.querySelectorAll(".panel").forEach((panel) => {
     panel.addEventListener("click", (event) => {
       if (event.target.closest("[data-close]")) closePanel();
@@ -3348,12 +3384,6 @@ function bind() {
       remember(LANG_KEY, state.lang);
       applyLang();
     });
-  });
-  el("theme").addEventListener("click", () => {
-    state.theme = state.theme === "dark" ? "light" : "dark";
-    remember(THEME_KEY, state.theme);
-    applyTheme();
-    refreshPanel();
   });
   el("tool-locate").addEventListener("click", () => {
     if (!state.watching) startWatching();
