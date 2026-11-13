@@ -1,0 +1,65 @@
+{
+  "_note": "Verified 13 Nov 2026 from four news reports (URLs below). Only what those pages state. flood_arrived, river_peak and reported_flooded_km2 are deliberately absent: none of the sources gives them. Bangla written 13 Nov 2026, awaiting the team's approval. acquisition_time_utc 23:20 is the flood scenes' start time in their IDs (20260712T232036).",
+  "event": {
+    "name": "July 2026 Chattogram floods, southern upazilas",
+    "rain_began": "2026-07-05",
+    "flooding_reported": "2026-07-10",
+    "deaths_in_district": 13,
+    "facts": [
+      {
+        "en": "Heavy monsoon rain began over the Chattogram region on 5 July 2026.",
+        "bn": "চট্টগ্রাম অঞ্চলে ভারী মৌসুমি বৃষ্টি শুরু হয় ৫ জুলাই ২০২৬।",
+        "source": "Prothom Alo, 13 Jul 2026"
+      },
+      {
+        "en": "BMD's Chattogram station recorded 1,354.9 mm of rain from 06:00 on 5 July to 15:00 on 12 July; 412 mm fell on 7 July alone, the most there in 42 years.",
+        "bn": "আবহাওয়া অধিদপ্তরের চট্টগ্রাম কেন্দ্রে ৫ জুলাই সকাল ৬টা থেকে ১২ জুলাই বিকেল ৩টা পর্যন্ত বৃষ্টি হয় ১,৩৫৪.৯ মিলিমিটার; শুধু ৭ জুলাই হয় ৪১২ মিলিমিটার, সেখানে ৪২ বছরে সর্বোচ্চ।",
+        "source": "BMD, via Prothom Alo (13 Jul 2026) and bdnews24 (14 Jul 2026)"
+      },
+      {
+        "en": "Extensive flooding in Lohagara, Satkania, Chandanaish and Banshkhali was reported on 10 July, when the army was deployed; nearly 400,000 people in these four upazilas were reported severely affected and stranded.",
+        "bn": "১০ জুলাই লোহাগাড়া, সাতকানিয়া, চন্দনাইশ ও বাঁশখালীতে ব্যাপক বন্যার খবর আসে; সেদিনই সেনাবাহিনী মোতায়েন হয়। এই চার উপজেলায় প্রায় ৪ লাখ মানুষ মারাত্মক ক্ষতিগ্রস্ত ও পানিবন্দি বলে জানানো হয়।",
+        "source": "BSS, 10 Jul 2026 (ISPR release)"
+      },
+      {
+        "en": "About 85% of Satkania and about 60% of Banshkhali were reported under water.",
+        "bn": "সাতকানিয়ার প্রায় ৮৫% আর বাঁশখালীর প্রায় ৬০% এলাকা পানির নিচে ছিল বলে খবরে জানানো হয়।",
+        "source": "bdnews24, 14 Jul 2026"
+      },
+      {
+        "en": "The Sangu began to fall after the rain eased on the afternoon of 11 July.",
+        "bn": "১১ জুলাই বিকেলে বৃষ্টি কমার পর সাঙ্গু নদীর পানি নামতে শুরু করে।",
+        "source": "Prothom Alo, 13 Jul 2026"
+      },
+      {
+        "en": "Landslides, collapsing walls and drowning killed 13 people in Chattogram district.",
+        "bn": "ভূমিধস, দেয়ালধস ও পানিতে ডুবে চট্টগ্রাম জেলায় ১৩ জনের মৃত্যু হয়।",
+        "source": "Ministry of Disaster Management and Relief, via Prothom Alo (13 Jul 2026); bdnews24 (14 Jul 2026)"
+      }
+    ],
+    "unavailable": "Not published in the sources checked: the date the flood reached each upazila, a river peak level, and a flooded area in km². So this pack makes no comparison with a reported area.",
+    "unavailable_bn": "যাচাই করা সূত্রগুলোতে এগুলো পাওয়া যায়নি: কোন উপজেলায় কবে পানি পৌঁছায়, নদীর সর্বোচ্চ উচ্চতা, আর বর্গকিলোমিটারে প্লাবিত এলাকার হিসাব। তাই এই প্যাক কোনো প্রকাশিত এলাকার সঙ্গে তুলনা করে না।",
+    "sources_checked": [
+      "https://en.prothomalo.com/amp/story/bangladesh/7jbpk0qmji",
+      "https://bdnews24.com/bangladesh/821a0c69eb58",
+      "https://www.bssnews.net/news/404387",
+      "https://en.ittefaq.com.bd/17327/flood-landslides-death-toll-climbs-to-51"
+    ],
+    "assessment": "Reports put about 85% of Satkania and 60% of Banshkhali under water; this layer finds far less new open water (see each upazila in Alerts). A gap is expected: the NISAR pass came late on 12 July UTC (early on 13 July, local time), after the rain eased and the Sangu began to fall on 11 July, and open-water detection misses water among crops, trees and houses. The threshold is experimental and uncalibrated for this event. No accuracy figure is claimed.",
+    "assessment_bn": "খবর অনুযায়ী সাতকানিয়ার প্রায় ৮৫% আর বাঁশখালীর প্রায় ৬০% এলাকা পানির নিচে ছিল; এই স্তরে নতুন খোলা পানি তার চেয়ে অনেক কম (প্রতিটি উপজেলার হিসাব সতর্কবার্তায়)। এই ফারাক প্রত্যাশিত: নাইসারের ছবি তোলা হয় ১২ জুলাই রাতে (UTC; বাংলাদেশ সময়ে ১৩ জুলাই ভোরে), ১১ জুলাই বৃষ্টি কমে সাঙ্গুর পানি নামতে শুরু করার পরে; আর খোলা পানি শনাক্তের এই পদ্ধতিতে ফসল, গাছপালা ও ঘরবাড়ির মাঝের পানি ধরা পড়ে না। থ্রেশহোল্ডটি পরীক্ষামূলক, এই ঘটনার জন্য যাচাই করা নয়। নির্ভুলতার কোনো হার দাবি করা হচ্ছে না।"
+  },
+  "observation": {
+    "band": "L-band",
+    "limitations_bn": "নাইসার এল-ব্যান্ডের পরীক্ষামূলক বন্যা শ্রেণিবিন্যাস। থ্রেশহোল্ডটি এই ঘটনার জন্য আলাদাভাবে যাচাই করা হয়নি। এই পদ্ধতি শুধু খোলা পানি শনাক্ত করে। ধানক্ষেত, গাছপালা আর ঘরবাড়ির মাঝে দাঁড়িয়ে থাকা পানিতে রাডারের সংকেত দেয়ালে বা গাছে লেগে ফিরে আসে (double bounce), তাই সেখানে পানি উজ্জ্বল দেখায় এবং বাদ পড়তে পারে। ফলে শনাক্ত করা এলাকা প্লাবনের পূর্ণ হিসাব নয়।",
+    "not_ground_truth_bn": "এটি স্যাটেলাইট থেকে পাওয়া একটি পরীক্ষামূলক পর্যবেক্ষণ, মাঠে যাচাই করা তথ্য (ground truth) নয়। এই ঘটনার জন্য আলাদা কোনো যাচাই বা নির্ভুলতার হার দাবি করা হচ্ছে না।",
+    "acquisition_time_utc": "23:20"
+  },
+  "rainfall_coverage": {
+    "en": "Covers 10 to 14 July only. The rain began on 5 July and the heaviest day reported (7 July) is outside this layer: the IMERG files for 5 to 9 July could not be downloaded on 13 Nov 2026 (NASA GES DISC returned its sign-in page, then stopped answering).",
+    "bn": "শুধু ১০ থেকে ১৪ জুলাইয়ের হিসাব। বৃষ্টি শুরু হয় ৫ জুলাই, আর সবচেয়ে ভারী বৃষ্টির দিন (৭ জুলাই) এই স্তরের বাইরে: ৫ থেকে ৯ জুলাইয়ের IMERG ফাইল ১৩ নভেম্বর ২০২৬-এ নামানো যায়নি (নাসার GES DISC সাইন-ইন পাতা ফেরত দেয়, পরে সাড়া দেওয়া বন্ধ করে)।"
+  },
+  "imagery_status": {
+    "en": "No radar pictures in this pack. The flood layer was computed from four NISAR L2 GCOV scenes (30 June and 12 July 2026, track 69, frames 12 and 13), archived at the Alaska Satellite Facility in the provisional collection NISAR_L2_GCOV_PROVISIONAL_V1. Each scene is about 3.7 GB, and they were not downloaded again for this build, so Before / After is not available for this pack.",
+    "bn": "এই প্যাকে রাডারের ছবি নেই। বন্যার স্তরটি হিসাব করা হয়েছে নাইসারের চারটি L2 GCOV দৃশ্য থেকে (৩০ জুন ও ১২ জুলাই ২০২৬, ট্র্যাক ৬৯, ফ্রেম ১২ ও ১৩), যা অ্যালাস্কা স্যাটেলাইট ফ্যাসিলিটির অস্থায়ী সংগ্রহে (NISAR_L2_GCOV_PROVISIONAL_V1) রাখা আছে। প্রতিটি দৃশ্য প্রায় ৩.৭ জিবি; এই সংস্করণের জন্য সেগুলো আবার নামানো হয়নি, তাই এই প্যাকে আগে-পরে তুলনা নেই।"
+  }
+}

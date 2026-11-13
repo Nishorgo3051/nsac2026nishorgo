@@ -1,0 +1,12 @@
+{
+  "_note": "Feni's own explanations, moved verbatim out of app.js (renderSource) into its pack so no other pack inherits them. No new facts.",
+  "event": {
+    "assessment": "The spatial pattern matches the event: the northern upazilas, hit first by the flash flood off the hills, hold the most water. The magnitude does not, for two stated reasons — this pass was taken on the day the flood arrived, not at the peak two days later, and open-water detection misses flooded villages and cropland. No accuracy figure is claimed: no validated flood map exists for this event.",
+    "assessment_bn": "এলাকার ধরন ঘটনার সঙ্গে মেলে: পাহাড়ি ঢল প্রথমে উত্তরের যে উপজেলাগুলোতে নেমেছিল, পানি সেখানেই সবচেয়ে বেশি। পরিমাণ মেলে না, দুটি কারণে — স্যাটেলাইট এই ছবি নিয়েছিল বন্যা আসার দিন, চূড়ায় পৌঁছানোর দুই দিন আগে; আর খোলা পানি শনাক্তের এই পদ্ধতিতে ডুবে যাওয়া গ্রাম ও ফসলের মাঠ বাদ পড়ে। নির্ভুলতার কোনো হার দাবি করা হচ্ছে না: এই ঘটনার যাচাই করা কোনো বন্যা-মানচিত্র নেই।"
+  },
+  "observation": {
+    "band": "C-band",
+    "limitations_bn": "রাডার শুধু খোলা, স্থির পানি চিনতে পারে। ধানক্ষেত, গাছপালা বা ঘরবাড়ির মাঝে দাঁড়িয়ে থাকা পানিতে রাডারের সংকেত পানি থেকে দেয়ালে বা গাছে লেগে সোজা ফিরে আসে (double bounce) — তাই সেখানে পানি উজ্জ্বল দেখায়, আর এই পদ্ধতিতে ধরা পড়ে না। ফলে এখানে দেখানো এলাকা আসলের চেয়ে কম, বিশেষ করে যেখানে মানুষ থাকে।",
+    "not_ground_truth_bn": "এটি মাঠে যাচাই করা তথ্য (ground truth) নয়; স্যাটেলাইটের একটি পরিমাপ। মাঠ থেকে আপনার রিপোর্টই এর ফাঁক পূরণ করে।"
+  }
+}

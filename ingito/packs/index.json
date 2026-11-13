@@ -9,8 +9,8 @@
       "acquisition_date": "2024-08-21",
       "area_km2": 929.5,
       "size_mb": 6.7,
-      "sha256": "2ba582c2a880f88b36c910ea24fb0f05f01994c3a91ddbd97fe9d1529509b788",
-      "fingerprint": "2BA5-82C2"
+      "sha256": "b2bab73639391d743992a15c7ce6385f1ec31bbc85e2c131c1f24fc8ac5424f6",
+      "fingerprint": "B2BA-B736"
     },
     {
       "file": "south_chattogram-2026-07-12.pack.json",
@@ -20,9 +20,9 @@
       "sensor": "NISAR",
       "acquisition_date": "2026-07-12",
       "area_km2": 1098.9,
-      "size_mb": 2.7,
-      "sha256": "159a39923257f38edbe253dd9a0ab888c0f67f0f8b64bceaa51b484c3f4b164f",
-      "fingerprint": "159A-3992"
+      "size_mb": 4.9,
+      "sha256": "b9b11205c986d913c9ebbf12a775dacbbd615b111dba485172b20d912d9a0e27",
+      "fingerprint": "B9B1-1205"
     }
   ]
 }

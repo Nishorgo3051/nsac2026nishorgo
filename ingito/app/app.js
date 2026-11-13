@@ -56,8 +56,11 @@ const EMBEDDED_TEXT = typeof globalThis.INGITO_PACK_TEXT === "string" ? globalTh
 const sensorName = () => state.pack?.observation?.sensor || "Sentinel-1";
 const bandPol = () => {
   const o = state.pack?.observation || {};
-  return `${(o.sensor_detail || "").match(/[A-Z]-band/)?.[0] || "C-band"} SAR, ${o.polarization || "VH"}`;
+  const band = o.band || (o.sensor_detail || "").match(/[A-Z]-band/)?.[0];
+  const pol = o.polarization || (o.sensor_detail || "").match(/\b[HV]{2}\b/)?.[0];
+  return [band && `${band} SAR`, pol].filter(Boolean).join(", ");
 };
+const openOnly = () => state.pack?.observation?.detects === "open_water_only";
 const FONT = '"Inter", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif';
 
 /*
@@ -77,6 +80,7 @@ const MAP = {
   floodWash: "#58b3a4",                                // multiplied into the photo: submerged land
   floodHatch: "rgba(205, 252, 243, 0.72)", floodEdge: "#7ef0dc",
   radarTint: "#d3efe8", radarEdge: "#5ee0cc",
+  rain: "#8aa9ff",                                     // GPM rain cells: a cool blue, never the radar's teal
   road: "#eae6d9", roadCasing: "rgba(6, 22, 17, 0.85)", roadMinor: "rgba(234, 230, 217, 0.72)",
   wetCasing: "#1b0507", wetDash: "#ff5361",            // sun red, lifted to hold on a dark casing
   river: "rgba(150, 214, 201, 0.9)", riverLabel: "#d9f5ee",
@@ -186,13 +190,14 @@ const STRINGS = {
     layerNames: {
       photo: "Satellite photo", terrain: "Terrain relief", waterways: "Rivers and canals", roads: "Roads",
       places: "Villages and places", shelters: "Shelter points (unverified)", admin: "Upazila boundaries",
-      flood: "Water seen by radar", wet: "Roads through that water", reports: "My field reports",
+      flood: "Water seen by radar", rain: "Rain that fell · NASA GPM", wet: "Roads through that water", reports: "My field reports",
       route: "Road route to a shelter",
     },
     layerSubs: {
       photo: (d) => `Sentinel-2 · ${d} · before the flood`, terrain: "Copernicus DEM", waterways: "OpenStreetMap",
       roads: "OpenStreetMap", places: "OpenStreetMap, GeoNames", shelters: "Mosques, schools, clinics · OpenStreetMap",
       admin: "Official upazila outlines", flood: (d) => `${sensorName()} radar · ${d}`,
+      rain: (d) => `IMERG daily totals · ${d} · rain, not flooded land`,
       wet: "Calculated from the radar layer", reports: "Stored on this phone",
     },
     layersNote: "Village roads, streams and small places appear as you zoom in.",
@@ -204,7 +209,7 @@ const STRINGS = {
     whenLine: (date, time, base) => `${date}, ${time} · compared with ${base}`,
     why: (km2, pct) => `${km2} km² of land newly under open water: ${pct}% of the upazila.`,
     roadsCross: (n, count) => (count === 1 ? " One road crosses it." : count ? ` ${n} roads cross it.` : ""),
-    get basis() { return `Based on ${sensorName()} SAR · open water only`; },
+    get basis() { return `Based on ${sensorName()} SAR${openOnly() ? " · open water only" : ""}`; },
     viewArea: "View area",
     districtTitle: (d) => `${d} district`,
     districtWhy: (km2, patches) => `${km2} km² of new open water, in ${patches} separate patches.`,
@@ -248,7 +253,8 @@ const STRINGS = {
     printNote: "Prints what the screen shows now, with its date and file code. With no printer, choose Save as PDF.",
     printFoot: (when) => `Printed ${when} from Ingito. North is up. Red marks are field reports, what people saw; they are not satellite data.`,
     deleteAll: "Delete all reports", deleteAllArmed: (n) => `Tap again to delete all ${n}`,
-    downloadPack: "Download this pack",
+    downloadPack: "Download this pack", openStored: "Open · on this phone",
+    codeMismatch: (got, want) => `file code ${got} does not match the index (${want})`,
     mapArea: (km2) => `map area ${km2} km²`,
     labelSub: "A satellite flood map that works with no signal. Check what it shows before you rely on it.",
     labelRows: { seen: "Radar saw this", age: "Age", covers: "Covers", shows: "Shows", code: "File code" },
@@ -369,13 +375,14 @@ const STRINGS = {
     layerNames: {
       photo: "স্যাটেলাইট ছবি", terrain: "ভূমির উঁচু-নিচু", waterways: "নদী ও খাল", roads: "রাস্তা",
       places: "গ্রাম ও জায়গার নাম", shelters: "আশ্রয়ের জায়গা (যাচাই হয়নি)", admin: "উপজেলার সীমানা",
-      flood: "রাডারে দেখা পানি", wet: "ওই পানির ওপর দিয়ে যাওয়া রাস্তা", reports: "আমার মাঠের রিপোর্ট",
+      flood: "রাডারে দেখা পানি", rain: "যে বৃষ্টি হয়েছে · নাসা GPM", wet: "ওই পানির ওপর দিয়ে যাওয়া রাস্তা", reports: "আমার মাঠের রিপোর্ট",
       route: "আশ্রয়ে যাওয়ার রাস্তা",
     },
     layerSubs: {
       photo: (d) => `Sentinel-2 · ${d} · বন্যার আগের`, terrain: "Copernicus DEM", waterways: "OpenStreetMap",
       roads: "OpenStreetMap", places: "OpenStreetMap, GeoNames", shelters: "মসজিদ, স্কুল, ক্লিনিক · OpenStreetMap",
       admin: "সরকারি উপজেলা-সীমানা", flood: (d) => `${sensorName()} রাডার · ${d}`,
+      rain: (d) => `IMERG দৈনিক মোট · ${d} · বৃষ্টি, প্লাবিত জমি নয়`,
       wet: "রাডারের পানি থেকে হিসাব করা", reports: "এই ফোনে জমা",
     },
     layersNote: "কাছে গেলে গ্রামের রাস্তা, ছোট খাল আর ছোট জায়গার নাম দেখা যায়।",
@@ -387,7 +394,7 @@ const STRINGS = {
     whenLine: (date, time, base) => `${date}, ${time} · ${base}-এর তুলনায়`,
     why: (km2, pct) => `${km2} বর্গকিমি জমি নতুন করে খোলা পানির নিচে — উপজেলার ${pct}%।`,
     roadsCross: (n, count) => (count ? ` এর ওপর দিয়ে গেছে ${n}টি রাস্তা।` : ""),
-    get basis() { return `${sensorName()} SAR-এর ভিত্তিতে · শুধু খোলা পানি`; },
+    get basis() { return `${sensorName()} SAR-এর ভিত্তিতে${openOnly() ? " · শুধু খোলা পানি" : ""}`; },
     viewArea: "এলাকাটি দেখুন",
     districtTitle: (d) => `${d} জেলা`,
     districtWhy: (km2, patches) => `${patches}টি আলাদা জায়গায় মোট ${km2} বর্গকিমি নতুন খোলা পানি।`,
@@ -431,7 +438,8 @@ const STRINGS = {
     printNote: "এখন পর্দায় যা আছে, তারিখ ও ফাইল কোডসহ প্রিন্ট হবে। প্রিন্টার না থাকলে Save as PDF বেছে নিন।",
     printFoot: (when) => `${when}-এ ইঙ্গিত থেকে প্রিন্ট করা। মানচিত্রের উপরের দিক উত্তর। লাল চিহ্নগুলো মাঠের রিপোর্ট, মানুষের চোখে দেখা; স্যাটেলাইটের তথ্য নয়।`,
     deleteAll: "সব রিপোর্ট মুছুন", deleteAllArmed: (n) => `সব ${n}টি মুছতে আবার চাপুন`,
-    downloadPack: "প্যাকটি নামিয়ে রাখুন",
+    downloadPack: "প্যাকটি নামিয়ে রাখুন", openStored: "খুলুন · এই ফোনে আছে",
+    codeMismatch: (got, want) => `ফাইল কোড ${got}, তালিকায় আছে ${want}: মেলেনি`,
     mapArea: (km2) => `মানচিত্রের এলাকা ${km2} বর্গকিমি`,
     labelSub: "নেটওয়ার্ক ছাড়াই চলে এমন স্যাটেলাইট বন্যা-মানচিত্র। ভরসা করার আগে দেখে নিন এতে কী আছে।",
     labelRows: { seen: "রাডারে দেখা", age: "কত পুরোনো", covers: "এলাকা", shows: "যা দেখায়", code: "ফাইল কোড" },
@@ -514,7 +522,7 @@ const state = {
   link: "checking",                        // offline | nolink | online | checking
   lens: false,                             // the radar before/after view
   split: 0.5,                              // where the before/after line sits, 0..1 of the width
-  layers: { photo: true, terrain: true, flood: true, wet: true, roads: true, waterways: true,
+  layers: { photo: true, terrain: true, flood: true, rain: false, wet: true, roads: true, waterways: true,
             places: true, shelters: true, admin: true, reports: true },
   here: "",
 };
@@ -540,6 +548,16 @@ function passClock(utc) {
   const [h, m] = String(utc || "").split(":").map(Number);
   if (!Number.isFinite(h) || !Number.isFinite(m)) return "";
   return num(S().clock((h + 6) % 24, String(m).padStart(2, "0")));
+}
+
+/* The calendar day in Bangladesh for a UTC date and pass time: 23:20 UTC is 05:20 the next morning,
+   so the date shown beside passClock() must move with it. */
+function passDate(iso, utc) {
+  const [h] = String(utc || "").split(":").map(Number);
+  if (!Number.isFinite(h) || h + 6 < 24) return iso;
+  const day = new Date(`${iso}T00:00:00Z`);
+  day.setUTCDate(day.getUTCDate() + 1);
+  return day.toISOString().slice(0, 10);
 }
 
 function kmText(metres) {
@@ -582,9 +600,21 @@ function loadReports() {
   });
 }
 
+/* One storage key for every pack, as before; only the open pack's reports are shown, counted, texted
+   and exported. A report made before reports carried a pack_id belongs to the pack whose area holds it. */
+function splitReports() {
+  const all = [...(state.reportsOther || []), ...state.reports];
+  const root = state.pack.subset_of?.pack_id || state.pack.pack_id;
+  const mine = (report) => (report.pack_id
+    ? report.pack_id === root || report.pack_id.startsWith(`${root}-`)
+    : inBox(state.pack.coverage.bbox, report.lon, report.lat));
+  state.reports = all.filter(mine);
+  state.reportsOther = all.filter((report) => !mine(report));
+}
+
 function saveReports() {
   try {
-    localStorage.setItem(REPORTS_KEY, JSON.stringify(state.reports));
+    localStorage.setItem(REPORTS_KEY, JSON.stringify([...(state.reportsOther || []), ...state.reports]));
     return true;
   } catch (error) {
     return false;              // the map still shows them, and the operator is told they are unsaved
@@ -630,6 +660,27 @@ async function fingerprintOf(text) {
     return `${hex.slice(0, 4)}-${hex.slice(4)}`;
   } catch (error) {
     return null;
+  }
+}
+
+/* Every pack opened from the list is also kept under its own address, so each one reopens offline,
+   not only the last one opened. */
+async function storedCopy(url) {
+  if (!("caches" in globalThis)) return null;
+  try {
+    const hit = await (await caches.open(PACK_CACHE)).match(url);
+    return hit ? await hit.text() : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function keepCopy(url, text) {
+  if (!("caches" in globalThis)) return;
+  try {
+    await (await caches.open(PACK_CACHE)).put(url, new Response(text, { headers: { "Content-Type": "application/json" } }));
+  } catch (error) {
+    /* the open pack is still kept under PACK_KEY; only this extra copy is lost */
   }
 }
 
@@ -1350,6 +1401,36 @@ function draw() {
     }
   }
 
+  // GPM: rain that fell, a separate estimate and never flooded land. Each 0.1-degree cell is a dashed
+  // square, filled by its total over the pack's rain period; drawn under the radar's water.
+  if (state.layers.rain && pack.rainfall && !lens) {
+    const rain = pack.rainfall;
+    const half = rain.grid_deg / 2;
+    const totals = rain.cells.map(([, , days]) => days.reduce((sum, mm) => sum + (mm || 0), 0));
+    const most = Math.max(...totals) || 1;
+    ctx.save();
+    rain.cells.forEach(([lon, lat], i) => {
+      const [x0, y0] = project(lon - half, lat + half);
+      const [x1, y1] = project(lon + half, lat - half);
+      ctx.globalAlpha = 0.12 + 0.38 * (totals[i] / most);
+      ctx.fillStyle = MAP.rain;
+      ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = ratio;
+      ctx.strokeStyle = MAP.rain;
+      ctx.setLineDash([4 * ratio, 3 * ratio]);
+      ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+      if (x1 - x0 > 70 * ratio) {
+        ctx.font = `600 ${12 * ratio}px ${FONT}`;
+        ctx.fillStyle = "#eef2ff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`${num(Math.round(totals[i]))} ${state.lang === "bn" ? "মিমি" : "mm"}`, (x0 + x1) / 2, (y0 + y1) / 2);
+      }
+    });
+    ctx.restore();
+  }
+
   // SIGNAL: the radar's water, the only bright teal on the map. In the radar view only its edge is
   // drawn, and only over the flood-day pass it was measured from.
   if (state.layers.flood) {
@@ -1952,6 +2033,7 @@ function icon(kind) {
     flood: `<defs><pattern id="ih" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="rgba(94,224,204,0.35)"/><line x1="0" y1="0" x2="0" y2="4" stroke="#cdfcf3" stroke-width="1.4"/></pattern></defs><rect x="4" y="6" width="20" height="12" rx="2" fill="url(#ih)" stroke="#7ef0dc" stroke-width="1.6"/>`,
     wet: `<line x1="2" y1="12" x2="26" y2="12" stroke="#1b0507" stroke-width="7"/><line x1="2" y1="12" x2="26" y2="12" stroke="#ff5361" stroke-width="2.4" stroke-dasharray="4 3"/>`,
     reports: `<circle cx="8" cy="12" r="5.5" fill="#e63946" stroke="#fff" stroke-width="1.8"/><path d="M20 5 L26 17 L14 17 Z" fill="#e63946" stroke="#fff" stroke-width="1.8"/>`,
+    rain: `<rect x="4" y="4" width="10" height="8" fill="rgba(138,169,255,0.55)" stroke="#8aa9ff" stroke-dasharray="2 1.5"/><rect x="14" y="4" width="10" height="8" fill="rgba(138,169,255,0.25)" stroke="#8aa9ff" stroke-dasharray="2 1.5"/><rect x="4" y="12" width="10" height="8" fill="rgba(138,169,255,0.15)" stroke="#8aa9ff" stroke-dasharray="2 1.5"/><rect x="14" y="12" width="10" height="8" fill="rgba(138,169,255,0.4)" stroke="#8aa9ff" stroke-dasharray="2 1.5"/>`,
     route: `<path d="M3 17 L11 9 L25 9" fill="none" stroke="#fff" stroke-width="6"/><path d="M3 17 L11 9 L25 9" fill="none" stroke="#1e7d6b" stroke-width="3.2"/>`,
   };
   return `<svg class="icon" viewBox="0 0 28 24" width="40" height="34" aria-hidden="true"><rect width="28" height="24" rx="5" fill="#0a2a22"/>${marks[kind]}</svg>`;
@@ -1968,16 +2050,17 @@ function renderLayers() {
     shelters: (pack.context.shelters || []).length, admin: (pack.areas || []).length, reports: state.reports.length,
   };
   const groups = [
-    ["earth", [...(pack.imagery ? ["photo"] : []), ...(pack.terrain.image ? ["terrain"] : []),
+    ["earth", [...(pack.imagery?.optical ? ["photo"] : []), ...(pack.terrain.image ? ["terrain"] : []),
                "waterways", "roads", "places", "shelters", "admin"]],
-    ["signal", ["flood"]],
+    ["signal", ["flood", ...(pack.rainfall ? ["rain"] : [])]],
     ["insight", ["wet"]],
     ["field", ["reports"]],
   ];
   const sub = (key) => {
     const words = text.layerSubs[key];
     const line = typeof words === "function"
-      ? words(key === "photo" ? fmtDate(pack.imagery.optical.date) : fmtDate(o.acquisition_date)) : words;
+      ? words(key === "photo" ? fmtDate(pack.imagery.optical.date)
+        : key === "rain" ? `${fmtDate(pack.rainfall.period[0])} – ${fmtDate(pack.rainfall.period[1])}` : fmtDate(o.acquisition_date)) : words;
     return counts[key] === undefined ? line : `${line} · ${count(counts[key])}`;
   };
   el("panel-layers").innerHTML = sheetHead(text.layers) +
@@ -2011,7 +2094,7 @@ function renderAlerts() {
   const text = S();
   const admin = adminNames();
   const totals = o.totals || {};
-  const when = text.whenLine(fmtDate(o.acquisition_date), passClock(o.acquisition_time_utc), fmtDate(o.baseline_date));
+  const when = text.whenLine(fmtDate(passDate(o.acquisition_date, o.acquisition_time_utc)), passClock(o.acquisition_time_utc), fmtDate(o.baseline_date));
   const cards = state.stats.ranked.map((area) => {
     const level = severity(area.share);
     return `<article class="alert ${level}">
@@ -2083,17 +2166,17 @@ function renderArea() {
     <p class="sec">${text.sec.change}</p>
     <p class="plain">${area.flood_km2 === null ? ""
       : text.changeLine(fmtDate(o.baseline_date), fmtDate(o.acquisition_date), num(area.flood_km2))}</p>
-    ${img ? `<div class="thumbs">
+    ${img?.radar ? `<div class="thumbs">
       <figure><canvas id="thumb-before"></canvas><figcaption>${text.before(fmtDate(img.radar.before.date))}</figcaption></figure>
       <figure><canvas id="thumb-during"></canvas><figcaption>${text.during(fmtDate(img.radar.during.date))}</figcaption></figure>
     </div>` : ""}
     <p class="sec">${text.sec.next}</p>
     <div class="btns">
       <button class="btn primary" data-go="map">${text.viewOnMap}</button>
-      ${img ? `<button class="btn" data-go="compare">${text.compare}</button>` : ""}
+      ${img?.radar ? `<button class="btn" data-go="compare">${text.compare}</button>` : ""}
     </div>
     <details><summary>${text.sec.signal}</summary>
-      <p class="plain">${esc(text.signalLine(o.platform || o.sensor, fmtDate(o.acquisition_date), passClock(o.acquisition_time_utc)))}</p>
+      <p class="plain">${esc(text.signalLine(o.platform || o.sensor, fmtDate(passDate(o.acquisition_date, o.acquisition_time_utc)), passClock(o.acquisition_time_utc)))}</p>
       <p class="basis"><span class="mk signal" aria-hidden="true"></span>${text.basis}</p>
       <div class="limit">${text.signalWhat}</div>
     </details>
@@ -2106,7 +2189,7 @@ function renderArea() {
         <li><svg class="i"><use href="#i-reports"/></svg><span>${text.myReports(num(myReports), myReports)}</span></li>
       </ul>
     </details>`;
-  if (img) {
+  if (img?.radar) {
     drawThumb(el("thumb-before"), state.images.before, area, false);
     drawThumb(el("thumb-during"), state.images.during, area, true);
   }
@@ -2133,24 +2216,26 @@ function renderSource() {
     ? Math.round((100 * totals.flood_km2) / event.reported_flooded_km2) : null;
   const img = pack.imagery;
   const pop = pack.population;
-  const when = `${fmtDate(o.acquisition_date)}${o.acquisition_time_utc ? `, ${passClock(o.acquisition_time_utc)}` : ""}`;
+  const rain = pack.rainfall;
+  const when = `${fmtDate(passDate(o.acquisition_date, o.acquisition_time_utc))}${o.acquisition_time_utc ? `, ${passClock(o.acquisition_time_utc)}` : ""}`;
   const kept = ["device", "embeddedKept"].includes(state.source?.key) || (state.source?.key === "file" && state.source.kept);
   const L = bn ? {
     title: "এই তথ্য কোথা থেকে এলো", flood: "বন্যার পানি — স্যাটেলাইট পর্যবেক্ষণ", sensor: "সেন্সর",
     product: "প্রোডাক্ট", observed: "পর্যবেক্ষণ", baseline: "তুলনার দিন", detected: "শনাক্ত",
     threshold: "থ্রেশহোল্ড", source: "উৎস", method: "পদ্ধতি", ago: (n) => `${num(n)} দিন আগে`,
     how: "কীভাবে মাপা হয়েছে",
-    detectedText: `${num(esc(totals.flood_km2))} বর্গকিমি খোলা পানি, ${count(totals.patches)}টি টুকরোয়`,
+    detectedText: `${num(esc(totals.flood_km2))} বর্গকিমি ${openOnly() ? "খোলা " : ""}পানি, ${count(totals.patches)}টি টুকরোয়`,
     cannot: "এই স্তর যা দেখতে পায় না।",
-    limitation: "রাডার শুধু খোলা, স্থির পানি চিনতে পারে। ধানক্ষেত, গাছপালা বা ঘরবাড়ির মাঝে দাঁড়িয়ে থাকা পানিতে রাডারের সংকেত পানি থেকে দেয়ালে বা গাছে লেগে সোজা ফিরে আসে (double bounce) — তাই সেখানে পানি উজ্জ্বল দেখায়, আর এই পদ্ধতিতে ধরা পড়ে না। ফলে এখানে দেখানো এলাকা আসলের চেয়ে কম, বিশেষ করে যেখানে মানুষ থাকে।",
-    notTruth: "এটি মাঠে যাচাই করা তথ্য (ground truth) নয়; স্যাটেলাইটের একটি পরিমাপ। মাঠ থেকে আপনার রিপোর্টই এর ফাঁক পূরণ করে।",
+    limitation: esc(o.limitations_bn || o.limitations),
+    notTruth: esc(o.not_ground_truth_bn || o.not_ground_truth),
     event: "ঘটনা, আর আমাদের যাচাই", eventName: "ঘটনা", arrived: "বন্যা এলো", peak: "নদীর সর্বোচ্চ উচ্চতা",
     reported: "প্রকাশিত হিসাব",
-    sanity: `এই স্তরে শনাক্ত হয়েছে ${num(esc(totals.flood_km2))} বর্গকিমি${share !== null ? `, প্রকাশিত হিসাবের প্রায় ${num(share)}%` : ""}। এলাকার ধরন ঘটনার সঙ্গে মেলে: পাহাড়ি ঢল প্রথমে উত্তরের যে উপজেলাগুলোতে নেমেছিল, পানি সেখানেই সবচেয়ে বেশি। পরিমাণ মেলে না, দুটি কারণে — স্যাটেলাইট এই ছবি নিয়েছিল বন্যা আসার দিন, চূড়ায় পৌঁছানোর দুই দিন আগে; আর খোলা পানি শনাক্তের এই পদ্ধতিতে ডুবে যাওয়া গ্রাম ও ফসলের মাঠ বাদ পড়ে। নির্ভুলতার কোনো হার দাবি করা হচ্ছে না: এই ঘটনার যাচাই করা কোনো বন্যা-মানচিত্র নেই।`,
+    sanity: `এই স্তরে শনাক্ত হয়েছে ${num(esc(totals.flood_km2))} বর্গকিমি${share !== null ? `, প্রকাশিত হিসাবের প্রায় ${num(share)}%` : ""}। ${esc(event.assessment_bn || event.assessment || "")}`,
+    rainBegan: "বৃষ্টি শুরু", floodReported: "বন্যার খবর", checked: "যাচাই করা সূত্র",
     photo: "স্যাটেলাইট ছবি — রেফারেন্স", taken: "তোলা হয়েছে", scene: "দৃশ্য", remember: "মনে রাখুন",
     photoNote: "শুকনো মৌসুমের ছবি, বন্যার আগের। এটি বন্যার ছবি নয়।",
     radar: "রাডারের দুটি ছবি",
-    radarNote: img ? `আগে-পরে ভিউতে সেই দুটি ছবিই দেখানো হয়, যা থেকে বন্যার স্তর হিসাব করা হয়েছে: ${fmtDate(img.radar.before.date)} আর ${fmtDate(img.radar.during.date)}। রাডারে স্থির পানি কালো দেখায়। ছবিগুলোর উজ্জ্বলতা শুধু দেখানোর জন্য ঠিক করা।` : "",
+    radarNote: img?.radar ? `আগে-পরে ভিউতে সেই দুটি ছবিই দেখানো হয়, যা থেকে বন্যার স্তর হিসাব করা হয়েছে: ${fmtDate(img.radar.before.date)} আর ${fmtDate(img.radar.during.date)}। রাডারে স্থির পানি কালো দেখায়। ছবিগুলোর উজ্জ্বলতা শুধু দেখানোর জন্য ঠিক করা।` : "",
     terrain: "ভূমির উচ্চতা — রেফারেন্স", elevation: "উচ্চতা",
     elevationText: `${num(esc(pack.terrain.elevation_m.min))} থেকে ${num(esc(pack.terrain.elevation_m.max))} মিটার`,
     limits: "সীমাবদ্ধতা", reference: "রাস্তা, নদী, জায়গা, আশ্রয় — রেফারেন্স",
@@ -2159,21 +2244,30 @@ function renderSource() {
     device: "এই যন্ত্র", pack: "প্যাক", built: "তৈরি", loaded: "যেখান থেকে লোড", network: "নেটওয়ার্ক",
     people: "পানির ভেতরে মানুষ — WorldPop মডেল",
     peopleMethod: "প্রতিটি ১০০ মিটারের ঘরের মানুষ, ঘরটির যতটা অংশ রাডারে দেখা পানির নিচে সেই অনুপাতে (ঘরটিকে ১০ × ১০ ভাগে মেপে), উপজেলা ধরে যোগ করা। ঘরের কেন্দ্র যে উপজেলায়, ঘরটি সেই উপজেলার।",
+    peopleNone: "পানির ভেতরে মানুষ — এই প্যাকে নেই",
+    peopleNoneText: "এই প্যাকে জনসংখ্যার কোনো হিসাব নেই। পাইপলাইনে (enrich_pack.py) WorldPop দিয়ে এটি যোগ করা যায়।",
+    noRadar: "এই প্যাকে রাডারের ছবি নেই।",
+    rain: "যে বৃষ্টি হয়েছে — নাসা GPM IMERG", period: "সময়", daily: "দৈনিক মোট (UTC দিন)", grid: "গ্রিড",
+    cells: "টি ঘর", areaRain: "এলাকার গড়", total: "মোট", mm: "মিমি",
+    totalText: (m, x) => `এলাকার গড়ে ${m} মিমি · সবচেয়ে ভেজা ঘরে ${x} মিমি`,
+    rainMethod: rain ? `০.১° গ্রিডের ${num(rain.cells.length)}টি ঘর, যেগুলোর কেন্দ্র এলাকার সীমার ভেতরে। প্রতিটি মান ওই দিনের মোট বৃষ্টি; পুরো সময়ের হিসাব দৈনিক মোটগুলোর যোগফল। ${rain.cells.some((c) => c[2].includes(null)) ? "কিছু ঘর-দিনের মান নেই; গড়ে সেগুলো বাদ।" : "এই সময়ে কোনো ঘর-দিনের মান বাদ পড়েনি।"}` : "",
+    rainLimits: "স্যাটেলাইট আর বৃষ্টিমাপক যন্ত্রে মেলানো আনুমানিক হিসাব, প্রতি ঘর প্রায় ১০ কিমি। এটি যে বৃষ্টি পড়েছে তার হিসাব, প্লাবিত জমির নয়; উজান থেকে আসা পানির কথা এতে নেই। দৈনিক পণ্যে দিনের মোট (মিমি) থাকে, ঘণ্টায় হার নয়।",
     peopleLimits: "এটি মডেলের আনুমানিক হিসাব, মাথা গুনে নয়: WorldPop আদমশুমারির মোট সংখ্যা ঘরবাড়ি থাকা ঘরগুলোতে ভাগ করে দেয়। ঘরবাড়ির ফাঁকে আর গাছপালার নিচের পানি, যেখানে মানুষ থাকে, রাডারে ধরা পড়ে না; তাই আসল সংখ্যা সম্ভবত বেশি।",
   } : {
     title: "Where this information comes from", flood: "Flood water — satellite observation",
     sensor: "Sensor", product: "Product", observed: "Observed", baseline: "Baseline", detected: "Detected",
     threshold: "Threshold", source: "Source", method: "Method", ago: (n) => `${n} days ago`,
     how: "How it was measured",
-    detectedText: `${esc(totals.flood_km2)} km² of open water in ${count(totals.patches)} patches`,
+    detectedText: `${esc(totals.flood_km2)} km² of ${openOnly() ? "open " : ""}water in ${count(totals.patches)} patches`,
     cannot: "What this layer cannot see.", limitation: esc(o.limitations), notTruth: esc(o.not_ground_truth),
     event: "The event, and our sanity check", eventName: "Event", arrived: "Flood arrived",
     peak: "River peak", reported: "Reported",
-    sanity: `This layer detects ${esc(totals.flood_km2)} km²${share !== null ? `, about ${share}% of that reported figure` : ""}. The spatial pattern matches the event: the northern upazilas, hit first by the flash flood off the hills, hold the most water. The magnitude does not, for two stated reasons — this pass was taken on the day the flood arrived, not at the peak two days later, and open-water detection misses flooded villages and cropland. No accuracy figure is claimed: no validated flood map exists for this event.`,
+    sanity: `This layer detects ${esc(totals.flood_km2)} km²${share !== null ? `, about ${share}% of that reported figure` : ""}. ${esc(event.assessment || "")}`,
+    rainBegan: "Rain began", floodReported: "Flooding reported", checked: "Sources checked",
     photo: "Satellite photo — reference", taken: "Taken", scene: "Scene", remember: "Remember",
     photoNote: img ? esc(img.optical.note) : "",
     radar: "The two radar pictures",
-    radarNote: img ? `Before / After shows the two passes the flood layer was computed from: ${fmtDate(img.radar.before.date)} and ${fmtDate(img.radar.during.date)}. Radar sees smooth water as dark. Brightness is scaled for display only.` : "",
+    radarNote: img?.radar ? `Before / After shows the two passes the flood layer was computed from: ${fmtDate(img.radar.before.date)} and ${fmtDate(img.radar.during.date)}. Radar sees smooth water as dark. Brightness is scaled for display only.` : "",
     terrain: "Terrain — reference", elevation: "Elevation",
     elevationText: `${esc(pack.terrain.elevation_m.min)} to ${esc(pack.terrain.elevation_m.max)} m`,
     limits: "Limits", reference: "Roads, rivers, places, shelters — reference",
@@ -2181,12 +2275,20 @@ function renderSource() {
     device: "This device", pack: "Pack", built: "Built", loaded: "Loaded from", network: "Network",
     people: "People in the water — WorldPop model",
     peopleMethod: esc(pop?.method), peopleLimits: esc(pop?.limitations),
+    peopleNone: "People in the water — not in this pack",
+    peopleNoneText: "This pack carries no population estimate. The pipeline can add one from WorldPop (enrich_pack.py).",
+    noRadar: "No radar pictures in this pack.",
+    rain: "Rain that fell — NASA GPM IMERG", period: "Period", daily: "daily totals (UTC days)", grid: "Grid",
+    cells: " cells", areaRain: "Area average", total: "Total", mm: "mm",
+    totalText: (m, x) => `${m} mm on the area average · ${x} mm in the wettest cell`,
+    rainMethod: rain ? `${esc(rain.method)} ${esc(rain.missing)}` : "",
+    rainLimits: rain ? `${esc(rain.limitations)} ${esc(rain.not_rate)}` : "",
   };
 
   el("panel-source").innerHTML = sheetHead(L.title) + `
     <p class="sec">${L.flood}</p>
     <dl class="meta">
-      <dt>${L.sensor}</dt><dd>${esc((o.sensor_detail || o.sensor).replace(/^Sentinel-1\b/, o.platform || "Sentinel-1"))}</dd>
+      <dt>${L.sensor}</dt><dd>${esc(o.sensor_detail || o.sensor)}${o.platform ? ` &mdash; ${esc(o.platform)}` : ""}</dd>
       <dt>${L.observed}</dt><dd>${when}${age !== null ? ` &mdash; ${L.ago(age)}` : ""}</dd>
       <dt>${L.baseline}</dt><dd>${fmtDate(o.baseline_date)}</dd>
       <dt>${L.detected}</dt><dd>${L.detectedText}</dd>
@@ -2204,11 +2306,16 @@ function renderSource() {
     <details><summary>${L.event}</summary>
       <dl class="meta">
         <dt>${L.eventName}</dt><dd>${esc(event.name) || "&mdash;"}</dd>
-        <dt>${L.arrived}</dt><dd>${esc(event.flood_arrived) || "&mdash;"}</dd>
-        <dt>${L.peak}</dt><dd>${esc(event.river_peak) || "&mdash;"}</dd>
-        <dt>${L.reported}</dt><dd>${esc(event.reported_flooded_km2)} km² &mdash; ${esc(event.reported_source)}</dd>
+        ${event.rain_began ? `<dt>${L.rainBegan}</dt><dd>${fmtDate(event.rain_began)}</dd>` : ""}
+        ${event.flood_arrived ? `<dt>${L.arrived}</dt><dd>${esc(event.flood_arrived)}</dd>` : ""}
+        ${event.flooding_reported ? `<dt>${L.floodReported}</dt><dd>${fmtDate(event.flooding_reported)}</dd>` : ""}
+        ${event.river_peak ? `<dt>${L.peak}</dt><dd>${esc(event.river_peak)}</dd>` : ""}
+        ${event.reported_flooded_km2 ? `<dt>${L.reported}</dt><dd>${esc(event.reported_flooded_km2)} km² &mdash; ${esc(event.reported_source)}</dd>` : ""}
       </dl>
+      ${(event.facts || []).map((fact) => `<p class="plain">${esc(bn ? fact.bn || fact.en : fact.en)} <span class="dim">(${esc(fact.source)})</span></p>`).join("")}
+      ${event.unavailable ? `<p class="plain dim">${esc(bn ? event.unavailable_bn || event.unavailable : event.unavailable)}</p>` : ""}
       <p class="plain">${L.sanity}</p>
+      ${(event.sources_checked || []).length ? `<p class="plain dim" style="word-break:break-all">${L.checked}: ${event.sources_checked.map(esc).join(" · ")}</p>` : ""}
     </details>
     ${pop ? `<details><summary>${L.people}</summary>
       <dl class="meta">
@@ -2216,17 +2323,31 @@ function renderSource() {
         <dt>${L.method}</dt><dd>${L.peopleMethod}</dd>
         <dt>${L.limits}</dt><dd>${L.peopleLimits}</dd>
       </dl>
+    </details>` : `<details><summary>${L.peopleNone}</summary><p class="plain">${L.peopleNoneText}</p></details>`}
+    ${rain ? `<details><summary>${L.rain}</summary>
+      <dl class="meta">
+        <dt>${L.product}</dt><dd>${esc(rain.product)} &mdash; ${esc(rain.collection)} ${esc(rain.version)}</dd>
+        <dt>${L.period}</dt><dd>${fmtDate(rain.period[0])} – ${fmtDate(rain.period[1])} · ${L.daily}</dd>
+        <dt>${L.grid}</dt><dd>${num(rain.grid_deg)}° · ${num(rain.cells.length)}${L.cells}</dd>
+        <dt>${L.areaRain}</dt><dd>${rain.days.map((day, i) => `${fmtDate(day)}: ${num(rain.area_mean[i])} ${L.mm}`).join("<br>")}</dd>
+        <dt>${L.total}</dt><dd>${L.totalText(num(rain.period_total_mean_mm), num(rain.period_total_max_cell_mm))}</dd>
+        <dt>${L.source}</dt><dd>${esc(rain.source)}</dd>
+        <dt>${L.method}</dt><dd>${L.rainMethod}</dd>
+        <dt>${L.limits}</dt><dd>${L.rainLimits}</dd>
+      </dl>
+      ${rain.coverage_note ? `<div class="limit">${esc(bn ? rain.coverage_note.bn : rain.coverage_note.en)}</div>` : ""}
     </details>` : ""}
     ${img ? `<details><summary>${L.photo}</summary>
       <dl class="meta">
         <dt>${L.sensor}</dt><dd>${esc(img.optical.sensor)} &mdash; ${esc(img.optical.product)}</dd>
-        <dt>${L.taken}</dt><dd>${fmtDate(img.optical.date)}, ${passClock(img.optical.time_utc)}</dd>
+        <dt>${L.taken}</dt><dd>${fmtDate(passDate(img.optical.date, img.optical.time_utc))}, ${passClock(img.optical.time_utc)}</dd>
         <dt>${L.scene}</dt><dd style="font-size:0.75rem;word-break:break-all">${esc(img.optical.scene)}</dd>
         <dt>${L.source}</dt><dd>${esc(img.optical.source)}</dd>
         <dt>${L.remember}</dt><dd>${L.photoNote}</dd>
       </dl>
     </details>
-    <details><summary>${L.radar}</summary><p class="plain">${L.radarNote}</p></details>` : ""}
+    <details><summary>${L.radar}</summary><p class="plain">${img.radar ? L.radarNote
+      : esc((bn ? img.radar_status?.bn : img.radar_status?.en) || L.noRadar)}</p></details>` : ""}
     <details><summary>${L.terrain}</summary>
       <dl class="meta">
         <dt>${L.source}</dt><dd>${esc(pack.terrain.source)}</dd>
@@ -2261,7 +2382,7 @@ function labelRows() {
   const text = S();
   const days = ageInDays(o.acquisition_date);
   const rows = [
-    [text.labelRows.seen, esc(text.labelSeen(fmtDate(o.acquisition_date), passClock(o.acquisition_time_utc),
+    [text.labelRows.seen, esc(text.labelSeen(fmtDate(passDate(o.acquisition_date, o.acquisition_time_utc)), passClock(o.acquisition_time_utc),
                                              o.platform || o.sensor))],
     [text.labelRows.age, days === null ? "&mdash;" : esc(text.ageLine(days, count(days))) +
       `<b class="warn">${esc(text.oldWarn)}</b>`],
@@ -2362,13 +2483,13 @@ function cutPack(pack, areaName, keep) {
   if (keep.pictures && pack.imagery) {
     const img = pack.imagery;
     const [optical, before, during] = area
-      ? [state.images.optical, state.images.before, state.images.during].map((image) => cropPicture(image, img.bounds, box))
+      ? [state.images.optical, state.images.before, state.images.during].map((image) => image && cropPicture(image, img.bounds, box))
       : [];
     if (!area) imagery = img;
-    else if (optical && before && during) {
+    else if (optical && (!img.radar || (before && during))) {
       imagery = { ...img, bounds: optical.bounds, optical: { ...img.optical, image: optical.image },
-                  radar: { ...img.radar, before: { ...img.radar.before, image: before.image },
-                           during: { ...img.radar.during, image: during.image } } };
+                  ...(img.radar ? { radar: { ...img.radar, before: { ...img.radar.before, image: before.image },
+                                             during: { ...img.radar.during, image: during.image } } } : {}) };
     }
   }
   const terrain = keep.reference
@@ -2432,7 +2553,7 @@ function renderPacks() {
     </div>
     ${(state.found?.list || []).filter((entry) => entry.pack_id !== (pack.subset_of?.pack_id || pack.pack_id)).map((entry) => `
       <p class="plain"><b>${esc(entry.name)}</b><br>${esc(entry.sensor)} ${fmtDate(entry.acquisition_date)} &middot; ${num(esc(entry.size_mb))} MB</p>
-      <button class="btn wide" data-pack="${esc(state.found.base + entry.file)}"
+      <button class="btn wide" data-pack="${esc(state.found.base + entry.file)}" data-code="${esc(entry.fingerprint || "")}"
         data-bytes="${Math.round(entry.size_mb * 1048576)}">${text.downloadPack}</button>`).join("")}
     <input type="file" id="pack-other" accept=".json,application/json" hidden>
     ${EMBEDDED_TEXT && state.packText !== EMBEDDED_TEXT ? `<button class="btn wide" id="pack-full">${text.backToFull}</button>` : ""}
@@ -2457,8 +2578,10 @@ function renderPacks() {
   el("pack-save").addEventListener("click", (event) =>
     framedStop(event, packsSay) || saveFile(state.packText, `${pack.pack_id}.pack.json`));
   el("pack-other-btn").addEventListener("click", () => el("pack-other").click());
-  panel.querySelectorAll("[data-pack]").forEach((button) =>
-    button.addEventListener("click", () => getPack(button, el("packs-say"))));
+  panel.querySelectorAll("[data-pack]").forEach((button) => {
+    button.addEventListener("click", () => getPack(button, el("packs-say")));
+    storedCopy(button.dataset.pack).then((hit) => { if (hit) button.textContent = S().openStored; });
+  });
   el("pack-other").addEventListener("change", (event) =>
     openPackFile(event.target.files[0], packsSay));
   el("pack-full")?.addEventListener("click", async () => {
@@ -2520,7 +2643,7 @@ function renderMore() {
     (state.reports.some((report) => report.via !== "sms")
       ? `<a class="lrow" id="more-sms" href="sms:?&body=${encodeURIComponent(smsBody())}"><span class="txt"><b>${text.smsSend}</b></span></a>` : "") +
     row("share", text.sharePack) + row("packs", text.packs) + row("print", text.printBtn) +
-    row("alerts", text.alerts, true) + row("area", text.area) + (pack.imagery ? row("lens", text.lens) : "") +
+    row("alerts", text.alerts, true) + row("area", text.area) + (pack.imagery?.radar ? row("lens", text.lens) : "") +
     row("layers", text.layers, true) + row("theme", state.theme === "dark" ? text.toLight : text.toDark) +
     row("source", text.source, true) + row("label", state.lang === "bn" ? pack.name_bn || pack.name : pack.name);
   const say = (words) => { el("more-say").textContent = words; };
@@ -2976,7 +3099,7 @@ function status() {
     // How old the map is, with its caution and its file code, always on screen: the first thing to
     // know before trusting anything under it.
     const o = pack.observation;
-    el("seen").textContent = `${text.labelRows.seen}: ${fmtDate(o.acquisition_date)}` +
+    el("seen").textContent = `${text.labelRows.seen}: ${fmtDate(passDate(o.acquisition_date, o.acquisition_time_utc))}` +
       (o.acquisition_time_utc ? `, ${passClock(o.acquisition_time_utc)}` : "");
     el("stale-warn").textContent = text.oldWarn;
     el("stale-code").textContent = state.fingerprint ? `${text.labelRows.code} ${state.fingerprint}` : "";
@@ -3003,7 +3126,7 @@ function applyLang() {
   el("zoom-out").setAttribute("aria-label", text.zoomOut);
   el("q").placeholder = text.search;
   el("q").setAttribute("aria-label", text.searchAria);
-  if (state.pack?.imagery) {
+  if (state.pack?.imagery?.radar) {
     el("pill-before").textContent = text.before(fmtDate(state.pack.imagery.radar.before.date));
     el("pill-during").textContent = text.during(fmtDate(state.pack.imagery.radar.during.date));
   }
@@ -3023,7 +3146,7 @@ function applyLang() {
 /* Before / After, from More. It opens with the line in the middle; dragging it shows the water
    arrive. While it is on, its chip stays on the map as the way back out. */
 function setLens(on) {
-  state.lens = Boolean(on && state.pack?.imagery);
+  state.lens = Boolean(on && state.pack?.imagery?.radar);
   el("lens").hidden = !state.lens;
   el("compare").hidden = !state.lens;
   state.split = 0.5;
@@ -3067,6 +3190,11 @@ function openPack(text, source) {
   state.stats = stats;
   state.network = null;                            // the roads are this pack's now
   state.route = null;
+  state.areaName = null;                           // nothing selected in the old pack carries over
+  state.cut = null;
+  el("results").hidden = true;
+  el("q").value = "";
+  splitReports();
   // The road network is built just after the map appears, so the first route tap answers at once:
   // on a slow phone a dead first tap invites a second, which would clear the route again.
   const idle = globalThis.requestIdleCallback || ((job) => setTimeout(job, 1500));
@@ -3111,11 +3239,17 @@ async function listPacks() {
     try {
       const response = await fetch(url, { cache: "no-store" });
       if (response.ok) {
-        return { list: (await response.json()).packs || [], base: url.replace("index.json", "") };
+        const text = await response.text();
+        keepCopy(url, text);                       // the list too, so stored packs can be found offline
+        return { list: JSON.parse(text).packs || [], base: url.replace("index.json", "") };
       }
     } catch (error) {
-      /* offline, or not served next to a packs folder: fall through to the file picker */
+      /* offline, or not served next to a packs folder: try the list kept on this phone */
     }
+  }
+  for (const url of INDEX_URLS) {
+    const kept = await storedCopy(url);
+    if (kept) return { list: JSON.parse(kept).packs || [], base: url.replace("index.json", "") };
   }
   return null;
 }
@@ -3160,7 +3294,7 @@ function renderGate() {
     <div class="row"><span><b>${esc(entry.name)}</b></span><span>${num(esc(entry.size_mb))} MB</span></div>
     <div class="row dim"><span>${esc(entry.hazard)} &middot; ${esc(entry.sensor)} ${fmtDate(entry.acquisition_date)}</span>
       <span>${text.mapArea(num(esc(entry.area_km2)))}</span></div>
-    <button class="btn wide primary" data-pack="${esc(found.base + entry.file)}"
+    <button class="btn wide primary" data-pack="${esc(found.base + entry.file)}" data-code="${esc(entry.fingerprint || "")}"
       data-bytes="${Math.round(entry.size_mb * 1048576)}">${text.downloadPack}</button>`).join("");
   card.querySelectorAll("[data-pack]").forEach((button) =>
     button.addEventListener("click", () => getPack(button, el("progress"))));
@@ -3172,9 +3306,19 @@ async function getPack(button, out) {
   button.disabled = true;
   out.textContent = S().starting;
   try {
-    const packText = await downloadText(button.dataset.pack, Number(button.dataset.bytes), out);
+    // A pack already on this phone opens from its stored copy, with or without a network - unless
+    // the index now names a different build of it, which is downloaded instead.
+    const want = button.dataset.code;
+    let packText = await storedCopy(button.dataset.pack);
+    if (packText && want && (await fingerprintOf(packText)) !== want) packText = null;
+    const fresh = !packText;
+    if (fresh) packText = await downloadText(button.dataset.pack, Number(button.dataset.bytes), out);
+    // The index records each pack's file code: a download that does not match it is refused, never stored.
+    const code = await fingerprintOf(packText);
+    if (want && code && code !== want) throw new Error(S().codeMismatch(code, want));
     out.textContent = S().storing;
     const kept = await cachePack(packText);
+    if (fresh) await keepCopy(button.dataset.pack, packText);
     openPack(packText, { key: kept ? "device" : "downloadedNotStored" });
     out.textContent = kept ? "" : S().refusedStorage;
     if (!state.watching) startWatching();
