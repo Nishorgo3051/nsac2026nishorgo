@@ -135,6 +135,11 @@
 
   /* Flat and still: nothing slides, fades or casts a shadow. Sunlight-readable edges do the work. */
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* Pressed shows the instant a finger lands, before it lifts: no animation, just the new state. */
+  .btn:active, .act:active, .mapbtn:active, .chip:active, .pills button:active { filter: brightness(0.82); }
+  .lrow:active, .earth:active, .shelter:active { background: var(--surface-2); }
+  /* More's rows come in groups (share and save, this area, the map, about it): space, not headings. */
+  .lrow.gap { margin-top: var(--s4); border-top: 1px solid var(--line); }
 
   /* ================= components ================= */
   .btn {
@@ -304,7 +309,8 @@
   #r-water.hit { color: var(--teal-ink); font-weight: 700; }
   #r-ground { color: var(--dim); }
   #r-ground.near { color: var(--red-ink); font-weight: 600; }
-  .shelter { display: flex; align-items: flex-start; gap: var(--s2); width: 100%; margin-top: 0.35rem; font-size: 0.9rem; text-align: left; border-radius: var(--r-sm); }
+  .shelter { display: flex; align-items: flex-start; gap: var(--s2); width: 100%; margin-top: 0.35rem; font-size: 0.9rem; text-align: left; border-radius: var(--r-sm); min-height: var(--tap); padding: 0.2rem 0; }
+  .shelter[aria-pressed="true"] { background: var(--surface-2); }       /* a route is on the map */
   .shelter svg.i { width: 1.1rem; height: 1.1rem; color: var(--river-green); margin-top: 0.1rem; }
   .shelter svg.i.go { align-self: center; margin-top: 0; color: var(--dim); }
   #r-shelter { flex: 1 1 auto; min-width: 0; }
@@ -595,20 +601,20 @@
   <!-- EARTH, SIGNAL, INSIGHT for the point under the reticle - then ACTION, one tap away. -->
   <section id="sheet" hidden>
     <div class="insight" aria-live="polite">
-      <div class="earth">
+      <!-- Tap the place to see its coordinates; whose position it is (GPS or crosshair) always shows. -->
+      <button class="earth" id="coords-toggle" aria-expanded="false">
         <svg class="i" aria-hidden="true"><use href="#i-pin"/></svg>
         <span class="txt"><span id="r-place"></span><span id="r-coords"></span></span>
-      </div>
+      </button>
       <div class="persp"><span class="tag"><span class="mk signal"></span><span data-t="satTag"></span></span><span id="r-water"></span></div>
       <div class="persp"><span class="tag"><span class="mk field"></span><span data-t="groundTag"></span></span><span id="r-ground"></span></div>
-      <div class="shelter"><svg class="i" aria-hidden="true"><use href="#i-shelter"/></svg><span id="r-shelter"></span></div>
+      <!-- The shelter line IS the route button: it already says where the road goes and how far. -->
+      <button class="shelter" id="btn-route" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-shelter"/></svg><span id="r-shelter"></span><svg class="i go" aria-hidden="true"><use href="#i-chevron"/></svg></button>
     </div>
-    <!-- The four things a responder does here, then More for everything else. -->
+    <!-- The two things a responder records here, then More for everything else. -->
     <div id="actions">
-      <button class="act" id="btn-route" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-shelter"/></svg><span class="lbl" id="route-label"></span></button>
       <button class="act" id="btn-water"><svg class="i" aria-hidden="true"><use href="#i-water"/></svg><span class="lbl" data-t="waterHere"></span><span class="n" id="n-water"></span></button>
       <button class="act" id="btn-road"><svg class="i" aria-hidden="true"><use href="#i-road"/></svg><span class="lbl" data-t="roadCut"></span><span class="n" id="n-road"></span></button>
-      <button class="act" id="btn-share"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg><span class="lbl" data-t="sharePack"></span></button>
       <button class="act more" id="tool-more" aria-pressed="false"><span class="lbl" data-t="more"></span><span class="badge" id="nav-count" hidden></span></button>
     </div>
   </section>

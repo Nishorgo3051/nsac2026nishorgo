@@ -50,6 +50,14 @@ const PANELS = ["more", "layers", "alerts", "area", "reports", "source", "packs"
    to fetch from, so the pack can be embedded in the page instead - as the pack file's exact text,
    so the fingerprint worked out from it matches the one recorded when the pack was built. */
 const EMBEDDED_TEXT = typeof globalThis.INGITO_PACK_TEXT === "string" ? globalThis.INGITO_PACK_TEXT : null;
+
+/* The sensor that made the open pack's flood layer, as the pack itself names it. Labels follow the
+   pack, so a NISAR observation is never shown as Sentinel-1 (and a Sentinel-1 pack reads as before). */
+const sensorName = () => state.pack?.observation?.sensor || "Sentinel-1";
+const bandPol = () => {
+  const o = state.pack?.observation || {};
+  return `${(o.sensor_detail || "").match(/[A-Z]-band/)?.[0] || "C-band"} SAR, ${o.polarization || "VH"}`;
+};
 const FONT = '"Inter", "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif';
 
 /*
@@ -184,19 +192,19 @@ const STRINGS = {
     layerSubs: {
       photo: (d) => `Sentinel-2 · ${d} · before the flood`, terrain: "Copernicus DEM", waterways: "OpenStreetMap",
       roads: "OpenStreetMap", places: "OpenStreetMap, GeoNames", shelters: "Mosques, schools, clinics · OpenStreetMap",
-      admin: "Official upazila outlines", flood: (d) => `Sentinel-1 radar · ${d}`,
+      admin: "Official upazila outlines", flood: (d) => `${sensorName()} radar · ${d}`,
       wet: "Calculated from the radar layer", reports: "Stored on this phone",
     },
     layersNote: "Village roads, streams and small places appear as you zoom in.",
     alertsTitle: "Alerts from the satellite",
-    alertsLead: (date) => `What Sentinel-1 radar saw on ${date}, upazila by upazila. Most water first.`,
+    alertsLead: (date) => `What ${sensorName()} radar saw on ${date}, upazila by upazila. Most water first.`,
     newWater: "New open water",
     sev: { wide: "Widespread", patchy: "Patchy", little: "Little" },
     locLine: (district, division) => `Upazila · ${district} district${division ? ` · ${division} Division` : ""}`,
     whenLine: (date, time, base) => `${date}, ${time} · compared with ${base}`,
     why: (km2, pct) => `${km2} km² of land newly under open water: ${pct}% of the upazila.`,
     roadsCross: (n, count) => (count === 1 ? " One road crosses it." : count ? ` ${n} roads cross it.` : ""),
-    basis: "Based on Sentinel-1 SAR · open water only",
+    get basis() { return `Based on ${sensorName()} SAR · open water only`; },
     viewArea: "View area",
     districtTitle: (d) => `${d} district`,
     districtWhy: (km2, patches) => `${km2} km² of new open water, in ${patches} separate patches.`,
@@ -205,7 +213,7 @@ const STRINGS = {
     coordLine: (lat, lon, km2) => `${lat} N, ${lon} E · ${km2} km²`,
     overview: (name, km2, pct, top) => `Radar saw ${km2} km² of new open water in ${name}: ${pct}% of the upazila${top ? ", the highest share in the district" : ""}.`,
     noOverview: "The radar layer has no figure for this upazila.",
-    signalLine: (platform, date, time) => `${platform} · C-band SAR, VH polarisation · ${date}, ${time}`,
+    signalLine: (platform, date, time) => `${platform} · ${bandPol()} polarisation · ${date}${time ? `, ${time}` : ""}`,
     signalWhat: "Radar sees calm, open water as dark. Water among crops, trees and houses is missed, so the real extent is larger than this.",
     changeLine: (before, during, km2) => `From ${before} to ${during}: ${km2} km² more open water.`,
     placesHere: (n) => `${n} named places`,
@@ -367,19 +375,19 @@ const STRINGS = {
     layerSubs: {
       photo: (d) => `Sentinel-2 · ${d} · বন্যার আগের`, terrain: "Copernicus DEM", waterways: "OpenStreetMap",
       roads: "OpenStreetMap", places: "OpenStreetMap, GeoNames", shelters: "মসজিদ, স্কুল, ক্লিনিক · OpenStreetMap",
-      admin: "সরকারি উপজেলা-সীমানা", flood: (d) => `Sentinel-1 রাডার · ${d}`,
+      admin: "সরকারি উপজেলা-সীমানা", flood: (d) => `${sensorName()} রাডার · ${d}`,
       wet: "রাডারের পানি থেকে হিসাব করা", reports: "এই ফোনে জমা",
     },
     layersNote: "কাছে গেলে গ্রামের রাস্তা, ছোট খাল আর ছোট জায়গার নাম দেখা যায়।",
     alertsTitle: "স্যাটেলাইটের সতর্কবার্তা",
-    alertsLead: (date) => `${date} তারিখে Sentinel-1 রাডার কোন উপজেলায় কী দেখেছে। যেখানে পানি বেশি, সেটি আগে।`,
+    alertsLead: (date) => `${date} তারিখে ${sensorName()} রাডার কোন উপজেলায় কী দেখেছে। যেখানে পানি বেশি, সেটি আগে।`,
     newWater: "নতুন খোলা পানি",
     sev: { wide: "বিস্তৃত", patchy: "বিক্ষিপ্ত", little: "সামান্য" },
     locLine: (district, division) => `উপজেলা · ${district} জেলা${division ? ` · ${division} বিভাগ` : ""}`,
     whenLine: (date, time, base) => `${date}, ${time} · ${base}-এর তুলনায়`,
     why: (km2, pct) => `${km2} বর্গকিমি জমি নতুন করে খোলা পানির নিচে — উপজেলার ${pct}%।`,
     roadsCross: (n, count) => (count ? ` এর ওপর দিয়ে গেছে ${n}টি রাস্তা।` : ""),
-    basis: "Sentinel-1 SAR-এর ভিত্তিতে · শুধু খোলা পানি",
+    get basis() { return `${sensorName()} SAR-এর ভিত্তিতে · শুধু খোলা পানি`; },
     viewArea: "এলাকাটি দেখুন",
     districtTitle: (d) => `${d} জেলা`,
     districtWhy: (km2, patches) => `${patches}টি আলাদা জায়গায় মোট ${km2} বর্গকিমি নতুন খোলা পানি।`,
@@ -388,7 +396,7 @@ const STRINGS = {
     coordLine: (lat, lon, km2) => `${lat} N, ${lon} E · ${km2} বর্গকিমি`,
     overview: (name, km2, pct, top) => `${name} উপজেলার ${pct}% জায়গায়, মোট ${km2} বর্গকিমি, রাডারে নতুন খোলা পানি ধরা পড়েছে${top ? "। জেলায় এটিই সবচেয়ে বেশি" : ""}।`,
     noOverview: "রাডারের স্তরে এই উপজেলার কোনো হিসাব নেই।",
-    signalLine: (platform, date, time) => `${platform} · C-band SAR, VH · ${date}, ${time}`,
+    signalLine: (platform, date, time) => `${platform} · ${bandPol()} · ${date}${time ? `, ${time}` : ""}`,
     signalWhat: "রাডারে স্থির, খোলা পানি কালো দেখায়। ফসল, গাছপালা আর ঘরবাড়ির মাঝের পানি ধরা পড়ে না, তাই আসল পানি এর চেয়ে বেশি।",
     changeLine: (before, during, km2) => `${before} থেকে ${during}: খোলা পানি বেড়েছে ${km2} বর্গকিমি।`,
     placesHere: (n) => `নামসহ ${n}টি জায়গা`,
@@ -1166,6 +1174,12 @@ function resize() {
   const ratio = globalThis.devicePixelRatio || 1;
   canvas.width = Math.round(canvas.clientWidth * ratio);
   canvas.height = Math.round(canvas.clientHeight * ratio);
+  // A pack opened while the map had no size (an embedding frame still loading) was fitted to zero
+  // pixels, which leaves no scale at all: fit it again now that the map has one.
+  if (state.pack && canvas.width && canvas.height && !(state.view.ppd > 0 && Number.isFinite(state.view.ppd))) {
+    openOnWater(state.pack);
+    updateReadout();
+  }
 }
 
 function linePath(coords) {
@@ -1833,7 +1847,8 @@ function updateReadout() {
   // Whose position this is comes first: without a fix it is the crosshair, not the operator.
   const who = gpsHere() ? text.whoGps(num(Math.round(state.fix.accuracy || 0)))
     : state.fix ? text.whoFar : text.whoCross;
-  el("r-coords").textContent = `${who} · ${point[1].toFixed(4)}, ${point[0].toFixed(4)}`;
+  // The numbers wait behind a tap on the place: who is being located is the part that matters here.
+  el("r-coords").textContent = state.showCoords ? `${who} · ${point[1].toFixed(4)}, ${point[0].toFixed(4)}` : who;
 
   const onWater = state.stats.inWater(point[0], point[1]);
   const nearby = state.reports.filter((report) =>
@@ -1847,6 +1862,9 @@ function updateReadout() {
   const ground = el("r-ground");
   ground.textContent = nearby ? text.groundNear(num(nearby)) : onWater ? text.groundNone : text.limitShort;
   ground.className = nearby ? "near" : "";
+  // On radar water with no report the line would only say "nothing recorded": it steps aside. The
+  // radar's blind spot on dry-looking ground, and any report nearby, always show.
+  ground.parentElement.hidden = !nearby && onWater;
 
   let nearest = null;
   for (const shelter of pack.context.shelters || []) {
@@ -2412,6 +2430,10 @@ function renderPacks() {
       <button class="btn primary" id="pack-save">${text.savePack}</button>
       <button class="btn" id="pack-other-btn">${text.openOther}</button>
     </div>
+    ${(state.found?.list || []).filter((entry) => entry.pack_id !== (pack.subset_of?.pack_id || pack.pack_id)).map((entry) => `
+      <p class="plain"><b>${esc(entry.name)}</b><br>${esc(entry.sensor)} ${fmtDate(entry.acquisition_date)} &middot; ${num(esc(entry.size_mb))} MB</p>
+      <button class="btn wide" data-pack="${esc(state.found.base + entry.file)}"
+        data-bytes="${Math.round(entry.size_mb * 1048576)}">${text.downloadPack}</button>`).join("")}
     <input type="file" id="pack-other" accept=".json,application/json" hidden>
     ${EMBEDDED_TEXT && state.packText !== EMBEDDED_TEXT ? `<button class="btn wide" id="pack-full">${text.backToFull}</button>` : ""}
     <p class="plain" id="packs-say" role="status"></p>
@@ -2435,6 +2457,8 @@ function renderPacks() {
   el("pack-save").addEventListener("click", (event) =>
     framedStop(event, packsSay) || saveFile(state.packText, `${pack.pack_id}.pack.json`));
   el("pack-other-btn").addEventListener("click", () => el("pack-other").click());
+  panel.querySelectorAll("[data-pack]").forEach((button) =>
+    button.addEventListener("click", () => getPack(button, el("packs-say"))));
   el("pack-other").addEventListener("change", (event) =>
     openPackFile(event.target.files[0], packsSay));
   el("pack-full")?.addEventListener("click", async () => {
@@ -2462,6 +2486,13 @@ function renderPacks() {
 */
 const MORE = {
   print: (event, say) => framedStop(event, say) || printMap(),
+  // Share: the pack is saved as a file, and the note says how to pass it on - the phone's own
+  // Quick Share or Bluetooth does the sending.
+  share: (event, say) => {
+    if (framedStop(event, say)) return;
+    saveFile(state.packText, `${state.pack.pack_id}.pack.json`);
+    say(S().packsNote);
+  },
   lens: () => { closePanel(); setLens(true); },
   area: openHere,
   label: () => {
@@ -2481,15 +2512,17 @@ const MORE = {
 function renderMore() {
   const text = S();
   const pack = state.pack;
-  const row = (key, words) => `<button class="lrow" data-more="${key}"><span class="txt"><b>${esc(words)}</b></span></button>`;
+  // Four groups, set apart by space rather than headings: share and save, this area, the map, and
+  // what this map is. The first row of each later group carries the gap.
+  const row = (key, words, gap = false) =>
+    `<button class="lrow${gap ? " gap" : ""}" data-more="${key}"><span class="txt"><b>${esc(words)}</b></span></button>`;
   el("more-list").innerHTML = row("reports", text.reportsTitle(num(state.reports.length))) +
     (state.reports.some((report) => report.via !== "sms")
       ? `<a class="lrow" id="more-sms" href="sms:?&body=${encodeURIComponent(smsBody())}"><span class="txt"><b>${text.smsSend}</b></span></a>` : "") +
-    row("print", text.printBtn) + row("packs", text.packs) + row("layers", text.layers) +
-    (pack.imagery ? row("lens", text.lens) : "") +
-    row("alerts", text.alerts) + row("area", text.area) + row("source", text.source) +
-    row("label", state.lang === "bn" ? pack.name_bn || pack.name : pack.name) +
-    row("theme", state.theme === "dark" ? text.toLight : text.toDark);
+    row("share", text.sharePack) + row("packs", text.packs) + row("print", text.printBtn) +
+    row("alerts", text.alerts, true) + row("area", text.area) + (pack.imagery ? row("lens", text.lens) : "") +
+    row("layers", text.layers, true) + row("theme", state.theme === "dark" ? text.toLight : text.toDark) +
+    row("source", text.source, true) + row("label", state.lang === "bn" ? pack.name_bn || pack.name : pack.name);
   const say = (words) => { el("more-say").textContent = words; };
   el("more-sms")?.addEventListener("click", (event) => framedStop(event, say));
   el("more-list").querySelectorAll("[data-more]").forEach((button) => button.addEventListener("click", (event) =>
@@ -2964,7 +2997,6 @@ function applyLang() {
     button.setAttribute("aria-pressed", String(button.dataset.lang === state.lang)));
   document.querySelectorAll("[data-t]").forEach((node) => { node.textContent = text[node.dataset.t]; });
   el("lens-text").textContent = text.lens;
-  el("route-label").textContent = text.layerNames.route;
   el("more-close").setAttribute("aria-label", text.close);
   el("tool-locate").setAttribute("aria-label", text.locate);
   el("zoom-in").setAttribute("aria-label", text.zoomIn);
@@ -3090,7 +3122,7 @@ async function listPacks() {
 
 /* Download with a byte count. This is the one moment before deployment when somebody on a poor
    connection must decide whether to keep waiting, so it shows a number, not a spinner. */
-async function downloadText(url, expectedBytes) {
+async function downloadText(url, expectedBytes, out = el("progress")) {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const total = Number(response.headers.get("Content-Length")) || expectedBytes || 0;
@@ -3103,7 +3135,7 @@ async function downloadText(url, expectedBytes) {
     if (done) break;
     chunks.push(value);
     received += value.length;
-    el("progress").textContent = S().downloading(num((received / 1048576).toFixed(1)),
+    out.textContent = S().downloading(num((received / 1048576).toFixed(1)),
       total ? num((total / 1048576).toFixed(1)) : "", num(total ? Math.floor((100 * received) / total) : 0));
   }
   const bytes = new Uint8Array(received);
@@ -3130,23 +3162,26 @@ function renderGate() {
       <span>${text.mapArea(num(esc(entry.area_km2)))}</span></div>
     <button class="btn wide primary" data-pack="${esc(found.base + entry.file)}"
       data-bytes="${Math.round(entry.size_mb * 1048576)}">${text.downloadPack}</button>`).join("");
-  card.querySelectorAll("[data-pack]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      button.disabled = true;
-      el("progress").textContent = S().starting;
-      try {
-        const packText = await downloadText(button.dataset.pack, Number(button.dataset.bytes));
-        el("progress").textContent = S().storing;
-        const kept = await cachePack(packText);
-        openPack(packText, { key: kept ? "device" : "downloadedNotStored" });
-        el("progress").textContent = kept ? "" : S().refusedStorage;
-        startWatching();
-      } catch (error) {
-        button.disabled = false;
-        el("progress").textContent = S().couldNot(error.message);
-      }
-    });
-  });
+  card.querySelectorAll("[data-pack]").forEach((button) =>
+    button.addEventListener("click", () => getPack(button, el("progress"))));
+}
+
+/* Download a listed pack, store it, open it: from the first screen, or from the Packs sheet when the
+   page already holds a pack. The byte count shows in `out`, beside the button that was pressed. */
+async function getPack(button, out) {
+  button.disabled = true;
+  out.textContent = S().starting;
+  try {
+    const packText = await downloadText(button.dataset.pack, Number(button.dataset.bytes), out);
+    out.textContent = S().storing;
+    const kept = await cachePack(packText);
+    openPack(packText, { key: kept ? "device" : "downloadedNotStored" });
+    out.textContent = kept ? "" : S().refusedStorage;
+    if (!state.watching) startWatching();
+  } catch (error) {
+    button.disabled = false;
+    out.textContent = S().couldNot(error.message);
+  }
 }
 
 async function boot() {
@@ -3199,6 +3234,8 @@ async function boot() {
     try {
       openPack(stored, { key: "device" });
       startWatching();
+      // Other packs on offer, for the Packs sheet; with no network this quietly finds nothing.
+      listPacks().then((found) => { state.found = found; });
       return;
     } catch (error) {
       /* a corrupt stored pack must not lock the operator out: fall through to the gate */
@@ -3206,7 +3243,10 @@ async function boot() {
   }
 
   const found = await listPacks();
-  if ((!found || !found.list.length) && EMBEDDED_TEXT) {
+  state.found = found;
+  // A page that carries its own pack opens straight onto that map; any other listed packs wait in
+  // Packs. Only a page with no pack of its own starts on the choice of packs.
+  if (EMBEDDED_TEXT) {
     try {
       const kept = await cachePack(EMBEDDED_TEXT);
       openPack(EMBEDDED_TEXT, { key: kept ? "embeddedKept" : "embedded" });
@@ -3243,12 +3283,23 @@ async function openPackFile(file, say) {
 
 /*
   One finger pans - or, in Before / After, drags the line when it starts on it. Two fingers pinch
-  to zoom about the point between them. Nothing moves on its own except a glide the operator asked
-  for, and touching the map stops that too.
+  to zoom about the point between them. Nothing moves on its own: a flick carries on at the finger's
+  own speed and slows to a stop, like a page scrolled on a phone, and touching the map stops it.
+  Past the edge of the pack the map resists, more the further it goes, so it cannot be lost.
 */
 function bind() {
   const pointers = new Map();
   let gesture = null;
+  let fling = 0;                       // the frame request of a flick still moving, 0 when still
+  const trail = [];                    // the last pointer positions of a pan, for the release speed
+  const stillMotion = () => globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  // Resistance past an edge (Apple's rubber band): the further past, the less the map follows.
+  const give = (value, low, high, pxPerUnit, size) => {
+    const over = value < low ? value - low : value > high ? value - high : 0;
+    if (!over) return value;
+    const px = over * pxPerUnit;
+    return value - over + (px * size * 0.55) / (size + 0.55 * Math.abs(px)) / pxPerUnit;
+  };
   const at = (event) => {
     const box = canvas.getBoundingClientRect();
     return { x: event.clientX - box.left, y: event.clientY - box.top, width: box.width };
@@ -3257,6 +3308,9 @@ function bind() {
 
   canvas.addEventListener("pointerdown", (event) => {
     closeResults();
+    cancelAnimationFrame(fling);       // a finger on the map stops a flick at once
+    fling = 0;
+    trail.length = 0;
     try {
       canvas.setPointerCapture(event.pointerId);
     } catch (error) { /* a pointer already gone must not cost the gesture its second finger */ }
@@ -3289,18 +3343,65 @@ function bind() {
     } else if (gesture.kind === "pan") {
       hideNote();                // moving on: the box steps aside so the reticle is never hidden
       const squeeze = Math.cos((state.view.lat * Math.PI) / 180);
-      state.view.lon = gesture.lon - ((p.x - gesture.x) * ratio) / (state.view.ppd * squeeze);
-      state.view.lat = gesture.lat + ((p.y - gesture.y) * ratio) / state.view.ppd;
+      const [west, south, east, north] = state.pack.coverage.bbox;
+      // A drag that starts past the edge resists only beyond where it started: nothing jumps.
+      state.view.lon = give(gesture.lon - ((p.x - gesture.x) * ratio) / (state.view.ppd * squeeze),
+                            Math.min(west, gesture.lon), Math.max(east, gesture.lon), state.view.ppd * squeeze, canvas.width);
+      state.view.lat = give(gesture.lat + ((p.y - gesture.y) * ratio) / state.view.ppd,
+                            Math.min(south, gesture.lat), Math.max(north, gesture.lat), state.view.ppd, canvas.height);
+      trail.push({ x: p.x, y: p.y, t: event.timeStamp });
+      if (trail.length > 6) trail.shift();
       draw();
     }
   });
+  // A flick: keep moving at the release speed and slow down as a phone scroll does (Apple's 0.998
+  // per millisecond). It stops at the pack's edge rather than throwing the map off it.
+  const flick = () => {
+    const last = trail[trail.length - 1];
+    const first = trail.find((point) => last.t - point.t <= 100) || last;
+    const ms = last.t - first.t;
+    if (stillMotion() || ms <= 0) return false;
+    let vx = (last.x - first.x) / ms;  // CSS pixels per millisecond
+    let vy = (last.y - first.y) / ms;
+    if (Math.hypot(vx, vy) < 0.3) return false;
+    const ratio = globalThis.devicePixelRatio || 1;
+    let before = performance.now();
+    // The clock is read here, not taken from the frame: a frame's own time can be earlier than the
+    // release, and a step back in time would throw the map the wrong way.
+    const step = () => {
+      const now = performance.now();
+      const dt = Math.max(0, Math.min(now - before, 50));
+      before = now;
+      const slow = 0.998 ** dt;
+      vx *= slow;
+      vy *= slow;
+      const squeeze = Math.cos((state.view.lat * Math.PI) / 180);
+      const [west, south, east, north] = state.pack.coverage.bbox;
+      const dLon = (-vx * dt * ratio) / (state.view.ppd * squeeze);
+      const dLat = (vy * dt * ratio) / state.view.ppd;
+      if ((state.view.lon <= west && dLon < 0) || (state.view.lon >= east && dLon > 0)) vx = 0;
+      else state.view.lon += dLon;
+      if ((state.view.lat <= south && dLat < 0) || (state.view.lat >= north && dLat > 0)) vy = 0;
+      else state.view.lat += dLat;
+      draw();
+      if (Math.hypot(vx, vy) > 0.02) {
+        fling = requestAnimationFrame(step);
+      } else {
+        fling = 0;
+        updateReadout();
+      }
+    };
+    fling = requestAnimationFrame(step);
+    return true;
+  };
   const end = (event) => {
     pointers.delete(event.pointerId);
     if (pointers.size === 1 && gesture?.kind === "pinch") {
       gesture = startPan([...pointers.values()][0]);   // lift one finger: keep panning with the other
     } else if (pointers.size === 0) {
+      const flung = gesture?.kind === "pan" && trail.length > 1 && flick();
       gesture = null;
-      updateReadout();
+      if (!flung) updateReadout();
     }
   };
   canvas.addEventListener("pointerup", end);
@@ -3320,12 +3421,10 @@ function bind() {
   el("btn-route").addEventListener("click", toggleRoute);
   el("btn-water").addEventListener("click", () => addReport("water_here"));
   el("btn-road").addEventListener("click", () => addReport("road_cut"));
-  // Share: the pack is saved as a file, and the note says how to pass it on - the phone's own
-  // Quick Share or Bluetooth does the sending.
-  el("btn-share").addEventListener("click", (event) => {
-    if (framedStop(event, () => showNote("say", { key: "framedNote" }, false))) return;
-    saveFile(state.packText, `${state.pack.pack_id}.pack.json`);
-    showNote("say", { key: "packsNote" }, false);
+  el("coords-toggle").addEventListener("click", () => {
+    state.showCoords = !state.showCoords;
+    el("coords-toggle").setAttribute("aria-expanded", String(state.showCoords));
+    updateReadout();
   });
   el("tool-more").addEventListener("click", () => togglePanel("more"));
   el("confirm-undo").addEventListener("click", undoLast);
